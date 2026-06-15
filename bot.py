@@ -513,4 +513,5 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
     asyncio.run(main())
