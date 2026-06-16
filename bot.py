@@ -453,7 +453,7 @@ async def block_pv(event):
         msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
         await send_with_bot_photo(event.chat_id, msg)
 
-# ======== ⭐ قفل تلقائي 12:30 - 9:00 ⭐ ========
+# ======== ⭐ قفل تلقائي ⭐ ========
 async def auto_lock_unlock():
     global chat_locked
     while True:
@@ -466,15 +466,10 @@ async def auto_lock_unlock():
                 await client.edit_permissions(GROUP_ID, send_messages=False)
                 await client.send_message(GROUP_ID, f"""
 🔒 **تم إغلاق المحادثة** 🔒
-
 ⏰ الساعة: 12:30 منتصف الليل
 🔐 السبب: لأسباب تتعلق بالأمان
-
 🚫 لا يمكن لأي عضو الإرسال حتى الساعة 9:00 صباحاً
-
-🛡️ **PIPO BOT**
-👑 @{DEVELOPER_USERNAME}""")
-                print("🔒 تم إغلاق المجموعة")
+🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
         
         if hour == 9 and minute == 0 and chat_locked:
@@ -483,13 +478,9 @@ async def auto_lock_unlock():
                 await client.edit_permissions(GROUP_ID, send_messages=True)
                 await client.send_message(GROUP_ID, f"""
 🔓 **تم فتح المحادثة** 🔓
-
 ⏰ الساعة: 9:00 صباحاً
 ✅ يمكن للجميع الإرسال الآن
-
-🛡️ **PIPO BOT**
-👑 @{DEVELOPER_USERNAME}""")
-                print("🔓 تم فتح المجموعة")
+🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
         
         await asyncio.sleep(30)
@@ -510,8 +501,22 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
     BOT_ID = me.id
+    
+    # ⭐ قفل فوري عند التشغيل
+    global chat_locked
+    try:
+        await client.edit_permissions(GROUP_ID, send_messages=False)
+        await client.send_message(GROUP_ID, f"""
+🔒 **تم إغلاق المحادثة** 🔒
+⏰ السبب: تم تشغيل البوت - قفل مؤقت
+🔐 سيتم الفتح التلقائي الساعة 9:00 صباحاً
+🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
+        chat_locked = True
+    except: pass
+    
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
+    print(f"🔒 قفل فوري عند التشغيل")
     print(f"🔒 قفل تلقائي: 12:30 - 9:00")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
