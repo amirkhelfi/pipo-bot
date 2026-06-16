@@ -20,6 +20,7 @@ mute_status = {}
 mute_duration = 300
 link_protection = True
 forward_protection = True
+chat_locked = False  # ⭐ حالة القفل
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -33,7 +34,6 @@ BAD_WORDS = [
     r'(ني6|نق/ش|طي+ز|زب+|شر+موطة|قح+بة)',
 ]
 
-# ⭐ كل الروابط ممنوعة - محدث
 LINK_PATTERNS = [
     r'https?://\S+',
     r'http?://\S+',
@@ -224,45 +224,37 @@ async def protect_links_and_forwards(event):
         await event.delete()
         warn_msg = await event.reply(f"🚫 **{name}** ممنوع إرسال الروابط بجميع أنواعها!\n👑 @{DEVELOPER_USERNAME}")
         asyncio.create_task(delete_after_delay(warn_msg, 10))
-        try: await client.send_message(uid, f"⚠️ ممنوع إرسال الروابط في المجموعة!\n👑 @{DEVELOPER_USERNAME}")
-        except: pass
         return
     
     if forward_protection and is_forward(msg):
         await event.delete()
         warn_msg = await event.reply(f"🚫 **{name}** ممنوع إرسال الرسائل المعاد توجيهها!\n👑 @{DEVELOPER_USERNAME}")
         asyncio.create_task(delete_after_delay(warn_msg, 10))
-        try: await client.send_message(uid, f"⚠️ ممنوع إعادة التوجيه!\n👑 @{DEVELOPER_USERNAME}")
-        except: pass
         return
 
-# ======== ⭐ أوامر التحكم بالحماية ⭐ ========
+# ======== ⭐ أوامر الحماية ⭐ ========
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_الروابط'))
 async def enable_link_protection(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global link_protection
-    link_protection = True
+    global link_protection; link_protection = True
     await event.reply(f"✅ **تم تفعيل حماية الروابط**\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_الروابط'))
 async def disable_link_protection(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global link_protection
-    link_protection = False
+    global link_protection; link_protection = False
     await event.reply(f"❌ **تم تعطيل حماية الروابط**\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_التوجيه'))
 async def enable_forward_protection(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global forward_protection
-    forward_protection = True
+    global forward_protection; forward_protection = True
     await event.reply(f"✅ **تم تفعيل حماية التوجيه**\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_التوجيه'))
 async def disable_forward_protection(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global forward_protection
-    forward_protection = False
+    global forward_protection; forward_protection = False
     await event.reply(f"❌ **تم تعطيل حماية التوجيه**\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/حالة_الحماية'))
@@ -273,11 +265,12 @@ async def protection_status(event):
 🔗 الروابط: {'✅ مفعلة' if link_protection else '❌ معطلة'}
 ↩️ التوجيه: {'✅ مفعلة' if forward_protection else '❌ معطلة'}
 🤬 السب: ✅ مفعلة
+🔒 القفل الليلي: {'✅ مفعل' if chat_locked else '🔓 مفتوح'}
 
 👑 @{DEVELOPER_USERNAME}
 """)
 
-# ======== ⭐ ديديكاس (للمطور فقط) ⭐ ========
+# ======== ⭐ ديديكاس ⭐ ========
 @client.on(events.NewMessage(pattern='/ديرلهم_ديديكاس'))
 async def dedikas(event):
     sender = await event.get_sender()
@@ -286,7 +279,7 @@ async def dedikas(event):
         return
     await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ أمر المطور ⭐ ========
+# ======== ⭐ المطور ⭐ ========
 @client.on(events.NewMessage(pattern='/المطور'))
 async def dev_info(event):
     if DEV_VIDEO_DATA:
@@ -296,7 +289,7 @@ async def dev_info(event):
 👑ℙ𝕚𝕡𝕠 ¹⁹
 📍 Sétif""")
 
-# ======== ⭐ حفظ فيديو المطور ⭐ ========
+# ======== ⭐ فيديو المطور ⭐ ========
 @client.on(events.NewMessage(pattern='/فيديو_المطور'))
 async def set_dev_video(event):
     sender = await event.get_sender()
@@ -359,7 +352,7 @@ async def handle_buttons(event):
     elif data == "bot_status":
         await event.answer("📊 حالة البوت")
         muted = len([u for u in mute_status if mute_status[u]['until'] > time.time()])
-        await event.reply(f"📊 **حالة البوت**\n\n🔇 مكتوم: {muted}\n⏰ مدة الكتم: {mute_duration // 60} دقائق\n🔗 الروابط: {'✅' if link_protection else '❌'}\n↩️ التوجيه: {'✅' if forward_protection else '❌'}\n👑 @{DEVELOPER_USERNAME}")
+        await event.reply(f"📊 **حالة البوت**\n\n🔇 مكتوم: {muted}\n⏰ مدة الكتم: {mute_duration // 60} دقائق\n🔗 الروابط: {'✅' if link_protection else '❌'}\n↩️ التوجيه: {'✅' if forward_protection else '❌'}\n🔒 القفل: {'✅' if chat_locked else '🔓'}\n👑 @{DEVELOPER_USERNAME}")
     elif data == "get_id":
         await event.answer("🆔 الآيدي")
         await event.reply(f"🆔 **Chat ID:** `{event.chat_id}`\n💬 **المجموعة:** `{GROUP_ID}`")
@@ -410,7 +403,7 @@ async def filter_bad(event):
         await event.reply(f"**{name}** مكتوم {mute_duration // 60} دقائق!\nالسبب: سب!\n@{DEVELOPER_USERNAME}")
     except: pass
 
-# ======== ⭐ ترحيب (مُصلح) ⭐ ========
+# ======== ⭐ ترحيب لكل المجموعات ⭐ ========
 @client.on(events.ChatAction())
 async def welcome(event):
     if event.user_joined:
@@ -432,8 +425,7 @@ async def welcome(event):
             
             if WELCOME_MEDIA_DATA and WELCOME_MEDIA_TYPE:
                 success = await send_welcome_media(event.chat_id, welcome_msg)
-                if success:
-                    return
+                if success: return
             
             await client.send_message(event.chat_id, welcome_msg)
 
@@ -444,7 +436,7 @@ async def set_welcome_video(event):
     dev_media_mode[(await event.get_sender()).id] = 'welcome'
     await event.reply("ارسل الفيديو او الصورة في الخاص لحفظه كترحيب!")
 
-# ======== استقبال الميديا في الخاص ========
+# ======== استقبال الميديا ========
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.media))
 async def handle_dev_media(event):
     sender = await event.get_sender()
@@ -510,6 +502,52 @@ async def block_pv(event):
         msg = f"🚫 **الخاص مقفول!**\n\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n\n👑 المطور: @{DEVELOPER_USERNAME}"
         await send_with_bot_photo(event.chat_id, msg)
 
+# ======== ⭐ إغلاق وفتح تلقائي ⭐ ========
+async def auto_lock_unlock():
+    global chat_locked
+    while True:
+        now = datetime.datetime.now()
+        hour = now.hour
+        minute = now.minute
+        
+        if hour == 0 and minute == 0 and not chat_locked:
+            chat_locked = True
+            try:
+                await client.edit_permissions(GROUP_ID, send_messages=False)
+                await client.send_message(GROUP_ID, f"""
+🔒 **تم إغلاق المحادثة** 🔒
+
+⏰ الساعة: 12:00 منتصف الليل
+🔐 السبب: لأسباب تتعلق بالأمان
+
+🚫 لا يمكن لأي عضو الإرسال حتى الساعة 9:00 صباحاً
+
+🛡️ **PIPO BOT**
+👑 @{DEVELOPER_USERNAME}
+""")
+                print("🔒 تم إغلاق المجموعة")
+            except Exception as e:
+                print(f"خطأ إغلاق: {e}")
+        
+        if hour == 9 and minute == 0 and chat_locked:
+            chat_locked = False
+            try:
+                await client.edit_permissions(GROUP_ID, send_messages=True)
+                await client.send_message(GROUP_ID, f"""
+🔓 **تم فتح المحادثة** 🔓
+
+⏰ الساعة: 9:00 صباحاً
+✅ يمكن للجميع الإرسال الآن
+
+🛡️ **PIPO BOT**
+👑 @{DEVELOPER_USERNAME}
+""")
+                print("🔓 تم فتح المجموعة")
+            except Exception as e:
+                print(f"خطأ فتح: {e}")
+        
+        await asyncio.sleep(30)
+
 # ======== فك الكتم التلقائي ========
 async def auto_unmute():
     while True:
@@ -530,9 +568,9 @@ async def main():
     BOT_ID = me.id
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
-    print(f"🔗 حماية الروابط: {'✅' if link_protection else '❌'}")
-    print(f"↩️ حماية التوجيه: {'✅' if forward_protection else '❌'}")
+    print(f"🔒 قفل تلقائي: 12:00 - 9:00")
     asyncio.create_task(auto_unmute())
+    asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
