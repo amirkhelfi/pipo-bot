@@ -18,8 +18,8 @@ PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
 mute_status = {}
 mute_duration = 300
-link_protection = True  # ⭐ حماية الروابط مفعلة
-forward_protection = True  # ⭐ حماية التوجيه مفعلة
+link_protection = True
+forward_protection = True
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -33,12 +33,36 @@ BAD_WORDS = [
     r'(ني6|نق/ش|طي+ز|زب+|شر+موطة|قح+بة)',
 ]
 
-# ⭐ روابط + توجيه
+# ⭐ كل الروابط ممنوعة - محدث
 LINK_PATTERNS = [
     r'https?://\S+',
+    r'http?://\S+',
     r't\.me/\S+',
     r'telegram\.me/\S+',
     r'@\w+',
+    r'www\.\S+',
+    r'\S+\.com\b',
+    r'\S+\.net\b',
+    r'\S+\.org\b',
+    r'\S+\.io\b',
+    r'\S+\.app\b',
+    r'\S+\.xyz\b',
+    r'\S+\.tk\b',
+    r'\S+\.ml\b',
+    r'\S+\.ga\b',
+    r'\S+\.cf\b',
+    r'\S+\.gq\b',
+    r'tiktok\.com',
+    r'youtube\.com',
+    r'youtu\.be',
+    r'instagram\.com',
+    r'facebook\.com',
+    r'fb\.com',
+    r'twitter\.com',
+    r'x\.com',
+    r'snapchat\.com',
+    r'whatsapp\.com',
+    r'wa\.me',
 ]
 
 THE_ONLY_ROAST = "يا خو شحال تهدر بلع علينا فومك صدعتنا"
@@ -170,14 +194,12 @@ def contains_swear(text):
     return False
 
 def contains_link(text):
-    """⭐ فحص إذا النص فيه رابط"""
     if not text: return False
     for pattern in LINK_PATTERNS:
         if re.search(pattern, text, re.IGNORECASE): return True
     return False
 
 def is_forward(msg):
-    """⭐ فحص إذا الرسالة معاد توجيهها"""
     return bool(msg.forward)
 
 async def delete_after_delay(message, delay=60):
@@ -193,26 +215,24 @@ async def protect_links_and_forwards(event):
     
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
-    if sender and sender.username == DEVELOPER_USERNAME: return  # المطور مستثنى
+    if sender and sender.username == DEVELOPER_USERNAME: return
     
     msg = event.message
     uid = sender.id; name = sender.first_name or "مجهول"
     
-    # ⭐ فحص الروابط
     if link_protection and event.raw_text and contains_link(event.raw_text):
         await event.delete()
-        warn_msg = await event.reply(f"🚫 **{name}** ممنوع إرسال الروابط!\n👑 @{DEVELOPER_USERNAME}")
+        warn_msg = await event.reply(f"🚫 **{name}** ممنوع إرسال الروابط بجميع أنواعها!\n👑 @{DEVELOPER_USERNAME}")
         asyncio.create_task(delete_after_delay(warn_msg, 10))
         try: await client.send_message(uid, f"⚠️ ممنوع إرسال الروابط في المجموعة!\n👑 @{DEVELOPER_USERNAME}")
         except: pass
         return
     
-    # ⭐ فحص التوجيه
     if forward_protection and is_forward(msg):
         await event.delete()
         warn_msg = await event.reply(f"🚫 **{name}** ممنوع إرسال الرسائل المعاد توجيهها!\n👑 @{DEVELOPER_USERNAME}")
         asyncio.create_task(delete_after_delay(warn_msg, 10))
-        try: await client.send_message(uid, f"⚠️ ممنوع إعادة التوجيه في المجموعة!\n👑 @{DEVELOPER_USERNAME}")
+        try: await client.send_message(uid, f"⚠️ ممنوع إعادة التوجيه!\n👑 @{DEVELOPER_USERNAME}")
         except: pass
         return
 
@@ -290,17 +310,14 @@ async def delete_all_msgs(event):
     sender = await event.get_sender()
     if sender.username != DEVELOPER_USERNAME: return await event.reply(f"🚫 للمطور فقط!")
     if not event.is_private: return await event.reply("⚠️ هذا الأمر للخاص فقط!")
-    
     await event.reply("🗑️ جاري حذف كل رسائلي...")
     deleted, failed = 0, 0
-    
     for chat_id in [GROUP_ID] + PROTECTED_CHANNELS:
         try:
             async for msg in client.iter_messages(chat_id, from_user='me', limit=None):
                 try: await msg.delete(); deleted += 1; await asyncio.sleep(0.5)
                 except: failed += 1
         except: pass
-    
     await event.reply(f"✅ **تم الحذف!**\n\n🗑️ حذف: {deleted}\n❌ فشل: {failed}\n\n👑 @{DEVELOPER_USERNAME}")
 
 # ======== أمر معرفة الآيدي ========
@@ -312,10 +329,8 @@ async def get_chat_id(event):
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     sender = await event.get_sender()
-    
     if sender.username == DEVELOPER_USERNAME:
-        msg = f"""
-⚡ **PIPO BOT** ⚡
+        msg = f"""⚡ **PIPO BOT** ⚡
 
 👑 **أهلاً مطوري @{DEVELOPER_USERNAME}**
 
@@ -335,11 +350,9 @@ async def start(event):
 async def handle_buttons(event):
     data = event.data.decode('utf-8')
     sender = await event.get_sender()
-    
     if sender.username != DEVELOPER_USERNAME:
         await event.answer("🚫 للمطور فقط!", alert=True)
         return
-    
     if data == "mute_duration":
         await event.answer("⏰ مدة الكتم")
         await event.reply(f"⏰ **مدة الكتم:** {mute_duration // 60} دقائق\n📝 `/مدة_الكتم رقم`")
@@ -397,18 +410,31 @@ async def filter_bad(event):
         await event.reply(f"**{name}** مكتوم {mute_duration // 60} دقائق!\nالسبب: سب!\n@{DEVELOPER_USERNAME}")
     except: pass
 
-# ======== ترحيب ========
+# ======== ⭐ ترحيب (مُصلح) ⭐ ========
 @client.on(events.ChatAction())
 async def welcome(event):
     if event.user_joined:
         user = await event.get_user()
         if not user.bot:
-            await asyncio.sleep(2)
-            try: chat = await event.get_chat(); group_title = chat.title
-            except: group_title = "SUICIDE SQUAD"
-            welcome_msg = get_welcome_message(name=user.first_name or "لاعب", user_id=user.id, username=user.username or "لايوجد", group_title=group_title)
+            await asyncio.sleep(3)
+            try:
+                chat = await event.get_chat()
+                group_title = chat.title
+            except:
+                group_title = "SUICIDE SQUAD"
+            
+            welcome_msg = get_welcome_message(
+                name=user.first_name or "لاعب",
+                user_id=user.id,
+                username=user.username or "لايوجد",
+                group_title=group_title
+            )
+            
             if WELCOME_MEDIA_DATA and WELCOME_MEDIA_TYPE:
-                if await send_welcome_media(event.chat_id, welcome_msg): return
+                success = await send_welcome_media(event.chat_id, welcome_msg)
+                if success:
+                    return
+            
             await client.send_message(event.chat_id, welcome_msg)
 
 # ======== فيديو الترحيب ========
@@ -506,12 +532,8 @@ async def main():
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"🔗 حماية الروابط: {'✅' if link_protection else '❌'}")
     print(f"↩️ حماية التوجيه: {'✅' if forward_protection else '❌'}")
-    print(f"/تفعيل_حماية_الروابط | /تعطيل_حماية_الروابط")
-    print(f"/تفعيل_حماية_التوجيه | /تعطيل_حماية_التوجيه")
-    print(f"/حالة_الحماية")
     asyncio.create_task(auto_unmute())
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
     asyncio.run(main())
