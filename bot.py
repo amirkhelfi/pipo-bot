@@ -441,15 +441,18 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ منع الخاص (تم الإصلاح - بدون تكرار) ⭐ ========
+# ======== ⭐ منع الخاص - رسالة واحدة فقط ⭐ ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def block_pv(event):
     if event.out: return
     sender = await event.get_sender()
     if not sender: return
     if sender.username == DEVELOPER_USERNAME: return
-    msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
-    await send_with_bot_photo(event.chat_id, msg)
+    msg = f"🚫 الخاص مقفول!\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
+    try:
+        await event.reply(msg)
+    except:
+        pass
 
 # ======== ⭐ قفل تلقائي ⭐ ========
 async def auto_lock_unlock():
@@ -458,7 +461,6 @@ async def auto_lock_unlock():
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
-        # UTC 23:00 = توقيت الجزائر 00:00
         if hour == 23 and minute == 0 and not chat_locked:
             chat_locked = True
             try:
@@ -477,7 +479,6 @@ async def auto_lock_unlock():
 ╚══════════════════════════════╝""")
             except: pass
         
-        # UTC 11:00 = توقيت الجزائر 12:00
         if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
@@ -515,7 +516,6 @@ async def main():
     me = await client.get_me()
     BOT_ID = me.id
     
-    # ⭐ فتح فوري عند التشغيل
     global chat_locked
     try:
         await client.edit_permissions(GROUP_ID, send_messages=True)
