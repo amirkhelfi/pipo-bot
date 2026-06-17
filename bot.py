@@ -468,17 +468,17 @@ async def auto_lock_unlock():
 🔒 **تم إغلاق المحادثة** 🔒
 ⏰ الساعة: 12:30 منتصف الليل
 🔐 السبب: لأسباب تتعلق بالأمان
-🚫 لا يمكن لأي عضو الإرسال حتى الساعة 9:00 صباحاً
+🚫 لا يمكن لأي عضو الإرسال حتى الساعة 11:00 صباحاً
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
         
-        if hour == 9 and minute == 0 and chat_locked:
+        if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
                 await client.send_message(GROUP_ID, f"""
 🔓 **تم فتح المحادثة** 🔓
-⏰ الساعة: 9:00 صباحاً
+⏰ الساعة: 11:00 صباحاً
 ✅ يمكن للجميع الإرسال الآن
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
@@ -509,7 +509,7 @@ async def main():
         await client.send_message(GROUP_ID, f"""
 🔒 **تم إغلاق المحادثة** 🔒
 ⏰ السبب: تم تشغيل البوت - قفل مؤقت
-🔐 سيتم الفتح التلقائي الساعة 9:00 صباحاً
+🔐 سيتم الفتح التلقائي الساعة 11:00 صباحاً
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
         chat_locked = True
     except: pass
@@ -517,7 +517,8 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"🔒 قفل فوري عند التشغيل")
-    print(f"🔒 قفل تلقائي: 12:30 - 9:00")
+    print(f"🌙 قفل: 12:30 ليلاً")
+    print(f"☀️ فتح: 11:00 صباحاً")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
