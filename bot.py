@@ -441,21 +441,25 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
+# ======== ⭐ منع الخاص (تم الإصلاح - بدون تكرار) ⭐ ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def block_pv(event):
+    if event.out: return
     sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
-        await send_with_bot_photo(event.chat_id, msg)
+    if not sender: return
+    if sender.username == DEVELOPER_USERNAME: return
+    msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
+    await send_with_bot_photo(event.chat_id, msg)
 
-# ======== ⭐ قفل تلقائي 12:00 - 12:00 ⭐ ========
+# ======== ⭐ قفل تلقائي ⭐ ========
 async def auto_lock_unlock():
     global chat_locked
     while True:
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
-        if hour == 0 and minute == 0 and not chat_locked:
+        # UTC 23:00 = توقيت الجزائر 00:00
+        if hour == 23 and minute == 0 and not chat_locked:
             chat_locked = True
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=False)
@@ -463,22 +467,18 @@ async def auto_lock_unlock():
 ╔══════════════════════════════╗
 ║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
 ╠══════════════════════════════╣
-║                              ║
 ║  ⏰ الـسـاعـة: 12:00 لـيـلاً     ║
 ║  🌙 حـان وقـت الـنـوم           ║
-║                              ║
 ║  🚫 تـم قـفـل الـدردشـة        ║
-║  🔐 لأسباب تتعلق بالأمان        ║
-║                              ║
 ║  ⏳ يـعـاد فـتـحـهـا: 12:00 ظـهـراً ║
-║                              ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
 ╚══════════════════════════════╝""")
             except: pass
         
-        if hour == 12 and minute == 0 and chat_locked:
+        # UTC 11:00 = توقيت الجزائر 12:00
+        if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
@@ -486,13 +486,10 @@ async def auto_lock_unlock():
 ╔══════════════════════════════╗
 ║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
 ╠══════════════════════════════╣
-║                              ║
 ║  ⏰ الـسـاعـة: 12:00 ظـهـراً     ║
 ║  ☀️ صـبـاح الـخـيـر           ║
-║                              ║
 ║  ✅ تـم فـتـح الـدردشـة        ║
 ║  💬 يمـكـنـكـم الإرسـال الآن     ║
-║                              ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
@@ -518,30 +515,29 @@ async def main():
     me = await client.get_me()
     BOT_ID = me.id
     
+    # ⭐ فتح فوري عند التشغيل
     global chat_locked
     try:
-        await client.edit_permissions(GROUP_ID, send_messages=False)
+        await client.edit_permissions(GROUP_ID, send_messages=True)
+        chat_locked = False
         await client.send_message(GROUP_ID, f"""
 ╔══════════════════════════════╗
-║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
+║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
 ╠══════════════════════════════╣
-║                              ║
 ║  ⚡ تـم تـشـغـيـل الـبـوت        ║
-║  🔒 قـفـل مـؤقـت                ║
-║                              ║
-║  ⏳ يـعـاد فـتـحـهـا: 12:00 ظـهـراً ║
-║                              ║
+║  ✅ الـمـجـمـوعـة مـفـتـوحـة      ║
+║  💬 يمـكـنـكـم الإرسـال           ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
 ╚══════════════════════════════╝""")
-        chat_locked = True
     except: pass
     
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
-    print(f"🌙 قفل: 12:00 ليلاً")
-    print(f"☀️ فتح: 12:00 ظهراً")
+    print(f"🔓 فتح فوري عند التشغيل")
+    print(f"🌙 قفل: 23:00 UTC (00:00 جزائر)")
+    print(f"☀️ فتح: 11:00 UTC (12:00 جزائر)")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
