@@ -299,7 +299,7 @@ async def delete_all_msgs(event):
 async def get_chat_id(event):
     await event.reply(f"Chat ID: `{event.chat_id}`")
 
-# ======== ⭐ start - المطور كامل / غير المطور تفاعل فقط ⭐ ========
+# ======== start - المطور كامل / غير المطور تفاعل فقط ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     sender = await event.get_sender()
@@ -314,7 +314,6 @@ async def start(event):
         ]
         await send_with_bot_photo(event.chat_id, msg, buttons)
     else:
-        # ⭐ غير المطور - تفاعل فقط على رسالته
         try:
             await event.react("❤️")
         except:
@@ -444,18 +443,33 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ الخاص - بدون رد ⭐ ========
+# ======== الخاص - بدون رد ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handle_private(event):
-    pass  # لا يرد على أحد في الخاص
+    pass
 
-# ======== ⭐ قفل تلقائي ⭐ ========
+# ======== ⭐ قفل تلقائي مع تذكير ⭐ ========
 async def auto_lock_unlock():
     global chat_locked
     while True:
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
+        # ⚠️ تذكير قبل القفل بنصف ساعة
+        if hour == 22 and minute == 30 and not chat_locked:
+            try:
+                await client.send_message(GROUP_ID, f"""
+⚠️ **تنبيه** ⚠️
+
+⏰ باقي 30 دقيقة على إغلاق المحادثة
+🔒 سيتم القفل الساعة 12:00 ليلاً
+
+🛡️ **PIPO BOT**
+👑 @{DEVELOPER_USERNAME}
+""")
+            except: pass
+        
+        # 🔒 قفل الساعة 12 ليلاً
         if hour == 23 and minute == 0 and not chat_locked:
             chat_locked = True
             try:
@@ -474,6 +488,7 @@ async def auto_lock_unlock():
 ╚══════════════════════════════╝""")
             except: pass
         
+        # 🔓 فتح الساعة 12 ظهراً
         if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
@@ -520,8 +535,9 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"❤️ تفاعل فقط لغير المطور")
-    print(f"🌙 قفل: 23:00 UTC")
-    print(f"☀️ فتح: 11:00 UTC")
+    print(f"⚠️ تذكير: 22:30 UTC (23:30 جزائر)")
+    print(f"🌙 قفل: 23:00 UTC (00:00 جزائر)")
+    print(f"☀️ فتح: 11:00 UTC (12:00 جزائر)")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
