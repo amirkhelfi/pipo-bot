@@ -13,7 +13,7 @@ CHANNEL_1 = -1003878407748
 CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
-VIP_USERS = [6941580330]  # ⭐ مستخدمين VIP
+VIP_USERS = [6941580330]
 
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
@@ -22,7 +22,7 @@ mute_duration = 300
 link_protection = True
 forward_protection = True
 chat_locked = False
-reminder_sent = False  # ⭐ منع تكرار التذكير
+reminder_sent = False
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -214,7 +214,7 @@ async def unlock_chat(event):
         await event.reply(f"🔓 **تم فتح المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
     except: pass
 
-# ======== ⭐ حماية الروابط والتوجيه (مع VIP) ⭐ ========
+# ======== حماية الروابط والتوجيه (مع VIP) ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def protect_links_and_forwards(event):
     if not event.raw_text and not event.message: return
@@ -372,7 +372,7 @@ async def channel_protect(event):
         await client.send_message(chat_id, get_roast(name, sender.username))
     except: pass
 
-# ======== ⭐ فلترة المجموعة (مع VIP) ⭐ ========
+# ======== فلترة المجموعة (مع VIP) ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def filter_bad(event):
     if not event.raw_text or event.out: return
@@ -467,14 +467,13 @@ async def unmute_all(event):
 async def handle_private(event):
     pass
 
-# ======== ⭐ قفل تلقائي مع تذكير (بدون تكرار) ⭐ ========
+# ======== قفل تلقائي مع تذكير (بدون تكرار) ========
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
-        # ⚠️ تذكير مرة واحدة
         if hour == 22 and minute == 30 and not reminder_sent and not chat_locked:
             reminder_sent = True
             try:
@@ -489,7 +488,6 @@ async def auto_lock_unlock():
 """)
             except: pass
         
-        # 🔒 قفل
         if hour == 23 and minute == 0 and not chat_locked:
             chat_locked = True
             reminder_sent = False
@@ -509,7 +507,6 @@ async def auto_lock_unlock():
 ╚══════════════════════════════╝""")
             except: pass
         
-        # 🔓 فتح
         if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
@@ -556,7 +553,6 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"👸 VIP: {VIP_USERS}")
-    print(f"❤️ تفاعل فقط لغير المطور")
     print(f"⚠️ تذكير: 22:30 UTC")
     print(f"🌙 قفل: 23:00 UTC")
     print(f"☀️ فتح: 11:00 UTC")
