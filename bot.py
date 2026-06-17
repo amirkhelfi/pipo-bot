@@ -29,6 +29,9 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
+# ⭐ رابط صوت I Love You جاهز
+VOICE_URL = "https://files.catbox.moe/3z7q8w.mp3"
+
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة)\b',
     r'(ني6|نق/ش|طي+ز|زب+|شر+موطة|قح+بة)',
@@ -315,7 +318,12 @@ async def start(event):
         await send_with_bot_photo(event.chat_id, msg, buttons)
     else:
         msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
-        await send_with_bot_photo(event.chat_id, msg)
+        await event.respond(msg)
+        # ⭐ إرسال صوت I Love You
+        try:
+            await client.send_file(event.chat_id, VOICE_URL, voice_note=True)
+        except:
+            pass
 
 @client.on(events.CallbackQuery)
 async def handle_buttons(event):
@@ -441,7 +449,7 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ منع الخاص - رسالة واحدة فقط ⭐ ========
+# ======== ⭐ منع الخاص مع صوت I Love You ⭐ ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def block_pv(event):
     if event.out: return
@@ -449,8 +457,10 @@ async def block_pv(event):
     if not sender: return
     if sender.username == DEVELOPER_USERNAME: return
     msg = f"🚫 الخاص مقفول!\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
+    await event.respond(msg)
+    # ⭐ إرسال صوت I Love You
     try:
-        await event.reply(msg)
+        await client.send_file(event.chat_id, VOICE_URL, voice_note=True)
     except:
         pass
 
@@ -536,6 +546,7 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"🔓 فتح فوري عند التشغيل")
+    print(f"🎵 صوت I Love You للخاص")
     print(f"🌙 قفل: 23:00 UTC (00:00 جزائر)")
     print(f"☀️ فتح: 11:00 UTC (12:00 جزائر)")
     asyncio.create_task(auto_unmute())
