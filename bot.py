@@ -13,6 +13,7 @@ CHANNEL_1 = -1003878407748
 CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
+VIP_USERS = [6941580330]  # ⭐ مستخدمين VIP
 
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
@@ -21,6 +22,7 @@ mute_duration = 300
 link_protection = True
 forward_protection = True
 chat_locked = False
+reminder_sent = False  # ⭐ منع تكرار التذكير
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -42,6 +44,16 @@ LINK_PATTERNS = [
 ]
 
 THE_ONLY_ROAST = "يا خو شحال تهدر بلع علينا فومك صدعتنا"
+
+VIP_REPLY = """
+╔══════════════════════════════╗
+║     👑 عـضـوة VIP 👑         ║
+╠══════════════════════════════╣
+║  💎 أعطاني مالكي أمر بعدم     ║
+║     تنفيذ أي عقوبة لكي       ║
+║  ✨ أنتي مستثناة من الحماية  ║
+╚══════════════════════════════╝
+"""
 
 def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
@@ -202,7 +214,7 @@ async def unlock_chat(event):
         await event.reply(f"🔓 **تم فتح المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
     except: pass
 
-# ======== حماية الروابط والتوجيه ========
+# ======== ⭐ حماية الروابط والتوجيه (مع VIP) ⭐ ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def protect_links_and_forwards(event):
     if not event.raw_text and not event.message: return
@@ -210,6 +222,9 @@ async def protect_links_and_forwards(event):
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
     if sender and sender.username == DEVELOPER_USERNAME: return
+    if sender.id in VIP_USERS:
+        await event.reply(VIP_REPLY)
+        return
     msg = event.message; uid = sender.id; name = sender.first_name or "مجهول"
     if link_protection and event.raw_text and contains_link(event.raw_text):
         await event.delete()
@@ -299,7 +314,7 @@ async def delete_all_msgs(event):
 async def get_chat_id(event):
     await event.reply(f"Chat ID: `{event.chat_id}`")
 
-# ======== start - المطور كامل / غير المطور تفاعل فقط ========
+# ======== start ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     sender = await event.get_sender()
@@ -346,6 +361,7 @@ async def channel_protect(event):
         if chat_id not in PROTECTED_CHANNELS: return
         sender = await event.get_sender()
         if sender and sender.id == BOT_ID: return
+        if sender.id in VIP_USERS: return
         msg = event.message
         if msg.photo or msg.video or msg.document or msg.audio or msg.voice or msg.gif or msg.sticker: return
         uid = sender.id; name = sender.first_name or "مجهول"; now = time.time()
@@ -356,12 +372,15 @@ async def channel_protect(event):
         await client.send_message(chat_id, get_roast(name, sender.username))
     except: pass
 
-# ======== فلترة المجموعة ========
+# ======== ⭐ فلترة المجموعة (مع VIP) ⭐ ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def filter_bad(event):
     if not event.raw_text or event.out: return
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
+    if sender.id in VIP_USERS:
+        await event.reply(VIP_REPLY)
+        return
     if not contains_swear(event.raw_text.lower()): return
     try:
         uid = sender.id; name = sender.first_name or "مجهول"; now = time.time()
@@ -443,20 +462,21 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
-# ======== الخاص - بدون رد ========
+# ======== الخاص ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handle_private(event):
     pass
 
-# ======== ⭐ قفل تلقائي مع تذكير ⭐ ========
+# ======== ⭐ قفل تلقائي مع تذكير (بدون تكرار) ⭐ ========
 async def auto_lock_unlock():
-    global chat_locked
+    global chat_locked, reminder_sent
     while True:
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
-        # ⚠️ تذكير قبل القفل بنصف ساعة
-        if hour == 22 and minute == 30 and not chat_locked:
+        # ⚠️ تذكير مرة واحدة
+        if hour == 22 and minute == 30 and not reminder_sent and not chat_locked:
+            reminder_sent = True
             try:
                 await client.send_message(GROUP_ID, f"""
 ⚠️ **تنبيه** ⚠️
@@ -469,9 +489,10 @@ async def auto_lock_unlock():
 """)
             except: pass
         
-        # 🔒 قفل الساعة 12 ليلاً
+        # 🔒 قفل
         if hour == 23 and minute == 0 and not chat_locked:
             chat_locked = True
+            reminder_sent = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=False)
                 await client.send_message(GROUP_ID, f"""
@@ -488,7 +509,7 @@ async def auto_lock_unlock():
 ╚══════════════════════════════╝""")
             except: pass
         
-        # 🔓 فتح الساعة 12 ظهراً
+        # 🔓 فتح
         if hour == 11 and minute == 0 and chat_locked:
             chat_locked = False
             try:
@@ -534,10 +555,11 @@ async def main():
     
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
+    print(f"👸 VIP: {VIP_USERS}")
     print(f"❤️ تفاعل فقط لغير المطور")
-    print(f"⚠️ تذكير: 22:30 UTC (23:30 جزائر)")
-    print(f"🌙 قفل: 23:00 UTC (00:00 جزائر)")
-    print(f"☀️ فتح: 11:00 UTC (12:00 جزائر)")
+    print(f"⚠️ تذكير: 22:30 UTC")
+    print(f"🌙 قفل: 23:00 UTC")
+    print(f"☀️ فتح: 11:00 UTC")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
