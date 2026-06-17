@@ -448,23 +448,34 @@ async def block_pv(event):
         msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
         await send_with_bot_photo(event.chat_id, msg)
 
-# ======== ⭐ قفل تلقائي 12:30 - 12:00 ⭐ ========
+# ======== ⭐ قفل تلقائي 12:00 - 12:00 ⭐ ========
 async def auto_lock_unlock():
     global chat_locked
     while True:
         now = datetime.datetime.now()
         hour, minute = now.hour, now.minute
         
-        if hour == 0 and minute == 30 and not chat_locked:
+        if hour == 0 and minute == 0 and not chat_locked:
             chat_locked = True
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=False)
                 await client.send_message(GROUP_ID, f"""
-🔒 **تم إغلاق المحادثة** 🔒
-⏰ الساعة: 12:30 منتصف الليل
-🔐 السبب: لأسباب تتعلق بالأمان
-🚫 لا يمكن لأي عضو الإرسال حتى الساعة 12:00 ظهراً
-🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
+╔══════════════════════════════╗
+║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
+╠══════════════════════════════╣
+║                              ║
+║  ⏰ الـسـاعـة: 12:00 لـيـلاً     ║
+║  🌙 حـان وقـت الـنـوم           ║
+║                              ║
+║  🚫 تـم قـفـل الـدردشـة        ║
+║  🔐 لأسباب تتعلق بالأمان        ║
+║                              ║
+║  ⏳ يـعـاد فـتـحـهـا: 12:00 ظـهـراً ║
+║                              ║
+╠══════════════════════════════╣
+║     🤖 PIPO BOT             ║
+║     👑 @{DEVELOPER_USERNAME} ║
+╚══════════════════════════════╝""")
             except: pass
         
         if hour == 12 and minute == 0 and chat_locked:
@@ -472,10 +483,20 @@ async def auto_lock_unlock():
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
                 await client.send_message(GROUP_ID, f"""
-🔓 **تم فتح المحادثة** 🔓
-⏰ الساعة: 12:00 ظهراً
-✅ يمكن للجميع الإرسال الآن
-🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
+╔══════════════════════════════╗
+║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
+╠══════════════════════════════╣
+║                              ║
+║  ⏰ الـسـاعـة: 12:00 ظـهـراً     ║
+║  ☀️ صـبـاح الـخـيـر           ║
+║                              ║
+║  ✅ تـم فـتـح الـدردشـة        ║
+║  💬 يمـكـنـكـم الإرسـال الآن     ║
+║                              ║
+╠══════════════════════════════╣
+║     🤖 PIPO BOT             ║
+║     👑 @{DEVELOPER_USERNAME} ║
+╚══════════════════════════════╝""")
             except: pass
         
         await asyncio.sleep(30)
@@ -497,23 +518,30 @@ async def main():
     me = await client.get_me()
     BOT_ID = me.id
     
-    # ⭐ قفل فوري عند التشغيل
     global chat_locked
     try:
         await client.edit_permissions(GROUP_ID, send_messages=False)
         await client.send_message(GROUP_ID, f"""
-🔒 **تم إغلاق المحادثة** 🔒
-⏰ السبب: تم تشغيل البوت - قفل مؤقت
-🔐 سيتم الفتح التلقائي الساعة 12:00 ظهراً
-🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
+╔══════════════════════════════╗
+║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
+╠══════════════════════════════╣
+║                              ║
+║  ⚡ تـم تـشـغـيـل الـبـوت        ║
+║  🔒 قـفـل مـؤقـت                ║
+║                              ║
+║  ⏳ يـعـاد فـتـحـهـا: 12:00 ظـهـراً ║
+║                              ║
+╠══════════════════════════════╣
+║     🤖 PIPO BOT             ║
+║     👑 @{DEVELOPER_USERNAME} ║
+╚══════════════════════════════╝""")
         chat_locked = True
     except: pass
     
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
-    print(f"🔒 قفل فوري عند التشغيل")
-    print(f"🌙 قفل تلقائي: 12:30 ليلاً")
-    print(f"☀️ فتح تلقائي: 12:00 ظهراً")
+    print(f"🌙 قفل: 12:00 ليلاً")
+    print(f"☀️ فتح: 12:00 ظهراً")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
