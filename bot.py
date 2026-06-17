@@ -32,7 +32,6 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
-# ⭐⭐ كشف السب المتقدم (جزائري + حرف واحد) ⭐⭐
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -66,27 +65,6 @@ LINK_PATTERNS = [
 ]
 
 THE_ONLY_ROAST = "يا خو شحال تهدر بلع علينا فومك صدعتنا"
-
-VIP_REPLY = """
-╔══════════════════════════════╗
-║     👑 عـضـوة VIP 👑         ║
-╠══════════════════════════════╣
-║  💎 أعطاني مالكي أمر بعدم     ║
-║     تنفيذ أي عقوبة لكي       ║
-║  ✨ أنتي مستثناة من الحماية  ║
-╚══════════════════════════════╝
-"""
-
-DEV_REPLY = """
-╔══════════════════════════════╗
-║     👑 مـالـكـي الـمـطـور 👑     ║
-╠══════════════════════════════╣
-║  💎 أهـلاً بـك يـا مـالـكـي     ║
-║  ✨ لـك كـل الـصـلاحـيـات      ║
-║  🛡️ أنـت مـسـتـثـنـى مـن        ║
-║     جـمـيـع الـعـقـوبـات        ║
-╚══════════════════════════════╝
-"""
 
 def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
@@ -247,24 +225,14 @@ async def unlock_chat(event):
         await event.reply(f"🔓 **تم فتح المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
     except: pass
 
-# ======== حماية الروابط والتوجيه (مع VIP + مطور) ========
+# ======== حماية الروابط والتوجيه ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def protect_links_and_forwards(event):
     if not event.raw_text and not event.message: return
     if event.out: return
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
-    
-    # ⭐ المطور - رد احترام
-    if sender and sender.id == DEVELOPER_ID:
-        await event.reply(DEV_REPLY)
-        return
-    
-    # ⭐ VIP
-    if sender.id in VIP_USERS:
-        await event.reply(VIP_REPLY)
-        return
-    
+    if sender and (sender.username == DEVELOPER_USERNAME or sender.id in VIP_USERS): return
     msg = event.message; uid = sender.id; name = sender.first_name or "مجهول"
     if link_protection and event.raw_text and contains_link(event.raw_text):
         await event.delete()
@@ -412,15 +380,13 @@ async def channel_protect(event):
         await client.send_message(chat_id, get_roast(name, sender.username))
     except: pass
 
-# ======== فلترة المجموعة (نظام متقدم + VIP) ========
+# ======== فلترة المجموعة ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def filter_bad(event):
     if not event.raw_text or event.out: return
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
-    if sender.id in VIP_USERS:
-        await event.reply(VIP_REPLY)
-        return
+    if sender and (sender.username == DEVELOPER_USERNAME or sender.id in VIP_USERS): return
     if not contains_swear(event.raw_text.lower()): return
     try:
         uid = sender.id; name = sender.first_name or "مجهول"; now = time.time()
@@ -519,12 +485,9 @@ async def auto_lock_unlock():
             try:
                 await client.send_message(GROUP_ID, f"""
 ⚠️ **تنبيه** ⚠️
-
 ⏰ باقي 30 دقيقة على إغلاق المحادثة
 🔒 سيتم القفل الساعة 12:00 ليلاً
-
-🛡️ **PIPO BOT**
-👑 @{DEVELOPER_USERNAME}
+🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}
 """)
             except: pass
         
@@ -537,10 +500,10 @@ async def auto_lock_unlock():
 ╔══════════════════════════════╗
 ║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
 ╠══════════════════════════════╣
-║  ⏰ الـسـاعـة: 12:00 لـيـلاً     ║
+║  ⏰ 12:00 لـيـلاً              ║
 ║  🌙 حـان وقـت الـنـوم           ║
 ║  🚫 تـم قـفـل الـدردشـة        ║
-║  ⏳ يـعـاد فـتـحـهـا: 10:00 صـبـاحـاً ║
+║  ⏳ الـفـتـح: 10:00 صـبـاحـاً    ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
@@ -555,7 +518,7 @@ async def auto_lock_unlock():
 ╔══════════════════════════════╗
 ║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
 ╠══════════════════════════════╣
-║  ⏰ الـسـاعـة: 10:00 صـبـاحـاً   ║
+║  ⏰ 10:00 صـبـاحـاً            ║
 ║  ☀️ صـبـاح الـخـيـر           ║
 ║  ✅ تـم فـتـح الـدردشـة        ║
 ║  💬 يمـكـنـكـم الإرسـال الآن     ║
@@ -586,17 +549,16 @@ async def main():
     
     global chat_locked
     try:
-        await client.edit_permissions(GROUP_ID, send_messages=True)
-        chat_locked = False
+        await client.edit_permissions(GROUP_ID, send_messages=False)
+        chat_locked = True
         await client.send_message(GROUP_ID, f"""
 ╔══════════════════════════════╗
-║     ✅ تـم تـشـغـيـل الـبـوت ✅     ║
+║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
 ╠══════════════════════════════╣
-║  🤖 PIPO BOT جـاهـز           ║
+║  ⚡ تـم تـشـغـيـل الـبـوت        ║
 ║  🛡️ جـمـيـع الأنـظـمـة تـعـمـل  ║
-║  🔒 الـقـفـل: 12:00 لـيـلاً     ║
+║  🔒 الـمـجـمـوعـة مـقـفـولـة      ║
 ║  🔓 الـفـتـح: 10:00 صـبـاحـاً   ║
-║  👑 VIP: مـفـعـل               ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
@@ -605,8 +567,7 @@ async def main():
     
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
-    print(f"👸 VIP: {VIP_USERS}")
-    print(f"🤬 كشف سب متقدم")
+    print(f"🔒 قفل فوري عند التشغيل")
     print(f"⚠️ تذكير: 22:30 UTC")
     print(f"🌙 قفل: 23:00 UTC")
     print(f"☀️ فتح: 9:00 UTC (10:00 جزائر)")
