@@ -29,7 +29,6 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
-# ⭐ رابط صوت I Love You جاهز
 VOICE_URL = "https://files.catbox.moe/3z7q8w.mp3"
 
 BAD_WORDS = [
@@ -193,7 +192,7 @@ async def lock_chat(event):
         await client.edit_permissions(GROUP_ID, send_messages=False)
         chat_locked = True
         await event.reply(f"🔒 **تم قفل المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
-    except Exception as e: await event.reply(f"❌ خطأ: {e}")
+    except: pass
 
 @client.on(events.NewMessage(pattern='/فك_القفل'))
 async def unlock_chat(event):
@@ -203,7 +202,7 @@ async def unlock_chat(event):
         await client.edit_permissions(GROUP_ID, send_messages=True)
         chat_locked = False
         await event.reply(f"🔓 **تم فتح المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
-    except Exception as e: await event.reply(f"❌ خطأ: {e}")
+    except: pass
 
 # ======== حماية الروابط والتوجيه ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
@@ -302,28 +301,22 @@ async def delete_all_msgs(event):
 async def get_chat_id(event):
     await event.reply(f"Chat ID: `{event.chat_id}`")
 
-# ======== start ========
+# ======== ⭐ start - المطور فقط ⭐ ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     sender = await event.get_sender()
-    if sender.username == DEVELOPER_USERNAME:
-        msg = f"""⚡ **PIPO BOT** ⚡
+    if sender.username != DEVELOPER_USERNAME:
+        return
+    
+    msg = f"""⚡ **PIPO BOT** ⚡
 👑 **أهلاً مطوري @{DEVELOPER_USERNAME}**
 📋 **لوحة التحكم:**"""
-        buttons = [
-            [Button.inline("🔇 مدة الكتم", b"mute_duration"), Button.inline("📊 حالة البوت", b"bot_status")],
-            [Button.inline("🆔 معرفة الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
-            [Button.inline("🔓 فك كل الكمات", b"unmute_all_btn")],
-        ]
-        await send_with_bot_photo(event.chat_id, msg, buttons)
-    else:
-        msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
-        await event.respond(msg)
-        # ⭐ إرسال صوت I Love You
-        try:
-            await client.send_file(event.chat_id, VOICE_URL, voice_note=True)
-        except:
-            pass
+    buttons = [
+        [Button.inline("🔇 مدة الكتم", b"mute_duration"), Button.inline("📊 حالة البوت", b"bot_status")],
+        [Button.inline("🆔 معرفة الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
+        [Button.inline("🔓 فك كل الكمات", b"unmute_all_btn")],
+    ]
+    await send_with_bot_photo(event.chat_id, msg, buttons)
 
 @client.on(events.CallbackQuery)
 async def handle_buttons(event):
@@ -449,20 +442,23 @@ async def unmute_all(event):
         except: pass
     await event.reply(f"✅ تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ منع الخاص مع صوت I Love You ⭐ ========
+# ======== ⭐ منع الخاص - رد واحد فقط ⭐ ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
-async def block_pv(event):
+async def handle_private(event):
     if event.out: return
     sender = await event.get_sender()
     if not sender: return
     if sender.username == DEVELOPER_USERNAME: return
+    
     msg = f"🚫 الخاص مقفول!\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
-    await event.respond(msg)
-    # ⭐ إرسال صوت I Love You
+    
     try:
-        await client.send_file(event.chat_id, VOICE_URL, voice_note=True)
+        await client.send_file(event.chat_id, VOICE_URL, voice_note=True, caption=msg)
     except:
-        pass
+        try:
+            await event.respond(msg)
+        except:
+            pass
 
 # ======== ⭐ قفل تلقائي ⭐ ========
 async def auto_lock_unlock():
@@ -530,25 +526,13 @@ async def main():
     try:
         await client.edit_permissions(GROUP_ID, send_messages=True)
         chat_locked = False
-        await client.send_message(GROUP_ID, f"""
-╔══════════════════════════════╗
-║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
-╠══════════════════════════════╣
-║  ⚡ تـم تـشـغـيـل الـبـوت        ║
-║  ✅ الـمـجـمـوعـة مـفـتـوحـة      ║
-║  💬 يمـكـنـكـم الإرسـال           ║
-╠══════════════════════════════╣
-║     🤖 PIPO BOT             ║
-║     👑 @{DEVELOPER_USERNAME} ║
-╚══════════════════════════════╝""")
     except: pass
     
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
-    print(f"🔓 فتح فوري عند التشغيل")
     print(f"🎵 صوت I Love You للخاص")
-    print(f"🌙 قفل: 23:00 UTC (00:00 جزائر)")
-    print(f"☀️ فتح: 11:00 UTC (12:00 جزائر)")
+    print(f"🌙 قفل: 23:00 UTC")
+    print(f"☀️ فتح: 11:00 UTC")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
