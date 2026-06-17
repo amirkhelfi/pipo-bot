@@ -13,7 +13,8 @@ CHANNEL_1 = -1003878407748
 CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
-VIP_USERS = [6941580330]
+DEVELOPER_ID = 8050958688  # ⭐ آيدي المطور
+VIP_USERS = [6941580330, 8050958688]  # ⭐ البنت + المطور
 
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
@@ -31,9 +32,38 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
+# ⭐⭐ كشف السب المتقدم (جزائري + حرف واحد) ⭐⭐
 BAD_WORDS = [
-    r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة)\b',
-    r'(ني6|نق/ش|طي+ز|زب+|شر+موطة|قح+بة)',
+    # السب المباشر
+    r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
+    r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
+    # السب بالرموز والحروف المتفرقة
+    r'(ن\s*ي\s*ك|ن\s*ي\s*6|ن\s*ق\s*ش|ن\s*ي\s*ڭ|ن\s*ي\s*ق)',
+    r'(ك\s*س|ك\s*ص|ڪ\s*س|ك\s*ث|ك\s*5|ك\s*$|ڪ\s*$)',
+    r'(ط\s*ي\s*ز|ط\s*ي\s*ڞ|ط\s*ى\s*ز|ط\s*ي\s*ظ)',
+    r'(ز\s*ب|ز\s*ب\s*ي|ز\s*ڨ|ز\s*پ|ز\s*ب\s*ب)',
+    r'(ق\s*ح\s*ب|9\s*ح\s*ب|ق\s*ح\s*پ|9\s*7\s*ب|ڨ\s*ح\s*ب)',
+    r'(ش\s*ر\s*م\s*و\s*ط|ش\s*ر\s*م\s*و\s*ڞ|ش\s*ر\s*م\s*و\s*ظ)',
+    # السب بحروف إنجليزية معربة
+    r'([nن][i1!|][kكڪ][a4@]?[mم]?\s*(o0]?[kكڪ]?)?\s*([uوؤ]?[mم]\s*[kكڪ]))',
+    r'(f[uوؤ][cكڪ][kكڪ])',
+    r'(s[o0][dض][o0][mم][i1!][e3]?)',
+    # السب بالأرقام والرموز
+    r'(ك\s*[0-9]+\s*م|ط\s*[0-9]+\s*ز|ز\s*[0-9]+\s*ب|ن\s*[0-9]+\s*ك)',
+    r'(ك\.م|ط\.ز|ز\.ب|ن\.ك|ق\.ح)',
+    # السب الجزائري الخاص
+    r'\b(يا\s*ود\s*الكبدة|يا\s*ولد\s*القحبة|يا\s*خو\s*القحبة|ولد\s*الزانية)\b',
+    r'\b(نعل\s*الدين|نعل\s*الوالدين|نعل\s*الرب|نعل\s*الزمان)\b',
+    r'\b(الله\s*ينعل|الله\s*يلعن|ينعل\s*دين|يلعن\s*دين)\b',
+    r'\b(زبي|زبيي|زبييي|كسك|طيزك|طيزي|قحبتك|قحبتي)\b',
+    r'\b(مسطي|مصطي|قلب|قلبوز|بقرة|كلب|كلبة|شيطان|شيطانة)\b',
+    # السب بالرموز الخاصة
+    r'[كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[سښسۍسً]',
+    r'[ططـظظـ]?[يىېۍ]?[زژڗژ]',
+    r'[زژڗژ]?[ببـپپـ]',
+    r'[ننـ]?[يىېۍ]?[كڪﻛﻚ]',
+    # أي حرفين بينهم مسافة يلمح للسب
+    r'\b(ك\sس|ك\sص|ط\sي\sز|ز\sب|ن\sي\sك|ق\sح\sب)\b',
 ]
 
 LINK_PATTERNS = [
@@ -221,10 +251,7 @@ async def protect_links_and_forwards(event):
     if event.out: return
     sender = await event.get_sender()
     if sender and sender.id == BOT_ID: return
-    if sender and sender.username == DEVELOPER_USERNAME: return
-    if sender.id in VIP_USERS:
-        await event.reply(VIP_REPLY)
-        return
+    if sender and (sender.username == DEVELOPER_USERNAME or sender.id in VIP_USERS): return
     msg = event.message; uid = sender.id; name = sender.first_name or "مجهول"
     if link_protection and event.raw_text and contains_link(event.raw_text):
         await event.delete()
@@ -267,7 +294,7 @@ async def protection_status(event):
 🛡️ **حالة الحماية:**
 🔗 الروابط: {'✅' if link_protection else '❌'}
 ↩️ التوجيه: {'✅' if forward_protection else '❌'}
-🤬 السب: ✅
+🤬 السب: ✅ (نظام متقدم)
 🔒 القفل: {'🔒 مقفول' if chat_locked else '🔓 مفتوح'}
 👑 @{DEVELOPER_USERNAME}""")
 
@@ -372,7 +399,7 @@ async def channel_protect(event):
         await client.send_message(chat_id, get_roast(name, sender.username))
     except: pass
 
-# ======== فلترة المجموعة (مع VIP) ========
+# ======== فلترة المجموعة (نظام متقدم + VIP) ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def filter_bad(event):
     if not event.raw_text or event.out: return
@@ -467,7 +494,7 @@ async def unmute_all(event):
 async def handle_private(event):
     pass
 
-# ======== قفل تلقائي مع تذكير (بدون تكرار) ========
+# ======== قفل تلقائي مع تذكير ========
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
@@ -500,14 +527,15 @@ async def auto_lock_unlock():
 ║  ⏰ الـسـاعـة: 12:00 لـيـلاً     ║
 ║  🌙 حـان وقـت الـنـوم           ║
 ║  🚫 تـم قـفـل الـدردشـة        ║
-║  ⏳ يـعـاد فـتـحـهـا: 12:00 ظـهـراً ║
+║  ⏳ يـعـاد فـتـحـهـا: 10:00 صـبـاحـاً ║
 ╠══════════════════════════════╣
 ║     🤖 PIPO BOT             ║
 ║     👑 @{DEVELOPER_USERNAME} ║
 ╚══════════════════════════════╝""")
             except: pass
         
-        if hour == 11 and minute == 0 and chat_locked:
+        # ⭐ فتح الساعة 10 صباحاً (UTC 9:00)
+        if hour == 9 and minute == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
@@ -515,7 +543,7 @@ async def auto_lock_unlock():
 ╔══════════════════════════════╗
 ║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
 ╠══════════════════════════════╣
-║  ⏰ الـسـاعـة: 12:00 ظـهـراً     ║
+║  ⏰ الـسـاعـة: 10:00 صـبـاحـاً   ║
 ║  ☀️ صـبـاح الـخـيـر           ║
 ║  ✅ تـم فـتـح الـدردشـة        ║
 ║  💬 يمـكـنـكـم الإرسـال الآن     ║
@@ -553,9 +581,10 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"👸 VIP: {VIP_USERS}")
+    print(f"🤬 كشف سب متقدم (جزائري)")
     print(f"⚠️ تذكير: 22:30 UTC")
     print(f"🌙 قفل: 23:00 UTC")
-    print(f"☀️ فتح: 11:00 UTC")
+    print(f"☀️ فتح: 9:00 UTC (10:00 جزائر)")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
