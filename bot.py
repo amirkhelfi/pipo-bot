@@ -181,7 +181,7 @@ async def delete_after_delay(message, delay=60):
     try: await message.delete()
     except: pass
 
-# ======== ⭐ قفل وفتح يدوي ⭐ ========
+# ======== قفل وفتح يدوي ========
 @client.on(events.NewMessage(pattern='/قفل_المجموعة'))
 async def lock_chat(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
@@ -202,7 +202,7 @@ async def unlock_chat(event):
         await event.reply(f"🔓 **تم فتح المجموعة يدوياً**\n👑 @{DEVELOPER_USERNAME}")
     except Exception as e: await event.reply(f"❌ خطأ: {e}")
 
-# ======== ⭐ حماية الروابط والتوجيه ⭐ ========
+# ======== حماية الروابط والتوجيه ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def protect_links_and_forwards(event):
     if not event.raw_text and not event.message: return
@@ -256,7 +256,7 @@ async def protection_status(event):
 🔒 القفل: {'🔒 مقفول' if chat_locked else '🔓 مفتوح'}
 👑 @{DEVELOPER_USERNAME}""")
 
-# ======== ⭐ ديديكاس ⭐ ========
+# ======== ديديكاس ========
 @client.on(events.NewMessage(pattern='/ديرلهم_ديديكاس'))
 async def dedikas(event):
     sender = await event.get_sender()
@@ -265,7 +265,7 @@ async def dedikas(event):
         return
     await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
 
-# ======== ⭐ المطور ⭐ ========
+# ======== المطور ========
 @client.on(events.NewMessage(pattern='/المطور'))
 async def dev_info(event):
     if DEV_VIDEO_DATA:
@@ -323,22 +323,18 @@ async def handle_buttons(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME:
         await event.answer("🚫 للمطور فقط!", alert=True)
         return
-    if data == "mute_duration":
-        await event.answer("⏰ مدة الكتم"); await event.reply(f"⏰ **مدة الكتم:** {mute_duration // 60} دقائق\n📝 `/مدة_الكتم رقم`")
+    if data == "mute_duration": await event.reply(f"⏰ مدة الكتم: {mute_duration // 60} دقائق\n📝 `/مدة_الكتم رقم`")
     elif data == "bot_status":
-        await event.answer("📊 حالة البوت")
         muted = len([u for u in mute_status if mute_status[u]['until'] > time.time()])
         await event.reply(f"📊 **حالة البوت**\n🔇 مكتوم: {muted}\n⏰ مدة الكتم: {mute_duration // 60} دقائق\n👑 @{DEVELOPER_USERNAME}")
-    elif data == "get_id":
-        await event.answer("🆔 الآيدي"); await event.reply(f"🆔 **Chat ID:** `{event.chat_id}`\n💬 **المجموعة:** `{GROUP_ID}`")
-    elif data == "dedikas_cmd":
-        await event.answer("😂 ديديكاس"); await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
+    elif data == "get_id": await event.reply(f"🆔 Chat ID: `{event.chat_id}`")
+    elif data == "dedikas_cmd": await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
     elif data == "unmute_all_btn":
-        await event.answer("🔓 فك الكل"); count = 0
+        count = 0
         for uid in list(mute_status.keys()):
             try: await unmute_user(mute_status[uid].get('chat', GROUP_ID), uid); del mute_status[uid]; count += 1
             except: pass
-        await event.reply(f"🔓 **تم فك {count} كتم**\n👑 @{DEVELOPER_USERNAME}")
+        await event.reply(f"🔓 تم فك {count} كتم\n👑 @{DEVELOPER_USERNAME}")
 
 # ======== حماية القنوات ========
 @client.on(events.NewMessage(func=lambda e: e.is_channel))
@@ -350,12 +346,12 @@ async def channel_protect(event):
         if sender and sender.id == BOT_ID: return
         msg = event.message
         if msg.photo or msg.video or msg.document or msg.audio or msg.voice or msg.gif or msg.sticker: return
-        uid = sender.id; name = sender.first_name or "مجهول"; username = sender.username; now = time.time()
+        uid = sender.id; name = sender.first_name or "مجهول"; now = time.time()
         if not contains_swear(msg.raw_text or ""): return
         await event.delete()
         await mute_user(chat_id, uid, mute_duration)
         mute_status[uid] = {'until': now + mute_duration, 'chat': chat_id, 'name': name}
-        await client.send_message(chat_id, get_roast(name, username))
+        await client.send_message(chat_id, get_roast(name, sender.username))
     except: pass
 
 # ======== فلترة المجموعة ========
@@ -403,7 +399,6 @@ async def handle_dev_media(event):
     if mode == 'dev_video':
         if hasattr(media, 'document') and media.document and 'video' in media.document.mime_type.lower():
             if await save_dev_video(media): await event.reply("✅ تم حفظ فيديو المطور!")
-            else: await event.reply("❌ خطأ!")
         else: await event.reply("❌ ارسل فيديو فقط!")
         if sender.id in dev_media_mode: del dev_media_mode[sender.id]
         return
@@ -453,7 +448,7 @@ async def block_pv(event):
         msg = f"🚫 **الخاص مقفول!**\n📩 ضفني إلى مجموعتك ورح أقوم بعملي 🛡️\n👑 المطور: @{DEVELOPER_USERNAME}"
         await send_with_bot_photo(event.chat_id, msg)
 
-# ======== ⭐ قفل تلقائي ⭐ ========
+# ======== ⭐ قفل تلقائي 12:30 - 12:00 ⭐ ========
 async def auto_lock_unlock():
     global chat_locked
     while True:
@@ -468,17 +463,17 @@ async def auto_lock_unlock():
 🔒 **تم إغلاق المحادثة** 🔒
 ⏰ الساعة: 12:30 منتصف الليل
 🔐 السبب: لأسباب تتعلق بالأمان
-🚫 لا يمكن لأي عضو الإرسال حتى الساعة 11:00 صباحاً
+🚫 لا يمكن لأي عضو الإرسال حتى الساعة 12:00 ظهراً
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
         
-        if hour == 11 and minute == 0 and chat_locked:
+        if hour == 12 and minute == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
                 await client.send_message(GROUP_ID, f"""
 🔓 **تم فتح المحادثة** 🔓
-⏰ الساعة: 11:00 صباحاً
+⏰ الساعة: 12:00 ظهراً
 ✅ يمكن للجميع الإرسال الآن
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
             except: pass
@@ -509,7 +504,7 @@ async def main():
         await client.send_message(GROUP_ID, f"""
 🔒 **تم إغلاق المحادثة** 🔒
 ⏰ السبب: تم تشغيل البوت - قفل مؤقت
-🔐 سيتم الفتح التلقائي الساعة 11:00 صباحاً
+🔐 سيتم الفتح التلقائي الساعة 12:00 ظهراً
 🛡️ **PIPO BOT** 👑 @{DEVELOPER_USERNAME}""")
         chat_locked = True
     except: pass
@@ -517,8 +512,8 @@ async def main():
     print(f"✅ PIPO BOT: @{me.username}")
     print(f"👑 @{DEVELOPER_USERNAME}")
     print(f"🔒 قفل فوري عند التشغيل")
-    print(f"🌙 قفل: 12:30 ليلاً")
-    print(f"☀️ فتح: 11:00 صباحاً")
+    print(f"🌙 قفل تلقائي: 12:30 ليلاً")
+    print(f"☀️ فتح تلقائي: 12:00 ظهراً")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
