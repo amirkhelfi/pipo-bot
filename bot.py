@@ -33,10 +33,26 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
+# ⭐⭐ كشف السب المتقدم الكامل ⭐⭐
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
-    r'(ن\s*ي\s*ك|ك\s*س|ط\s*ي\s*ز|ز\s*ب|ق\s*ح\s*ب)',
-    r'\b(زبي|كسك|طيزك|قحبتك)\b',
+    r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
+    r'(ن\s*ي\s*ك|ن\s*ي\s*6|ن\s*ق\s*ش|ن\s*ي\s*ڭ|ن\s*ي\s*ق)',
+    r'(ك\s*س|ك\s*ص|ڪ\s*س|ك\s*ث|ك\s*5|ك\s*\$|ڪ\s*\$)',
+    r'(ط\s*ي\s*ز|ط\s*ي\s*ڞ|ط\s*ى\s*ز|ط\s*ي\s*ظ)',
+    r'(ز\s*ب|ز\s*ب\s*ي|ز\s*ڨ|ز\s*پ|ز\s*ب\s*ب)',
+    r'(ق\s*ح\s*ب|9\s*ح\s*ب|ق\s*ح\s*پ|9\s*7\s*ب|ڨ\s*ح\s*ب)',
+    r'(ش\s*ر\s*م\s*و\s*ط|ش\s*ر\s*م\s*و\s*ڞ|ش\s*ر\s*م\s*و\s*ظ)',
+    r'([nن][i1!|][kكڪ][a4@]?[mم]?\s*(o0]?[kكڪ]?)?\s*([uوؤ]?[mم]\s*[kكڪ]))',
+    r'(f[uوؤ][cكڪ][kكڪ])',
+    r'(ك\s*[0-9]+\s*م|ط\s*[0-9]+\s*ز|ز\s*[0-9]+\s*ب|ن\s*[0-9]+\s*ك)',
+    r'(ك\.م|ط\.ز|ز\.ب|ن\.ك|ق\.ح)',
+    r'\b(يا\s*ود\s*الكبدة|يا\s*ولد\s*القحبة|يا\s*خو\s*القحبة|ولد\s*الزانية)\b',
+    r'\b(نعل\s*الدين|نعل\s*الوالدين|نعل\s*الرب|نعل\s*الزمان)\b',
+    r'\b(الله\s*ينعل|الله\s*يلعن|ينعل\s*دين|يلعن\s*دين)\b',
+    r'\b(زبي|زبيي|زبييي|كسك|طيزك|طيزي|قحبتك|قحبتي)\b',
+    r'\b(مسطي|مصطي|قلب|قلبوز|بقرة|كلب|كلبة|شيطان|شيطانة)\b',
+    r'\b(ك\sس|ك\sص|ط\sي\sز|ز\sب|ن\sي\sك|ق\sح\sب)\b',
 ]
 
 LINK_PATTERNS = [
@@ -61,14 +77,7 @@ def get_mute_message(name, username, duration):
 
 def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
-    return f"""—————— {group_title} —————
-نورت قروبنا يا {name}!
-اسمك: {name}
-ايديك: {user_id}
-يوزرك: @{username}
-تاريخ: {now.strftime('%Y/%m/%d %I:%M %p')}
-—————— {group_title} —————
-"""
+    return f"—————— {group_title} —————\nنورت قروبنا يا {name}!\nاسمك: {name}\nايديك: {user_id}\nيوزرك: @{username}\nتاريخ: {now.strftime('%Y/%m/%d %I:%M %p')}\n—————— {group_title} —————"
 
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
@@ -102,8 +111,7 @@ async def save_dev_video(media):
         media_id = media.document.id; access_hash = media.document.access_hash; file_reference = media.document.file_reference or b''
         DEV_VIDEO_DATA = {'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}
         with open(DEV_VIDEO_FILE, 'w', encoding='utf-8') as f: json.dump({'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}, f)
-        load_dev_video()
-        return True
+        load_dev_video(); return True
     except: return False
 
 async def send_dev_video(chat_id):
@@ -122,8 +130,7 @@ async def save_welcome_media(media, media_type):
         else: media_id = media.document.id; access_hash = media.document.access_hash; file_reference = media.document.file_reference or b''
         WELCOME_MEDIA_DATA = {'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}
         with open(WELCOME_MEDIA_FILE, 'w', encoding='utf-8') as f: json.dump({'type': media_type, 'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}, f)
-        load_welcome_media()
-        return True
+        load_welcome_media(); return True
     except: return False
 
 async def send_welcome_media(chat_id, caption):
@@ -134,15 +141,6 @@ async def send_welcome_media(chat_id, caption):
         await client.send_file(chat_id, media, caption=caption)
         return True
     except: return False
-
-async def send_with_bot_photo(chat_id, message, buttons=None):
-    try:
-        photos = await client.get_profile_photos('me', limit=1)
-        if photos: await client.send_file(chat_id, photos[0], caption=message[:1024], buttons=buttons); return True
-    except: pass
-    try: await client.send_message(chat_id, message, buttons=buttons)
-    except: pass
-    return False
 
 load_welcome_media()
 load_dev_video()
@@ -173,9 +171,10 @@ def contains_link(text):
 
 def is_forward(msg): return bool(msg.forward)
 
-# ======== ⭐ كل الأوامر في دالة وحدة - بدون تكرار ⭐ ========
+# ======== ⭐⭐ كل شي في دالة وحدة ⭐⭐ ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def group_handler(event):
+    global link_protection, forward_protection, chat_locked, mute_duration
     if not event.raw_text: return
     if event.out: return
     
@@ -184,100 +183,86 @@ async def group_handler(event):
     if sender.id == BOT_ID: return
     
     text = event.raw_text.strip()
-    uid = sender.id
-    name = sender.first_name or "مجهول"
+    uid = sender.id; name = sender.first_name or "مجهول"
     
-    # ⭐ الأوامر (للمطور فقط)
-    if sender.username == DEVELOPER_USERNAME:
-        if text == '/قفل_المجموعة':
-            global chat_locked; chat_locked = True
-            await client.edit_permissions(GROUP_ID, send_messages=False)
-            await event.reply(f"🔒 تم قفل المجموعة")
-            return
+    if uid in VIP_USERS: return
+    
+    if uid == DEVELOPER_ID:
+        if text == '/start':
+            buttons = [
+                [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
+                [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
+            ]
+            try:
+                photos = await client.get_profile_photos('me', limit=1)
+                if photos: await client.send_file(event.chat_id, photos[0], caption=f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=buttons); return
+            except: pass
+            await event.respond(f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=buttons); return
+        elif text == '/قفل_المجموعة':
+            chat_locked = True; await client.edit_permissions(GROUP_ID, send_messages=False)
+            await event.reply("🔒 تم قفل المجموعة"); return
         elif text == '/فك_القفل':
-            chat_locked = False
-            await client.edit_permissions(GROUP_ID, send_messages=True)
-            await event.reply(f"🔓 تم فتح المجموعة")
-            return
+            chat_locked = False; await client.edit_permissions(GROUP_ID, send_messages=True)
+            await event.reply("🔓 تم فتح المجموعة"); return
         elif text == '/ديرلهم_ديديكاس':
-            await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
-            return
+            await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}"); return
         elif text == '/حالة_الحماية':
-            await event.reply(f"🛡️ الروابط: {'✅' if link_protection else '❌'} | التوجيه: {'✅' if forward_protection else '❌'} | السب: ✅ | القفل: {'🔒' if chat_locked else '🔓'}")
-            return
+            await event.reply(f"🛡️ الروابط: {'✅' if link_protection else '❌'} | التوجيه: {'✅' if forward_protection else '❌'} | السب: ✅ | القفل: {'🔒' if chat_locked else '🔓'}"); return
         elif text.startswith('/مدة_الكتم'):
-            global mute_duration
             parts = text.split()
-            if len(parts) > 1:
-                mute_duration = int(parts[1]) * 60
-                await event.reply(f"⏰ مدة الكتم: {parts[1]} دقائق")
-            else:
-                await event.reply(f"⏰ مدة الكتم: {mute_duration // 60} دقائق")
+            if len(parts) > 1: mute_duration = int(parts[1]) * 60; await event.reply(f"⏰ {parts[1]} دقائق")
+            else: await event.reply(f"⏰ {mute_duration // 60} دقائق")
             return
         elif text == '/فك_كل_الكمات':
             count = 0
             for u in list(mute_status.keys()):
                 try: await unmute_user(mute_status[u].get('chat', GROUP_ID), u); del mute_status[u]; count += 1
                 except: pass
-            await event.reply(f"✅ تم فك {count} كتم")
-            return
-        elif text.startswith('/فك_كتم_'):
-            try:
-                target = int(text.split('_')[2])
-                if target in mute_status:
-                    await unmute_user(mute_status[target].get('chat', GROUP_ID), target)
-                    del mute_status[target]
-                    await event.reply(f"✅ تم فك الكتم")
-            except: pass
-            return
-        elif text == '/تفعيل_حماية_الروابط':
-            link_protection = True; await event.reply("✅ تم تفعيل")
-            return
-        elif text == '/تعطيل_حماية_الروابط':
-            link_protection = False; await event.reply("❌ تم تعطيل")
-            return
-        elif text == '/تفعيل_حماية_التوجيه':
-            forward_protection = True; await event.reply("✅ تم تفعيل")
-            return
-        elif text == '/تعطيل_حماية_التوجيه':
-            forward_protection = False; await event.reply("❌ تم تعطيل")
-            return
+            await event.reply(f"✅ فك {count} كتم"); return
+        elif text == '/تفعيل_حماية_الروابط': link_protection = True; await event.reply("✅"); return
+        elif text == '/تعطيل_حماية_الروابط': link_protection = False; await event.reply("❌"); return
+        elif text == '/تفعيل_حماية_التوجيه': forward_protection = True; await event.reply("✅"); return
+        elif text == '/تعطيل_حماية_التوجيه': forward_protection = False; await event.reply("❌"); return
+        elif text == '/المطور':
+            if DEV_VIDEO_DATA and await send_dev_video(event.chat_id): return
+            await event.reply(f"Dev @{DEVELOPER_USERNAME}\n👑ℙ𝕚𝕡𝕠 ¹⁹\n📍 Sétif"); return
+        elif text == '/ايدي': await event.reply(f"`{event.chat_id}`"); return
     
-    # ⭐ VIP مستثنون
-    if sender.username == DEVELOPER_USERNAME or uid in VIP_USERS:
-        return
+    if link_protection and contains_link(text): await event.delete(); return
+    if forward_protection and is_forward(event.message): await event.delete(); return
     
-    # ⭐ حماية الروابط والتوجيه
-    if link_protection and contains_link(text):
-        await event.delete()
-        return
-    if forward_protection and is_forward(event.message):
-        await event.delete()
-        return
-    
-    # ⭐ فلترة السب
     if contains_swear(text.lower()):
         now = time.time()
         if uid in mute_status and mute_status[uid]['until'] > now: return
-        
         await event.delete()
         await mute_user(GROUP_ID, uid, mute_duration)
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
         last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': sender.username}
-        
-        msg = get_mute_message(name, sender.username, mute_duration // 60)
-        await event.respond(msg)
-        return
+        await event.respond(get_mute_message(name, sender.username, mute_duration // 60)); return
 
-# ======== أوامر الرد ========
+# ======== أزرار ========
+@client.on(events.CallbackQuery)
+async def all_buttons(event):
+    data = event.data.decode('utf-8')
+    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if data.startswith("add_"):
+        _, uid, mins = data.split("_")
+        uid = int(uid); mins = int(mins)
+        await mute_user(GROUP_ID, uid, mins * 60)
+        name = last_muted_user.get(GROUP_ID, {}).get('name', 'مجهول')
+        mute_status[uid] = {'until': time.time() + mins * 60, 'name': name}
+        await event.edit(f"✅ +{mins} دقائق لـ {name}"); return
+    if data == "mute_dur": await event.reply(f"⏰ {mute_duration // 60} دقائق")
+    elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
+    elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
+    elif data == "dedikas_cmd": await event.reply(f"ديديكاس 🤣")
+
+# ======== زيادة مدة ========
 @client.on(events.NewMessage(pattern='/زيادة_المدة'))
 async def increase_mute(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    if not event.is_reply: return
-    
     data = last_muted_user.get(event.chat_id)
-    if not data: return await event.reply("❌ لا يوجد مكتوم")
-    
+    if not data: return
     buttons = [
         [Button.inline("+10 د", f"add_{data['uid']}_10")],
         [Button.inline("+30 د", f"add_{data['uid']}_30")],
@@ -285,55 +270,11 @@ async def increase_mute(event):
     ]
     await event.reply(f"⏰ زيادة كتم {data['name']}:", buttons=buttons)
 
-@client.on(events.CallbackQuery)
-async def add_mute_handler(event):
-    data = event.data.decode('utf-8')
-    if not data.startswith("add_"): return
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    
-    _, uid, mins = data.split("_")
-    uid = int(uid); mins = int(mins)
-    await mute_user(GROUP_ID, uid, mins * 60)
-    name = last_muted_user.get(GROUP_ID, {}).get('name', 'مجهول')
-    mute_status[uid] = {'until': time.time() + mins * 60, 'name': name}
-    await event.edit(f"✅ +{mins} دقائق لـ {name}")
-
-@client.on(events.NewMessage(pattern='/start'))
-async def start(event):
-    sender = await event.get_sender()
-    if sender.username == DEVELOPER_USERNAME:
-        buttons = [
-            [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
-            [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
-        ]
-        await send_with_bot_photo(event.chat_id, f"⚡ **PIPO BOT** ⚡\n👑 أهلاً @{DEVELOPER_USERNAME}", buttons)
-    else:
-        try: await event.react("❤️")
-        except: pass
-
-@client.on(events.CallbackQuery)
-async def start_buttons(event):
-    data = event.data.decode('utf-8')
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    if data == "mute_dur": await event.reply(f"⏰ {mute_duration // 60} دقائق")
-    elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
-    elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
-    elif data == "dedikas_cmd": await event.reply(f"ديديكاس 🤣")
-
-@client.on(events.NewMessage(pattern='/المطور'))
-async def dev_info(event):
-    if DEV_VIDEO_DATA and await send_dev_video(event.chat_id): return
-    await event.reply(f"Dev @{DEVELOPER_USERNAME}\n👑ℙ𝕚𝕡𝕠 ¹⁹\n📍 Sétif")
-
 @client.on(events.NewMessage(pattern='/فيديو_المطور'))
 async def set_dev_video(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     dev_media_mode[(await event.get_sender()).id] = 'dev_video'
     await event.reply("📹 ارسل الفيديو في الخاص!")
-
-@client.on(events.NewMessage(pattern='/ايدي'))
-async def get_chat_id(event):
-    await event.reply(f"Chat ID: `{event.chat_id}`")
 
 @client.on(events.NewMessage(pattern='/فيديو_ترحيب'))
 async def set_welcome_video(event):
@@ -352,30 +293,28 @@ async def delete_all_msgs(event):
                 try: await msg.delete(); deleted += 1
                 except: pass
         except: pass
-    await event.reply(f"✅ تم حذف {deleted} رسالة")
+    await event.reply(f"✅ حذف {deleted} رسالة")
 
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.media))
 async def handle_dev_media(event):
     sender = await event.get_sender()
     if sender.username != DEVELOPER_USERNAME: return
-    media = event.media; media_type = None
-    mode = dev_media_mode.get(sender.id, 'welcome')
+    media = event.media; mode = dev_media_mode.get(sender.id, 'welcome')
     if mode == 'dev_video':
         if hasattr(media, 'document') and 'video' in media.document.mime_type.lower():
             if await save_dev_video(media): await event.reply("✅ تم الحفظ!")
-        if sender.id in dev_media_mode: del dev_media_mode[sender.id]
-        return
-    if hasattr(media, 'photo') and media.photo: media_type = 'photo'
-    elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower(): media_type = 'video'
-    if media_type and await save_welcome_media(media, media_type): await event.reply(f"✅ تم حفظ {media_type}!")
+        if sender.id in dev_media_mode: del dev_media_mode[sender.id]; return
+    mt = None
+    if hasattr(media, 'photo') and media.photo: mt = 'photo'
+    elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower(): mt = 'video'
+    if mt and await save_welcome_media(media, mt): await event.reply(f"✅ تم حفظ {mt}!")
     if sender.id in dev_media_mode: del dev_media_mode[sender.id]
 
-# ======== الخاص ========
 @client.on(events.NewMessage(func=lambda e: e.is_private))
 async def handle_private(event):
     pass
 
-# ======== ترحيب ========
+# ======== ⭐ ترحيب ⭐ ========
 @client.on(events.ChatAction())
 async def welcome(event):
     if event.user_joined:
@@ -389,32 +328,45 @@ async def welcome(event):
                 if await send_welcome_media(event.chat_id, welcome_msg): return
             await client.send_message(event.chat_id, welcome_msg)
 
-# ======== قفل تلقائي ========
+# ======== ⭐ قفل تلقائي مع تذكير ⭐ ========
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
-        now = datetime.datetime.now()
-        hour, minute = now.hour, now.minute
-        
-        if hour == 22 and minute == 30 and not reminder_sent and not chat_locked:
+        now = datetime.datetime.now(); h, m = now.hour, now.minute
+        if h == 22 and m == 30 and not reminder_sent and not chat_locked:
             reminder_sent = True
-            try: await client.send_message(GROUP_ID, f"⚠️ باقي 30 دقيقة على القفل")
+            try: await client.send_message(GROUP_ID, f"⚠️ باقي 30 دقيقة على القفل\n👑 @{DEVELOPER_USERNAME}")
             except: pass
-        
-        if hour == 23 and minute == 0 and not chat_locked:
+        if h == 23 and m == 0 and not chat_locked:
             chat_locked = True; reminder_sent = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=False)
-                await client.send_message(GROUP_ID, f"🔒 تم إغلاق المحادثة - 12:00 ليلاً")
+                await client.send_message(GROUP_ID, f"""
+╔══════════════════════════════╗
+║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
+╠══════════════════════════════╣
+║  ⏰ 12:00 لـيـلاً              ║
+║  🚫 تـم قـفـل الـدردشـة        ║
+║  ⏳ الـفـتـح: 10:00 صـبـاحـاً    ║
+╠══════════════════════════════╣
+║     🤖 PIPO BOT 👑 @{DEVELOPER_USERNAME} ║
+╚══════════════════════════════╝""")
             except: pass
-        
-        if hour == 9 and minute == 0 and chat_locked:
+        if h == 9 and m == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
-                await client.send_message(GROUP_ID, f"🔓 تم فتح المحادثة - 10:00 صباحاً")
+                await client.send_message(GROUP_ID, f"""
+╔══════════════════════════════╗
+║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
+╠══════════════════════════════╣
+║  ⏰ 10:00 صـبـاحـاً            ║
+║  ✅ تـم فـتـح الـدردشـة        ║
+║  💬 يمـكـنـكـم الإرسـال الآن     ║
+╠══════════════════════════════╣
+║     🤖 PIPO BOT 👑 @{DEVELOPER_USERNAME} ║
+╚══════════════════════════════╝""")
             except: pass
-        
         await asyncio.sleep(30)
 
 async def auto_unmute():
@@ -433,14 +385,18 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
     BOT_ID = me.id
-    
     global chat_locked
     try:
         await client.edit_permissions(GROUP_ID, send_messages=True)
         chat_locked = False
     except: pass
-    
     print(f"✅ PIPO BOT: @{me.username}")
+    print(f"👑 @{DEVELOPER_USERNAME}")
+    print(f"🎬 ترحيب: {'✅' if WELCOME_MEDIA_TYPE else '📝 نص'}")
+    print(f"🤬 كشف سب متقدم")
+    print(f"⚠️ تذكير: 23:30")
+    print(f"🌙 قفل: 00:00")
+    print(f"☀️ فتح: 10:00")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
