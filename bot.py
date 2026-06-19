@@ -1,4 +1,4 @@
-import asyncio, os, time, random, datetime, re, sys, json, uuid
+import asyncio, os, time, random, datetime, re, sys, json, tempfile
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
@@ -33,7 +33,7 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
-# ⭐⭐ كشف سب متطور جداً ⭐⭐
+# ⭐⭐ كشف سب متطور ⭐⭐
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -66,11 +66,9 @@ def get_mute_message(name, username, duration):
 ╔══════════════════════════════╗
 ║     🚫 تـم كـتـم عـضـو 🚫       ║
 ╠══════════════════════════════╣
-║                              ║
-║  👤 الـمـخـالـف: {violator}
-║  ⏰ مـدة الـكـتـم: {duration} دقـائـق
-║  🤬 الـسـبـب: كـلـمـات مـمـنـوعـة
-║                              ║
+║  👤 {violator}
+║  ⏰ {duration} دقـائـق
+║  🤬 كـلـمـات مـمـنـوعـة
 ╠══════════════════════════════╣
 ║     👑 @{DEVELOPER_USERNAME}
 ╚══════════════════════════════╝
@@ -80,8 +78,7 @@ def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
     return f"—————— {group_title} —————\nنورت قروبنا يا {name}!\nاسمك: {name}\nايديك: {user_id}\nيوزرك: @{username}\nتاريخ: {now.strftime('%Y/%m/%d %I:%M %p')}\n—————— {group_title} —————"
 
-# ⭐ جلسة فريدة لكل تشغيل
-client = TelegramClient(f'bot_{uuid.uuid4().hex[:8]}', API_ID, API_HASH)
+client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
 
 def load_welcome_media():
@@ -173,11 +170,6 @@ def contains_link(text):
 
 def is_forward(msg): return bool(msg.forward)
 
-async def delete_after_delay(message, delay=10):
-    await asyncio.sleep(delay)
-    try: await message.delete()
-    except: pass
-
 # ======== الأوامر ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -202,14 +194,14 @@ async def lock_chat(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global chat_locked; chat_locked = True
     await client.edit_permissions(GROUP_ID, send_messages=False)
-    await event.reply(f"🔒 **تم قفل المجموعة**\n👑 @{DEVELOPER_USERNAME}")
+    await event.reply(f"🔒 تم قفل المجموعة\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/فك_القفل'))
 async def unlock_chat(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global chat_locked; chat_locked = False
     await client.edit_permissions(GROUP_ID, send_messages=True)
-    await event.reply(f"🔓 **تم فتح المجموعة**\n👑 @{DEVELOPER_USERNAME}")
+    await event.reply(f"🔓 تم فتح المجموعة\n👑 @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/ديرلهم_ديديكاس'))
 async def dedikas(event):
@@ -346,16 +338,12 @@ async def group_handler(event):
     if contains_swear(text.lower()):
         now = time.time()
         if uid in mute_status and mute_status[uid]['until'] > now: return
-        
         violation_count[uid] += 1
         await event.delete()
         await mute_user(GROUP_ID, uid, mute_duration)
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
         last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': sender.username}
-        
-        msg = get_mute_message(name, sender.username, mute_duration // 60)
-        await event.respond(msg)
-        
+        await event.respond(get_mute_message(name, sender.username, mute_duration // 60))
         try:
             await client.send_message(uid, f"⚠️ تحذير\nتم كتمك {mute_duration // 60} دقائق بسبب كلمات ممنوعة.\n👑 @{DEVELOPER_USERNAME}")
         except: pass
@@ -457,4 +445,12 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
+    import fcntl
+    lockfile = os.path.join(tempfile.gettempdir(), 'pipo_bot.lock')
+    try:
+        lock = open(lockfile, 'w')
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("❌ نسخة أخرى شغالة!")
+        sys.exit(0)
     asyncio.run(main())
