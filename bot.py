@@ -1,4 +1,4 @@
-import asyncio, os, time, random, datetime, re, sys, json, tempfile
+import asyncio, os, time, random, datetime, re, sys, json, uuid, tempfile
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
@@ -42,8 +42,6 @@ BAD_WORDS = [
     r'([ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ])',
     r'([زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
     r'([قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
-    r'(f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ])',
-    r'([nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر])',
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
@@ -78,7 +76,8 @@ def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
     return f"—————— {group_title} —————\nنورت قروبنا يا {name}!\nاسمك: {name}\nايديك: {user_id}\nيوزرك: @{username}\nتاريخ: {now.strftime('%Y/%m/%d %I:%M %p')}\n—————— {group_title} —————"
 
-client = TelegramClient('bot', API_ID, API_HASH)
+# ⭐ جلسة فريدة لكل تشغيل
+client = TelegramClient(f'bot_{uuid.uuid4().hex[:8]}', API_ID, API_HASH)
 BOT_ID = None
 
 def load_welcome_media():
@@ -107,17 +106,17 @@ def load_dev_video():
 async def save_dev_video(media):
     global DEV_VIDEO_DATA
     try:
-        media_id = media.document.id; access_hash = media.document.access_hash; file_reference = media.document.file_reference or b''
-        DEV_VIDEO_DATA = {'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}
-        with open(DEV_VIDEO_FILE, 'w', encoding='utf-8') as f: json.dump({'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}, f)
+        mid = media.document.id; ah = media.document.access_hash; fr = media.document.file_reference or b''
+        DEV_VIDEO_DATA = {'media_id': str(mid), 'access_hash': str(ah), 'file_reference': fr.hex() if fr else ''}
+        with open(DEV_VIDEO_FILE, 'w') as f: json.dump({'media_id': str(mid), 'access_hash': str(ah), 'file_reference': fr.hex() if fr else ''}, f)
         load_dev_video(); return True
     except: return False
 
 async def send_dev_video(chat_id):
     try:
-        file_reference = bytes.fromhex(DEV_VIDEO_DATA.get('file_reference', '')) if DEV_VIDEO_DATA.get('file_reference') else b''
-        media = InputDocument(id=int(DEV_VIDEO_DATA['media_id']), access_hash=int(DEV_VIDEO_DATA['access_hash']), file_reference=file_reference)
-        await client.send_file(chat_id, media, caption=f"Dev @{DEVELOPER_USERNAME}\n👑ℙ𝕚𝕡𝕠 ¹⁹\n📍 Sétif")
+        fr = bytes.fromhex(DEV_VIDEO_DATA.get('file_reference', '')) if DEV_VIDEO_DATA.get('file_reference') else b''
+        m = InputDocument(id=int(DEV_VIDEO_DATA['media_id']), access_hash=int(DEV_VIDEO_DATA['access_hash']), file_reference=fr)
+        await client.send_file(chat_id, m, caption=f"Dev @{DEVELOPER_USERNAME}\n👑ℙ𝕚𝕡𝕠 ¹⁹\n📍 Sétif")
         return True
     except: return False
 
@@ -125,47 +124,46 @@ async def save_welcome_media(media, media_type):
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
     try:
         WELCOME_MEDIA_TYPE = media_type
-        if media_type == 'photo': media_id = media.id; access_hash = media.access_hash; file_reference = media.file_reference or b''
-        else: media_id = media.document.id; access_hash = media.document.access_hash; file_reference = media.document.file_reference or b''
-        WELCOME_MEDIA_DATA = {'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}
-        with open(WELCOME_MEDIA_FILE, 'w', encoding='utf-8') as f: json.dump({'type': media_type, 'media_id': str(media_id), 'access_hash': str(access_hash), 'file_reference': file_reference.hex() if file_reference else ''}, f)
+        if media_type == 'photo': mid = media.id; ah = media.access_hash; fr = media.file_reference or b''
+        else: mid = media.document.id; ah = media.document.access_hash; fr = media.document.file_reference or b''
+        WELCOME_MEDIA_DATA = {'media_id': str(mid), 'access_hash': str(ah), 'file_reference': fr.hex() if fr else ''}
+        with open(WELCOME_MEDIA_FILE, 'w') as f: json.dump({'type': media_type, 'media_id': str(mid), 'access_hash': str(ah), 'file_reference': fr.hex() if fr else ''}, f)
         load_welcome_media(); return True
     except: return False
 
 async def send_welcome_media(chat_id, caption):
     try:
-        file_reference = bytes.fromhex(WELCOME_MEDIA_DATA.get('file_reference', '')) if WELCOME_MEDIA_DATA.get('file_reference') else b''
-        if WELCOME_MEDIA_TYPE == 'photo': media = InputPhoto(id=int(WELCOME_MEDIA_DATA['media_id']), access_hash=int(WELCOME_MEDIA_DATA['access_hash']), file_reference=file_reference)
-        else: media = InputDocument(id=int(WELCOME_MEDIA_DATA['media_id']), access_hash=int(WELCOME_MEDIA_DATA['access_hash']), file_reference=file_reference)
-        await client.send_file(chat_id, media, caption=caption)
-        return True
+        fr = bytes.fromhex(WELCOME_MEDIA_DATA.get('file_reference', '')) if WELCOME_MEDIA_DATA.get('file_reference') else b''
+        if WELCOME_MEDIA_TYPE == 'photo': m = InputPhoto(id=int(WELCOME_MEDIA_DATA['media_id']), access_hash=int(WELCOME_MEDIA_DATA['access_hash']), file_reference=fr)
+        else: m = InputDocument(id=int(WELCOME_MEDIA_DATA['media_id']), access_hash=int(WELCOME_MEDIA_DATA['access_hash']), file_reference=fr)
+        await client.send_file(chat_id, m, caption=caption); return True
     except: return False
 
 load_welcome_media()
 load_dev_video()
 
-async def mute_user(chat_id, user_id, duration_seconds):
+async def mute_user(chat_id, user_id, dur):
     try:
-        rights = ChatBannedRights(until_date=datetime.datetime.fromtimestamp(time.time() + duration_seconds), send_messages=True)
-        await client(EditBannedRequest(chat_id, user_id, rights)); return True
+        r = ChatBannedRights(until_date=datetime.datetime.fromtimestamp(time.time() + dur), send_messages=True)
+        await client(EditBannedRequest(chat_id, user_id, r)); return True
     except: return False
 
 async def unmute_user(chat_id, user_id):
     try:
-        rights = ChatBannedRights(until_date=None, send_messages=False)
-        await client(EditBannedRequest(chat_id, user_id, rights)); return True
+        r = ChatBannedRights(until_date=None, send_messages=False)
+        await client(EditBannedRequest(chat_id, user_id, r)); return True
     except: return False
 
 def contains_swear(text):
     if not text: return False
-    for pattern in BAD_WORDS:
-        if re.search(pattern, text, re.IGNORECASE): return True
+    for p in BAD_WORDS:
+        if re.search(p, text, re.IGNORECASE): return True
     return False
 
 def contains_link(text):
     if not text: return False
-    for pattern in LINK_PATTERNS:
-        if re.search(pattern, text, re.IGNORECASE): return True
+    for p in LINK_PATTERNS:
+        if re.search(p, text, re.IGNORECASE): return True
     return False
 
 def is_forward(msg): return bool(msg.forward)
@@ -173,18 +171,12 @@ def is_forward(msg): return bool(msg.forward)
 # ======== الأوامر ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
-    sender = await event.get_sender()
-    if sender.username == DEVELOPER_USERNAME:
-        buttons = [
-            [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة البوت", b"bot_stat")],
-            [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
-            [Button.inline("🔓 فك الكل", b"unmute_all_btn")],
-        ]
-        try:
-            photos = await client.get_profile_photos('me', limit=1)
-            if photos: await client.send_file(event.chat_id, photos[0], caption=f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=buttons); return
-        except: pass
-        await event.respond(f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=buttons)
+    s = await event.get_sender()
+    if s.username == DEVELOPER_USERNAME:
+        btns = [[Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
+                [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
+                [Button.inline("🔓 فك الكل", b"unmute_all_btn")]]
+        await event.respond(f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=btns)
     else:
         try: await event.react("❤️")
         except: pass
@@ -214,58 +206,58 @@ async def dev_info(event):
     await event.reply(f"Dev @{DEVELOPER_USERNAME}\n👑ℙ𝕚𝕡𝕠 ¹⁹\n📍 Sétif")
 
 @client.on(events.NewMessage(pattern='/ايدي'))
-async def get_chat_id(event): await event.reply(f"Chat ID: `{event.chat_id}`")
+async def get_id(event): await event.reply(f"`{event.chat_id}`")
 
 @client.on(events.NewMessage(pattern='/حالة_الحماية'))
-async def protection_status(event):
+async def prot_stat(event):
     await event.reply(f"🛡️ الروابط: {'✅' if link_protection else '❌'} | التوجيه: {'✅' if forward_protection else '❌'} | السب: ✅ | القفل: {'🔒' if chat_locked else '🔓'}")
 
 @client.on(events.NewMessage(pattern=r'/مدة_الكتم (\d+)'))
-async def set_mute_dur(event):
+async def set_md(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global mute_duration; mute_duration = int(event.pattern_match.group(1)) * 60
-    await event.reply(f"⏰ مدة الكتم: {mute_duration // 60} دقائق")
+    await event.reply(f"⏰ {mute_duration // 60} دقائق")
 
 @client.on(events.NewMessage(pattern='/مدة_الكتم'))
-async def show_mute_dur(event): await event.reply(f"⏰ {mute_duration // 60} دقائق")
+async def sh_md(event): await event.reply(f"⏰ {mute_duration // 60} دقائق")
 
 @client.on(events.NewMessage(pattern='/فك_كل_الكمات'))
-async def unmute_all(event):
+async def unm_all(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    count = 0
+    c = 0
     for u in list(mute_status.keys()):
-        try: await unmute_user(mute_status[u].get('chat', GROUP_ID), u); del mute_status[u]; count += 1
+        try: await unmute_user(mute_status[u].get('chat', GROUP_ID), u); del mute_status[u]; c += 1
         except: pass
-    await event.reply(f"✅ فك {count} كتم")
+    await event.reply(f"✅ فك {c} كتم")
 
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_الروابط'))
-async def en_link(event):
+async def en_l(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global link_protection; link_protection = True; await event.reply("✅")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_الروابط'))
-async def dis_link(event):
+async def dis_l(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global link_protection; link_protection = False; await event.reply("❌")
 
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_التوجيه'))
-async def en_fwd(event):
+async def en_f(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global forward_protection; forward_protection = True; await event.reply("✅")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_التوجيه'))
-async def dis_fwd(event):
+async def dis_f(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global forward_protection; forward_protection = False; await event.reply("❌")
 
 @client.on(events.NewMessage(pattern='/فيديو_المطور'))
-async def set_dev_vid(event):
+async def sv_dev(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     dev_media_mode[(await event.get_sender()).id] = 'dev_video'
     await event.reply("📹 ارسل الفيديو في الخاص!")
 
 @client.on(events.NewMessage(pattern='/فيديو_ترحيب'))
-async def set_wel_vid(event):
+async def sv_wel(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     dev_media_mode[(await event.get_sender()).id] = 'welcome'
     await event.reply("ارسل الفيديو او الصورة في الخاص!")
@@ -274,41 +266,37 @@ async def set_wel_vid(event):
 async def del_all(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     if not event.is_private: return
-    deleted = 0
-    for chat_id in [GROUP_ID] + PROTECTED_CHANNELS:
+    c = 0
+    for ch in [GROUP_ID] + PROTECTED_CHANNELS:
         try:
-            async for msg in client.iter_messages(chat_id, from_user='me', limit=None):
-                try: await msg.delete(); deleted += 1
+            async for m in client.iter_messages(ch, from_user='me', limit=None):
+                try: await m.delete(); c += 1
                 except: pass
         except: pass
-    await event.reply(f"✅ حذف {deleted} رسالة")
+    await event.reply(f"✅ حذف {c} رسالة")
 
 @client.on(events.NewMessage(pattern='/زيادة_المدة'))
-async def increase_mute(event):
+async def inc_mute(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    data = last_muted_user.get(event.chat_id)
-    if not data: return
-    buttons = [
-        [Button.inline("+10 د", f"add_{data['uid']}_10")],
-        [Button.inline("+30 د", f"add_{data['uid']}_30")],
-        [Button.inline("+1 س", f"add_{data['uid']}_60")],
-    ]
-    await event.reply(f"⏰ زيادة كتم {data['name']}:", buttons=buttons)
+    d = last_muted_user.get(event.chat_id)
+    if not d: return
+    btns = [[Button.inline("+10 د", f"add_{d['uid']}_10")],
+            [Button.inline("+30 د", f"add_{d['uid']}_30")],
+            [Button.inline("+1 س", f"add_{d['uid']}_60")]]
+    await event.reply(f"⏰ زيادة كتم {d['name']}:", buttons=btns)
 
 @client.on(events.CallbackQuery)
-async def all_buttons(event):
+async def all_btns(event):
     data = event.data.decode('utf-8')
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     if data.startswith("add_"):
         _, uid, mins = data.split("_"); uid = int(uid); mins = int(mins)
         await mute_user(GROUP_ID, uid, mins * 60)
-        name = last_muted_user.get(GROUP_ID, {}).get('name', 'مجهول')
-        mute_status[uid] = {'until': time.time() + mins * 60, 'name': name}
-        await event.edit(f"✅ +{mins} دقائق لـ {name}"); return
+        nm = last_muted_user.get(GROUP_ID, {}).get('name', 'مجهول')
+        mute_status[uid] = {'until': time.time() + mins * 60, 'name': nm}
+        await event.edit(f"✅ +{mins} دقائق لـ {nm}"); return
     if data == "mute_dur": await event.reply(f"⏰ {mute_duration // 60} دقائق")
-    elif data == "bot_stat":
-        muted = len([u for u in mute_status if mute_status[u]['until'] > time.time()])
-        await event.reply(f"📊 مكتوم: {muted}")
+    elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
     elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
     elif data == "dedikas_cmd": await event.reply(f"ديديكاس 🤣")
     elif data == "unmute_all_btn":
@@ -318,67 +306,58 @@ async def all_buttons(event):
             except: pass
         await event.reply(f"🔓 فك {c} كتم")
 
-# ======== حماية المجموعة ========
+# ======== حماية ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
-async def group_handler(event):
-    global link_protection, forward_protection, chat_locked, mute_duration
-    if not event.raw_text: return
-    if event.out: return
-    sender = await event.get_sender()
-    if not sender: return
-    if sender.id == BOT_ID: return
-    if sender.username == DEVELOPER_USERNAME or sender.id in VIP_USERS: return
-    
-    text = event.raw_text.strip()
-    uid = sender.id; name = sender.first_name or "مجهول"
-    
-    if link_protection and contains_link(text): await event.delete(); return
+async def handler(event):
+    global link_protection, forward_protection, mute_duration
+    if not event.raw_text or event.out: return
+    s = await event.get_sender()
+    if not s or s.id == BOT_ID: return
+    if s.username == DEVELOPER_USERNAME or s.id in VIP_USERS: return
+    t = event.raw_text.strip()
+    if link_protection and contains_link(t): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
-    
-    if contains_swear(text.lower()):
-        now = time.time()
+    if contains_swear(t.lower()):
+        now = time.time(); uid = s.id; name = s.first_name or "مجهول"
         if uid in mute_status and mute_status[uid]['until'] > now: return
-        violation_count[uid] += 1
         await event.delete()
         await mute_user(GROUP_ID, uid, mute_duration)
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
-        last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': sender.username}
-        await event.respond(get_mute_message(name, sender.username, mute_duration // 60))
-        try:
-            await client.send_message(uid, f"⚠️ تحذير\nتم كتمك {mute_duration // 60} دقائق بسبب كلمات ممنوعة.\n👑 @{DEVELOPER_USERNAME}")
+        last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': s.username}
+        await event.respond(get_mute_message(name, s.username, mute_duration // 60))
+        try: await client.send_message(uid, f"⚠️ تم كتمك {mute_duration // 60} دقائق\n👑 @{DEVELOPER_USERNAME}")
         except: pass
-        return
 
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.media))
-async def handle_media(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME: return
-    media = event.media; mode = dev_media_mode.get(sender.id, 'welcome')
+async def media_handler(event):
+    s = await event.get_sender()
+    if s.username != DEVELOPER_USERNAME: return
+    m = event.media; mode = dev_media_mode.get(s.id, 'welcome')
     if mode == 'dev_video':
-        if hasattr(media, 'document') and 'video' in media.document.mime_type.lower():
-            if await save_dev_video(media): await event.reply("✅ تم الحفظ!")
-        if sender.id in dev_media_mode: del dev_media_mode[sender.id]; return
+        if hasattr(m, 'document') and 'video' in m.document.mime_type.lower():
+            if await save_dev_video(m): await event.reply("✅ تم الحفظ!")
+        if s.id in dev_media_mode: del dev_media_mode[s.id]; return
     mt = None
-    if hasattr(media, 'photo') and media.photo: mt = 'photo'
-    elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower(): mt = 'video'
-    if mt and await save_welcome_media(media, mt): await event.reply(f"✅ تم حفظ {mt}!")
-    if sender.id in dev_media_mode: del dev_media_mode[sender.id]
+    if hasattr(m, 'photo') and m.photo: mt = 'photo'
+    elif hasattr(m, 'document') and 'video' in m.document.mime_type.lower(): mt = 'video'
+    if mt and await save_welcome_media(m, mt): await event.reply(f"✅ تم حفظ {mt}!")
+    if s.id in dev_media_mode: del dev_media_mode[s.id]
 
 @client.on(events.NewMessage(func=lambda e: e.is_private))
-async def handle_pv(event): pass
+async def pv(event): pass
 
 @client.on(events.ChatAction())
 async def welcome(event):
     if event.user_joined:
-        user = await event.get_user()
-        if not user.bot:
+        u = await event.get_user()
+        if not u.bot:
             await asyncio.sleep(3)
-            try: chat = await event.get_chat(); group_title = chat.title
-            except: group_title = "SUICIDE SQUAD"
-            welcome_msg = get_welcome_message(name=user.first_name or "لاعب", user_id=user.id, username=user.username or "لايوجد", group_title=group_title)
+            try: c = await event.get_chat(); t = c.title
+            except: t = "SUICIDE SQUAD"
+            msg = get_welcome_message(u.first_name or "لاعب", u.id, u.username or "لايوجد", t)
             if WELCOME_MEDIA_DATA and WELCOME_MEDIA_TYPE:
-                if await send_welcome_media(event.chat_id, welcome_msg): return
-            await client.send_message(event.chat_id, welcome_msg)
+                if await send_welcome_media(event.chat_id, msg): return
+            await client.send_message(event.chat_id, msg)
 
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
@@ -392,31 +371,13 @@ async def auto_lock_unlock():
             chat_locked = True; reminder_sent = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=False)
-                await client.send_message(GROUP_ID, f"""
-╔══════════════════════════════╗
-║     🔒 تـم إغـلاق الـمـجـمـوعـة 🔒     ║
-╠══════════════════════════════╣
-║  ⏰ 12:00 لـيـلاً              ║
-║  🚫 تـم قـفـل الـدردشـة        ║
-║  ⏳ الـفـتـح: 10:00 صـبـاحـاً    ║
-╠══════════════════════════════╣
-║     🤖 PIPO BOT 👑 @{DEVELOPER_USERNAME} ║
-╚══════════════════════════════╝""")
+                await client.send_message(GROUP_ID, f"🔒 تم إغلاق المحادثة - 12:00 ليلاً\n🔓 الفتح: 10:00 صباحاً\n👑 @{DEVELOPER_USERNAME}")
             except: pass
         if h == 9 and m == 0 and chat_locked:
             chat_locked = False
             try:
                 await client.edit_permissions(GROUP_ID, send_messages=True)
-                await client.send_message(GROUP_ID, f"""
-╔══════════════════════════════╗
-║     🔓 تـم فـتـح الـمـجـمـوعـة 🔓     ║
-╠══════════════════════════════╣
-║  ⏰ 10:00 صـبـاحـاً            ║
-║  ✅ تـم فـتـح الـدردشـة        ║
-║  💬 يمـكـنـكـم الإرسـال الآن     ║
-╠══════════════════════════════╣
-║     🤖 PIPO BOT 👑 @{DEVELOPER_USERNAME} ║
-╚══════════════════════════════╝""")
+                await client.send_message(GROUP_ID, f"🔓 تم فتح المحادثة - 10:00 صباحاً\n👑 @{DEVELOPER_USERNAME}")
             except: pass
         await asyncio.sleep(30)
 
