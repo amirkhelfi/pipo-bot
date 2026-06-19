@@ -1,10 +1,9 @@
-import asyncio, os, time, random, datetime, re, sys, json, tempfile
+import asyncio, os, time, random, datetime, re, sys, json
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
 
-# ======== الإعدادات ========
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
 BOT_TOKEN = '8510476270:AAGMX1NjCg1n44vHJky3l1eUUQxR_W8Qckw'
@@ -33,43 +32,29 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
-# ⭐⭐ كشف سب متطور ⭐⭐
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
-    r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
-    r'(ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6])',
-    r'([كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$])',
-    r'([ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ])',
-    r'([زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
-    r'([قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
-    r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
-    r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
-    r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
-    r'\b(الله[\s]*ينعل|الله[\s]*يلعن|ينعل[\s]*دين|يلعن[\s]*دين)\b',
-    r'\b(ك\s*س|ك\s*ص|ط\s*ي\s*ز|ز\s*ب|ن\s*ي\s*ك|ق\s*ح\s*ب)\b',
-    r'[كڪﻛﻚ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[سښصث]',
-    r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[ببـپ]',
-    r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[كڪﻛﻚ]',
+    r'(ن\s*ي\s*ك|ك\s*س|ط\s*ي\s*ز|ز\s*ب|ق\s*ح\s*ب)',
+    r'\b(زبي|كسك|طيزك|قحبتك)\b',
 ]
 
 LINK_PATTERNS = [
     r'https?://\S+', r't\.me/\S+', r'www\.\S+',
     r'\S+\.com\b', r'\S+\.net\b', r'\S+\.org\b',
-    r'tiktok\.com', r'youtube\.com', r'instagram\.com', r'facebook\.com',
 ]
 
 def get_mute_message(name, username, duration):
     violator = f"@{username}" if username else name
     return f"""
-╔══════════════════════════════╗
-║     🚫 تـم كـتـم عـضـو 🚫       ║
-╠══════════════════════════════╣
-║  👤 {violator}
-║  ⏰ {duration} دقـائـق
-║  🤬 كـلـمـات مـمـنـوعـة
-╠══════════════════════════════╣
-║     👑 @{DEVELOPER_USERNAME}
-╚══════════════════════════════╝
+╔══════════════════════════╗
+║   🚫 تـم كـتـم عـضـو 🚫   ║
+╠══════════════════════════╣
+║ 👤 {violator}
+║ ⏰ {duration} دقـائـق
+║ 🤬 كـلـمـات مـمـنـوعـة
+╠══════════════════════════╣
+║ 👑 @{DEVELOPER_USERNAME}
+╚══════════════════════════╝
 """
 
 def get_welcome_message(name, user_id, username, group_title):
@@ -185,14 +170,14 @@ async def lock_chat(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global chat_locked; chat_locked = True
     await client.edit_permissions(GROUP_ID, send_messages=False)
-    await event.reply(f"🔒 تم قفل المجموعة\n👑 @{DEVELOPER_USERNAME}")
+    await event.reply("🔒 تم قفل المجموعة")
 
 @client.on(events.NewMessage(pattern='/فك_القفل'))
 async def unlock_chat(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     global chat_locked; chat_locked = False
     await client.edit_permissions(GROUP_ID, send_messages=True)
-    await event.reply(f"🔓 تم فتح المجموعة\n👑 @{DEVELOPER_USERNAME}")
+    await event.reply("🔓 تم فتح المجموعة")
 
 @client.on(events.NewMessage(pattern='/ديرلهم_ديديكاس'))
 async def dedikas(event):
@@ -405,12 +390,4 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
-    import fcntl
-    lockfile = os.path.join(tempfile.gettempdir(), 'pipo_bot.lock')
-    try:
-        lock = open(lockfile, 'w')
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except IOError:
-        print("❌ نسخة أخرى شغالة!")
-        sys.exit(0)
     asyncio.run(main())
