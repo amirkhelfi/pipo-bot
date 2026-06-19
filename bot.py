@@ -1,4 +1,4 @@
-import asyncio, os, time, random, datetime, re, sys, json, uuid, tempfile
+import asyncio, os, time, random, datetime, re, sys, json, tempfile
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
@@ -76,8 +76,7 @@ def get_welcome_message(name, user_id, username, group_title):
     now = datetime.datetime.now()
     return f"—————— {group_title} —————\nنورت قروبنا يا {name}!\nاسمك: {name}\nايديك: {user_id}\nيوزرك: @{username}\nتاريخ: {now.strftime('%Y/%m/%d %I:%M %p')}\n—————— {group_title} —————"
 
-# ⭐ جلسة فريدة لكل تشغيل
-client = TelegramClient(f'bot_{uuid.uuid4().hex[:8]}', API_ID, API_HASH)
+client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
 
 def load_welcome_media():
