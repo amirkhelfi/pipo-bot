@@ -24,6 +24,7 @@ forward_protection = True
 chat_locked = False
 reminder_sent = False
 last_muted_user = {}
+replied_users = set()
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -34,12 +35,10 @@ DEV_VIDEO_FILE = "dev_video.json"
 
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
-    r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
     r'\b(ن\s*ي\s*ك|ك\s*س|ط\s*ي\s*ز|ز\s*ب|ق\s*ح\s*ب)\b',
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
-    r'\b(الله[\s]*ينعل|الله[\s]*يلعن|ينعل[\s]*دين|يلعن[\s]*دين)\b',
     r'\b(ك\s*س|ك\s*ص|ط\s*ي\s*ز|ز\s*ب|ن\s*ي\s*ك|ق\s*ح\s*ب)\b',
 ]
 
@@ -68,6 +67,8 @@ def get_welcome_message(name, user_id, username, group_title):
 
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
+
+user_client = TelegramClient('user_session', API_ID, API_HASH)
 
 def load_welcome_media():
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
@@ -157,6 +158,34 @@ def contains_link(text):
 
 def is_forward(msg): return bool(msg.forward)
 
+# ======== يوزربوت ========
+@user_client.on(events.NewMessage(incoming=True))
+async def user_auto_reply(event):
+    if not event.is_private: return
+    if event.out: return
+    sender = await event.get_sender()
+    if not sender or sender.bot: return
+    
+    try: await event.react("👍")
+    except: pass
+    
+    if sender.id in replied_users: return
+    replied_users.add(sender.id)
+    
+    msg = f"""
+╔══════════════════════════════╗
+║     👑 ℙ𝕚𝕡𝕠 ¹⁹ 👑         ║
+╠══════════════════════════════╣
+║  😴 غـيـر مـتـصـل حـالـيـاً  ║
+║  💤 إمـا نـائـم أو مـشـغـول   ║
+║  📩 سـيـرد عـلـيـك قـريـبـاً   ║
+║  🙏 شـكـراً لـتـفـهـمـك      ║
+╚══════════════════════════════╝
+"""
+    try: await user_client.send_message(sender.id, msg)
+    except: pass
+
+# ======== بوت المجموعة ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
@@ -298,7 +327,6 @@ async def all_btns(event):
             except: pass
         await event.reply(f"🔓 فك {c} كتم")
 
-# ======== حماية مع إرسال الكلمة في الخاص ========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def handler(event):
     global link_protection, forward_protection, mute_duration
@@ -317,7 +345,6 @@ async def handler(event):
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
         last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': s.username}
         await event.respond(get_mute_message(name, s.username, mute_duration // 60))
-        # إرسال الكلمة في الخاص
         try: await client.send_message(uid, f"⚠️ تم كتمك {mute_duration // 60} دقائق\n🤬 الكلمة: `{t}`\n👑 @{DEVELOPER_USERNAME}")
         except: pass
 
@@ -388,15 +415,20 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
     BOT_ID = me.id
+    
+    await user_client.start()
+    user_me = await user_client.get_me()
+    
     global chat_locked
     try:
         await client.edit_permissions(GROUP_ID, send_messages=True)
         chat_locked = False
     except: pass
     print(f"✅ PIPO BOT: @{me.username}")
+    print(f"👤 يوزربوت: @{user_me.username}")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
-    await client.run_until_disconnected()
+    await asyncio.gather(client.run_until_disconnected(), user_client.run_until_disconnected())
 
 if __name__ == '__main__':
     asyncio.run(main())
