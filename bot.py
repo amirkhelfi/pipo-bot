@@ -24,7 +24,6 @@ forward_protection = True
 chat_locked = False
 reminder_sent = False
 last_muted_user = {}
-replied_users = set()
 
 WELCOME_MEDIA_DATA = None
 WELCOME_MEDIA_TYPE = None
@@ -33,13 +32,39 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
+# ⭐⭐ كشف سب متطور (عربي + أرقام + رموز + إنجليزي معرب) ⭐⭐
 BAD_WORDS = [
+    # السب المباشر
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
-    r'\b(ن\s*ي\s*ك|ك\s*س|ط\s*ي\s*ز|ز\s*ب|ق\s*ح\s*ب)\b',
+    r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
+    # قود وطحان
+    r'\b(قود|god|goud|gawd|gwd)\b',
+    r'\b(طحان|طيحان|tahhan|tihan|t7an|t7an|t7han|t7han)\b',
+    # سب بالأرقام
+    r'\b(9ahb|9hba|9ahba|9hab|9haba|9hba|9hb|9ahb)\b',
+    r'\b(zebi|zebbi|zeb|zbi|zbbi|zebby|zeby)\b',
+    r'\b(kess|kes|ks|kessou|kesou|ksou)\b',
+    r'\b(tiz|tizi|tizy|tezi|tezy)\b',
+    r'\b(3ass|3as|3asska|3aska|3assk)\b',
+    r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
+    r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
+    # سب بالحروف المتفرقة
+    r'(ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6])',
+    r'([كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$])',
+    r'([ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ])',
+    r'([زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
+    r'([قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
+    r'(f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ])',
+    r'([nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر])',
+    # سب جزائري خاص
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
+    r'\b(الله[\s]*ينعل|الله[\s]*يلعن|ينعل[\s]*دين|يلعن[\s]*دين)\b',
     r'\b(ك\s*س|ك\s*ص|ط\s*ي\s*ز|ز\s*ب|ن\s*ي\s*ك|ق\s*ح\s*ب)\b',
+    r'[كڪﻛﻚ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[سښصث]',
+    r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[ببـپ]',
+    r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[كڪﻛﻚ]',
 ]
 
 LINK_PATTERNS = [
@@ -67,8 +92,6 @@ def get_welcome_message(name, user_id, username, group_title):
 
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
-
-user_client = TelegramClient('user_session', API_ID, API_HASH)
 
 def load_welcome_media():
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
@@ -158,34 +181,7 @@ def contains_link(text):
 
 def is_forward(msg): return bool(msg.forward)
 
-# ======== يوزربوت ========
-@user_client.on(events.NewMessage(incoming=True))
-async def user_auto_reply(event):
-    if not event.is_private: return
-    if event.out: return
-    sender = await event.get_sender()
-    if not sender or sender.bot: return
-    
-    try: await event.react("👍")
-    except: pass
-    
-    if sender.id in replied_users: return
-    replied_users.add(sender.id)
-    
-    msg = f"""
-╔══════════════════════════════╗
-║     👑 ℙ𝕚𝕡𝕠 ¹⁹ 👑         ║
-╠══════════════════════════════╣
-║  😴 غـيـر مـتـصـل حـالـيـاً  ║
-║  💤 إمـا نـائـم أو مـشـغـول   ║
-║  📩 سـيـرد عـلـيـك قـريـبـاً   ║
-║  🙏 شـكـراً لـتـفـهـمـك      ║
-╚══════════════════════════════╝
-"""
-    try: await user_client.send_message(sender.id, msg)
-    except: pass
-
-# ======== بوت المجموعة ========
+# ======== الأوامر ========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
@@ -415,20 +411,15 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
     BOT_ID = me.id
-    
-    await user_client.start()
-    user_me = await user_client.get_me()
-    
     global chat_locked
     try:
         await client.edit_permissions(GROUP_ID, send_messages=True)
         chat_locked = False
     except: pass
     print(f"✅ PIPO BOT: @{me.username}")
-    print(f"👤 يوزربوت: @{user_me.username}")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
-    await asyncio.gather(client.run_until_disconnected(), user_client.run_until_disconnected())
+    await client.run_until_disconnected()
 
 if __name__ == '__main__':
     asyncio.run(main())
