@@ -34,13 +34,10 @@ DEV_VIDEO_FILE = "dev_video.json"
 
 # ⭐⭐ كشف سب متطور (عربي + أرقام + رموز + إنجليزي معرب) ⭐⭐
 BAD_WORDS = [
-    # السب المباشر
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
-    # قود وطحان
     r'\b(قود|god|goud|gawd|gwd)\b',
     r'\b(طحان|طيحان|tahhan|tihan|t7an|t7an|t7han|t7han)\b',
-    # سب بالأرقام
     r'\b(9ahb|9hba|9ahba|9hab|9haba|9hba|9hb|9ahb)\b',
     r'\b(zebi|zebbi|zeb|zbi|zbbi|zebby|zeby)\b',
     r'\b(kess|kes|ks|kessou|kesou|ksou)\b',
@@ -48,7 +45,6 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-    # سب بالحروف المتفرقة
     r'(ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6])',
     r'([كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$])',
     r'([ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ])',
@@ -56,7 +52,6 @@ BAD_WORDS = [
     r'([قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
     r'(f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ])',
     r'([nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر])',
-    # سب جزائري خاص
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
@@ -301,6 +296,47 @@ async def inc_mute(event):
             [Button.inline("+30 د", f"add_{d['uid']}_30")],
             [Button.inline("+1 س", f"add_{d['uid']}_60")]]
     await event.reply(f"⏰ زيادة كتم {d['name']}:", buttons=btns)
+
+# ========== أمر /كتم (كتم دائم) ==========
+@client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
+async def permanent_mute(event):
+    """يكتم الشخص لمدة 10 سنوات (دائم فعليًا) مع رسالة استفزازية جزائرية"""
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME:
+        return
+
+    replied = await event.get_reply_message()
+    target = await replied.get_sender()
+    if not target:
+        await event.reply("❌ ما قدرتش نلقى العضو.")
+        return
+
+    # كتم لمدة 10 سنوات (دائم)
+    ten_years = 10 * 365 * 24 * 3600
+    await mute_user(event.chat_id, target.id, ten_years)
+
+    name = target.first_name or "مجهول"
+    username = target.username or "لا يوجد"
+    mute_status[target.id] = {
+        'until': time.time() + ten_years,
+        'name': name,
+        'chat': event.chat_id
+    }
+    last_muted_user[event.chat_id] = {
+        'uid': target.id,
+        'name': name,
+        'username': username
+    }
+
+    # رسالة استفزازية باللهجة الجزائرية
+    msg = (
+        f"هاك الكتمة يا {name} 😂❤️\n"
+        f"سكّر فمك و خلّي تسمع غير صوت الهواء\n"
+        f"حتّى تعقل و نرجع نفتحلك 👑 @{DEVELOPER_USERNAME}"
+    )
+    await event.reply(msg)
+
+# ========== انتهاء الأمر ==========
 
 @client.on(events.CallbackQuery)
 async def all_btns(event):
