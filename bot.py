@@ -240,25 +240,26 @@ async def unm_all(event):
         except: pass
     await event.reply(f"✅ فك {c} كتم")
 
+# --- أوامر الحماية أصبحت متاحة للمسؤول أيضاً ---
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_الروابط'))
 async def en_l(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global link_protection; link_protection = True; await event.reply("✅")
+    if not is_admin(await event.get_sender()): return
+    global link_protection; link_protection = True; await event.reply("✅ تم تفعيل حماية الروابط")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_الروابط'))
 async def dis_l(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global link_protection; link_protection = False; await event.reply("❌")
+    if not is_admin(await event.get_sender()): return
+    global link_protection; link_protection = False; await event.reply("❌ تم تعطيل حماية الروابط")
 
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_التوجيه'))
 async def en_f(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global forward_protection; forward_protection = True; await event.reply("✅")
+    if not is_admin(await event.get_sender()): return
+    global forward_protection; forward_protection = True; await event.reply("✅ تم تفعيل حماية التوجيه")
 
 @client.on(events.NewMessage(pattern='/تعطيل_حماية_التوجيه'))
 async def dis_f(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    global forward_protection; forward_protection = False; await event.reply("❌")
+    if not is_admin(await event.get_sender()): return
+    global forward_protection; forward_protection = False; await event.reply("❌ تم تعطيل حماية التوجيه")
 
 @client.on(events.NewMessage(pattern='/فيديو_المطور'))
 async def sv_dev(event):
