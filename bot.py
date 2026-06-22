@@ -14,6 +14,7 @@ CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
 VIP_USERS = [6941580330, 8050958688]
+GROUP_ADMIN_IDS = [6941580330]  # مسؤول المجموعة الجديد
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
 mute_status = {}
@@ -87,6 +88,10 @@ def get_welcome_message(name, user_id, username, group_title):
 
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
+
+def is_admin(sender):
+    """التحقق من أن المستخدم مطور أو مسؤول المجموعة"""
+    return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMIN_IDS
 
 def load_welcome_media():
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
@@ -195,14 +200,14 @@ async def start(event):
 
 @client.on(events.NewMessage(pattern='/قفل_المجموعة'))
 async def lock_chat(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if not is_admin(await event.get_sender()): return
     global chat_locked; chat_locked = True
     await client.edit_permissions(GROUP_ID, send_messages=False)
     await event.reply("🔒 تم قفل المجموعة")
 
 @client.on(events.NewMessage(pattern='/فك_القفل'))
 async def unlock_chat(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if not is_admin(await event.get_sender()): return
     global chat_locked; chat_locked = False
     await client.edit_permissions(GROUP_ID, send_messages=True)
     await event.reply("🔓 تم فتح المجموعة")
@@ -226,7 +231,7 @@ async def prot_stat(event):
 
 @client.on(events.NewMessage(pattern=r'/مدة_الكتم (\d+)'))
 async def set_md(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if not is_admin(await event.get_sender()): return
     global mute_duration; mute_duration = int(event.pattern_match.group(1)) * 60
     await event.reply(f"⏰ {mute_duration // 60} دقائق")
 
@@ -235,7 +240,7 @@ async def sh_md(event): await event.reply(f"⏰ {mute_duration // 60} دقائق
 
 @client.on(events.NewMessage(pattern='/فك_كل_الكمات'))
 async def unm_all(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if not is_admin(await event.get_sender()): return
     c = 0
     for u in list(mute_status.keys()):
         try: await unmute_user(mute_status[u].get('chat', GROUP_ID), u); del mute_status[u]; c += 1
@@ -289,7 +294,7 @@ async def del_all(event):
 
 @client.on(events.NewMessage(pattern='/زيادة_المدة'))
 async def inc_mute(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    if not is_admin(await event.get_sender()): return
     d = last_muted_user.get(event.chat_id)
     if not d: return
     btns = [[Button.inline("+10 د", f"add_{d['uid']}_10")],
@@ -302,7 +307,7 @@ async def inc_mute(event):
 async def permanent_mute(event):
     """يكتم الشخص لمدة 10 سنوات (دائم فعليًا) مع رسالة استفزازية جزائرية"""
     sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
+    if not is_admin(sender):
         return
 
     replied = await event.get_reply_message()
