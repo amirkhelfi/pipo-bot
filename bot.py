@@ -13,8 +13,7 @@ CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
-VIP_USERS = [6941580330, 8050958688]
-GROUP_ADMIN_IDS = [6941580330]  # مسؤول المجموعة الجديد
+GROUP_ADMINS = [6941580330]  # مسؤولو المجموعة (يمكنهم استخدام أوامر الإدارة)
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
 mute_status = {}
@@ -90,8 +89,8 @@ client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
 
 def is_admin(sender):
-    """التحقق من أن المستخدم مطور أو مسؤول المجموعة"""
-    return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMIN_IDS
+    """المطور ومسؤولو المجموعة فقط"""
+    return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
 
 def load_welcome_media():
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
@@ -187,8 +186,7 @@ async def start(event):
     s = await event.get_sender()
     if s.username == DEVELOPER_USERNAME:
         btns = [[Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
-                [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("😂 ديديكاس", b"dedikas_cmd")],
-                [Button.inline("🔓 فك الكل", b"unmute_all_btn")]]
+                [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("🔓 فك الكل", b"unmute_all_btn")]]
         try:
             photos = await client.get_profile_photos('me', limit=1)
             if photos: await client.send_file(event.chat_id, photos[0], caption=f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=btns); return
@@ -211,11 +209,6 @@ async def unlock_chat(event):
     global chat_locked; chat_locked = False
     await client.edit_permissions(GROUP_ID, send_messages=True)
     await event.reply("🔓 تم فتح المجموعة")
-
-@client.on(events.NewMessage(pattern='/ديرلهم_ديديكاس'))
-async def dedikas(event):
-    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
-    await event.reply(f"ديديكاس لهاذو 🤣 فري مدرناش يا مطوري @{DEVELOPER_USERNAME}")
 
 @client.on(events.NewMessage(pattern='/المطور'))
 async def dev_info(event):
@@ -305,7 +298,6 @@ async def inc_mute(event):
 # ========== أمر /كتم (كتم دائم) ==========
 @client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
 async def permanent_mute(event):
-    """يكتم الشخص لمدة 10 سنوات (دائم فعليًا) مع رسالة استفزازية جزائرية"""
     sender = await event.get_sender()
     if not is_admin(sender):
         return
@@ -341,8 +333,7 @@ async def permanent_mute(event):
     )
     await event.reply(msg)
 
-# ========== انتهاء الأمر ==========
-
+# ========== أزرار المطور ==========
 @client.on(events.CallbackQuery)
 async def all_btns(event):
     data = event.data.decode('utf-8')
@@ -356,7 +347,6 @@ async def all_btns(event):
     if data == "mute_dur": await event.reply(f"⏰ {mute_duration // 60} دقائق")
     elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
     elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
-    elif data == "dedikas_cmd": await event.reply(f"ديديكاس 🤣")
     elif data == "unmute_all_btn":
         c = 0
         for u in list(mute_status.keys()):
@@ -364,13 +354,15 @@ async def all_btns(event):
             except: pass
         await event.reply(f"🔓 فك {c} كتم")
 
+# ========== حماية المجموعة ==========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
 async def handler(event):
     global link_protection, forward_protection, mute_duration
     if not event.raw_text or event.out: return
     s = await event.get_sender()
     if not s or s.id == BOT_ID: return
-    if s.username == DEVELOPER_USERNAME or s.id in VIP_USERS: return
+    # المطور محمي تمامًا
+    if s.username == DEVELOPER_USERNAME: return
     t = event.raw_text.strip()
     if link_protection and contains_link(t): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
