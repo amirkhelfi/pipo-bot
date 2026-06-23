@@ -13,7 +13,7 @@ CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
-GROUP_ADMINS = [6941580330]  # مسؤولو المجموعة (يمكنهم استخدام أوامر الإدارة)
+GROUP_ADMINS = [6941580330]
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
 mute_status = {}
@@ -34,10 +34,13 @@ DEV_VIDEO_FILE = "dev_video.json"
 
 # ⭐⭐ كشف سب متطور (عربي + أرقام + رموز + إنجليزي معرب) ⭐⭐
 BAD_WORDS = [
+    # السب المباشر
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
+    # قود وطحان
     r'\b(قود|god|goud|gawd|gwd)\b',
     r'\b(طحان|طيحان|tahhan|tihan|t7an|t7an|t7han|t7han)\b',
+    # سب بالأرقام
     r'\b(9ahb|9hba|9ahba|9hab|9haba|9hba|9hb|9ahb)\b',
     r'\b(zebi|zebbi|zeb|zbi|zbbi|zebby|zeby)\b',
     r'\b(kess|kes|ks|kessou|kesou|ksou)\b',
@@ -45,6 +48,7 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
+    # سب بالحروف المتفرقة (نـيـك، كـس، طـيـز، زب، قحب، f***, n***er)
     r'(ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6])',
     r'([كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$])',
     r'([ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ])',
@@ -52,6 +56,7 @@ BAD_WORDS = [
     r'([قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ])',
     r'(f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ])',
     r'([nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر])',
+    # سب جزائري خاص (زبي، كسك...)
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
@@ -60,6 +65,14 @@ BAD_WORDS = [
     r'[كڪﻛﻚ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[سښصث]',
     r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[ببـپ]',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]?[كڪﻛﻚ]',
+
+    # ⭐ جديد ⭐ كشف "نمـي" (سب جزائري قوي) بجميع التحايلات
+    # نمـي بـ m بدل الميم
+    r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[مm][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
+    # نمـي باستخدام "me" الإنجليزية كاملة
+    r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*m[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*e[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
+    # نمي مباشر مع مسافات قليلة (ن م ي)
+    r'ن\s*م\s*ي',
 ]
 
 LINK_PATTERNS = [
@@ -89,7 +102,6 @@ client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
 
 def is_admin(sender):
-    """المطور ومسؤولو المجموعة فقط"""
     return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
 
 def load_welcome_media():
@@ -240,7 +252,6 @@ async def unm_all(event):
         except: pass
     await event.reply(f"✅ فك {c} كتم")
 
-# --- أوامر الحماية أصبحت متاحة للمسؤول أيضاً ---
 @client.on(events.NewMessage(pattern='/تفعيل_حماية_الروابط'))
 async def en_l(event):
     if not is_admin(await event.get_sender()): return
@@ -309,7 +320,6 @@ async def permanent_mute(event):
         await event.reply("❌ ما قدرتش نلقى العضو.")
         return
 
-    # كتم لمدة 10 سنوات (دائم)
     ten_years = 10 * 365 * 24 * 3600
     await mute_user(event.chat_id, target.id, ten_years)
 
@@ -326,13 +336,55 @@ async def permanent_mute(event):
         'username': username
     }
 
-    # رسالة استفزازية باللهجة الجزائرية
     msg = (
         f"هاك الكتمة يا {name} 😂❤️\n"
         f"سكّر فمك و خلّي تسمع غير صوت الهواء\n"
         f"حتّى تعقل و نرجع نفتحلك 👑 @{DEVELOPER_USERNAME}"
     )
     await event.reply(msg)
+
+# ========== أمر /كتم_عن_بعد (خاص بالمطور في الخاص) ==========
+@client.on(events.NewMessage(pattern=r'^/كتم_عن_بعد\s+(@?\w+)(?:\s+(.*))?', func=lambda e: e.is_private))
+async def remote_mute(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME:
+        return
+
+    username = event.pattern_match.group(1).lstrip('@')
+    custom_msg = event.pattern_match.group(2)
+    if not custom_msg:
+        await event.reply("❌ أكتب رسالة بعد اليوزر، مثال:\n/كتم_عن_بعد @username الرسالة")
+        return
+
+    try:
+        entity = await client.get_entity(f"@{username}")
+    except:
+        await event.reply("❌ اليوزر غير موجود أو لا يمكن الوصول إليه.")
+        return
+
+    user_id = entity.id
+    name = entity.first_name or username
+    ten_years = 10 * 365 * 24 * 3600
+
+    if await mute_user(GROUP_ID, user_id, ten_years):
+        mute_status[user_id] = {
+            'until': time.time() + ten_years,
+            'name': name,
+            'chat': GROUP_ID
+        }
+        last_muted_user[GROUP_ID] = {
+            'uid': user_id,
+            'name': name,
+            'username': username
+        }
+
+        try:
+            await client.send_message(user_id, custom_msg)
+            await event.reply(f"✅ تم كتم {name} وإرسال الرسالة له.")
+        except:
+            await event.reply(f"✅ تم كتم {name} ولكن تعذر إرسال الرسالة (ربما حظر البوت).")
+    else:
+        await event.reply("❌ فشل كتم العضو، تأكد من صلاحيات البوت في المجموعة.")
 
 # ========== أزرار المطور ==========
 @client.on(events.CallbackQuery)
@@ -362,7 +414,6 @@ async def handler(event):
     if not event.raw_text or event.out: return
     s = await event.get_sender()
     if not s or s.id == BOT_ID: return
-    # المطور محمي تمامًا
     if s.username == DEVELOPER_USERNAME: return
     t = event.raw_text.strip()
     if link_protection and contains_link(t): await event.delete(); return
