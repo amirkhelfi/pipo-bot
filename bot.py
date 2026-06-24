@@ -13,8 +13,32 @@ CHANNEL_2 = -1003008879375
 CHANNEL_3 = -1003498206246
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
-GROUP_ADMINS = [6941580330]
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
+
+# ---- إعدادات المسؤولين ----
+ADMINS_FILE = "admins.json"
+DEFAULT_ADMINS = [6941580330]  # المسؤول الافتراضي
+
+def load_admins():
+    try:
+        if os.path.exists(ADMINS_FILE):
+            with open(ADMINS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return list(set(data.get('admins', DEFAULT_ADMINS)))
+    except:
+        pass
+    return DEFAULT_ADMINS.copy()
+
+def save_admins(admins_list):
+    with open(ADMINS_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'admins': admins_list}, f, ensure_ascii=False, indent=2)
+
+GROUP_ADMINS = load_admins()
+
+def is_admin(sender):
+    return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
+
+# ---------------------------------
 
 mute_status = {}
 violation_count = defaultdict(int)
@@ -90,9 +114,6 @@ def get_welcome_message(name, user_id, username, group_title):
 
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_ID = None
-
-def is_admin(sender):
-    return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
 
 def load_welcome_media():
     global WELCOME_MEDIA_DATA, WELCOME_MEDIA_TYPE
@@ -197,7 +218,6 @@ async def start(event):
     else:
         await event.reply("ياحييي داصرتوني ثم ثم 😒")
         try:
-            # التفاعل الصحيح عبر client.send_reaction
             await client.send_reaction(event.chat_id, event.id, '💋')
         except:
             pass
@@ -379,6 +399,75 @@ async def remote_mute(event):
             await event.reply(f"✅ تم كتم {name} ولكن تعذر إرسال الرسالة (ربما حظر البوت).")
     else:
         await event.reply("❌ فشل كتم العضو، تأكد من صلاحيات البوت في المجموعة.")
+
+# ========== أوامر المسؤولين (رفع / تنزيل) ==========
+@client.on(events.NewMessage(pattern='/رفع_مسؤول'))
+async def promote_admin(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME:
+        return await event.reply("❌ هذا الأمر للمطور فقط.")
+
+    target_id = None
+    target_name = "مجهول"
+
+    # التحقق من الرد
+    if event.is_reply:
+        replied = await event.get_reply_message()
+        target_user = await replied.get_sender()
+        if target_user:
+            target_id = target_user.id
+            target_name = target_user.first_name or "لا اسم"
+    else:
+        # محاولة قراءة الآيدي من الرسالة
+        args = event.raw_text.strip().split()
+        if len(args) >= 2:
+            try:
+                target_id = int(args[1])
+            except:
+                return await event.reply("❌ استخدم: /رفع_مسؤول <id> أو بالرد على الشخص.")
+
+    if not target_id:
+        return await event.reply("❌ الرجاء الرد على رسالة الشخص أو كتابة الآيدي.")
+
+    if target_id in GROUP_ADMINS:
+        return await event.reply(f"⚠️ العضو {target_name} مسؤول بالفعل.")
+
+    GROUP_ADMINS.append(target_id)
+    save_admins(GROUP_ADMINS)
+    await event.reply(f"✅ تم رفع {target_name} (ID: {target_id}) مسؤولاً في المجموعة.")
+
+@client.on(events.NewMessage(pattern='/تنزيل_مسؤول'))
+async def demote_admin(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME:
+        return await event.reply("❌ هذا الأمر للمطور فقط.")
+
+    target_id = None
+    target_name = "مجهول"
+
+    if event.is_reply:
+        replied = await event.get_reply_message()
+        target_user = await replied.get_sender()
+        if target_user:
+            target_id = target_user.id
+            target_name = target_user.first_name or "لا اسم"
+    else:
+        args = event.raw_text.strip().split()
+        if len(args) >= 2:
+            try:
+                target_id = int(args[1])
+            except:
+                return await event.reply("❌ استخدم: /تنزيل_مسؤول <id> أو بالرد على الشخص.")
+
+    if not target_id:
+        return await event.reply("❌ الرجاء الرد على رسالة الشخص أو كتابة الآيدي.")
+
+    if target_id not in GROUP_ADMINS:
+        return await event.reply(f"⚠️ العضو غير موجود في قائمة المسؤولين.")
+
+    GROUP_ADMINS.remove(target_id)
+    save_admins(GROUP_ADMINS)
+    await event.reply(f"✅ تم تنزيل {target_name} (ID: {target_id}) من قائمة المسؤولين.")
 
 # ========== أزرار المطور ==========
 @client.on(events.CallbackQuery)
