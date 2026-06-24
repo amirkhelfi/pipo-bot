@@ -15,7 +15,6 @@ DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
 PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
-# ---- إعدادات المسؤولين ----
 ADMINS_FILE = "admins.json"
 DEFAULT_ADMINS = [6941580330]
 
@@ -25,8 +24,7 @@ def load_admins():
             with open(ADMINS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return list(set(data.get('admins', DEFAULT_ADMINS)))
-    except:
-        pass
+    except: pass
     return DEFAULT_ADMINS.copy()
 
 def save_admins(admins_list):
@@ -38,7 +36,6 @@ GROUP_ADMINS = load_admins()
 def is_admin(sender):
     return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
 
-# ---- نظام التحذيرات ----
 WARNINGS_FILE = "warnings.json"
 warnings_data = defaultdict(list)
 
@@ -51,16 +48,13 @@ def load_warnings():
                 warnings_data.clear()
                 for k, v in data.items():
                     warnings_data[int(k)] = v
-    except:
-        pass
+    except: pass
 
 def save_warnings():
     with open(WARNINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump({str(k): v for k, v in warnings_data.items()}, f, ensure_ascii=False, indent=2)
 
 MAX_WARNINGS = 3
-
-# ---------------------------------
 
 mute_status = {}
 violation_count = defaultdict(int)
@@ -78,7 +72,6 @@ dev_media_mode = {}
 DEV_VIDEO_DATA = None
 DEV_VIDEO_FILE = "dev_video.json"
 
-# ⭐⭐ كشف سب متطور (عربي + أرقام + رموز + إنجليزي معرب) ⭐⭐
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -359,299 +352,153 @@ async def permanent_mute(event):
     await mute_user(event.chat_id, target.id, ten_years)
 
     name = target.first_name or "مجهول"
-    username = target.username or "لا يوجد"
-    mute_status[target.id] = {
-        'until': time.time() + ten_years,
-        'name': name,
-        'chat': event.chat_id
-    }
-    last_muted_user[event.chat_id] = {
-        'uid': target.id,
-        'name': name,
-        'username': username
-    }
+    mute_status[target.id] = {'until': time.time() + ten_years, 'name': name, 'chat': event.chat_id}
+    last_muted_user[event.chat_id] = {'uid': target.id, 'name': name, 'username': target.username}
+    await event.reply(f"هاك الكتمة يا {name} 😂❤️\nسكّر فمك و خلّي تسمع غير صوت الهواء\nحتّى تعقل و نرجع نفتحلك 👑 @{DEVELOPER_USERNAME}")
 
-    msg = (
-        f"هاك الكتمة يا {name} 😂❤️\n"
-        f"سكّر فمك و خلّي تسمع غير صوت الهواء\n"
-        f"حتّى تعقل و نرجع نفتحلك 👑 @{DEVELOPER_USERNAME}"
-    )
-    await event.reply(msg)
-
-# ========== أمر /كتم_عن_بعد (خاص بالمطور في الخاص) ==========
+# ========== كتم عن بعد (خاص) ==========
 @client.on(events.NewMessage(pattern=r'^/كتم_عن_بعد\s+(@?\w+)(?:\s+(.*))?', func=lambda e: e.is_private))
 async def remote_mute(event):
     sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        return
-
+    if sender.username != DEVELOPER_USERNAME: return
     username = event.pattern_match.group(1).lstrip('@')
     custom_msg = event.pattern_match.group(2)
     if not custom_msg:
         await event.reply("❌ أكتب رسالة بعد اليوزر، مثال:\n/كتم_عن_بعد @username الرسالة")
         return
-
     try:
         entity = await client.get_entity(f"@{username}")
     except:
-        await event.reply("❌ اليوزر غير موجود أو لا يمكن الوصول إليه.")
-        return
-
-    user_id = entity.id
-    name = entity.first_name or username
+        await event.reply("❌ اليوزر غير موجود"); return
     ten_years = 10 * 365 * 24 * 3600
-
-    if await mute_user(GROUP_ID, user_id, ten_years):
-        mute_status[user_id] = {
-            'until': time.time() + ten_years,
-            'name': name,
-            'chat': GROUP_ID
-        }
-        last_muted_user[GROUP_ID] = {
-            'uid': user_id,
-            'name': name,
-            'username': username
-        }
-
+    if await mute_user(GROUP_ID, entity.id, ten_years):
+        mute_status[entity.id] = {'until': time.time() + ten_years, 'name': entity.first_name}
         try:
-            await client.send_message(user_id, custom_msg)
-            await event.reply(f"✅ تم كتم {name} وإرسال الرسالة له.")
+            await client.send_message(entity.id, custom_msg)
+            await event.reply(f"✅ تم كتم {entity.first_name} وإرسال الرسالة.")
         except:
-            await event.reply(f"✅ تم كتم {name} ولكن تعذر إرسال الرسالة (ربما حظر البوت).")
+            await event.reply(f"✅ تم الكتم لكن تعذر إرسال الرسالة.")
     else:
-        await event.reply("❌ فشل كتم العضو، تأكد من صلاحيات البوت في المجموعة.")
+        await event.reply("❌ فشل الكتم")
 
-# ========== أوامر المسؤولين (رفع / تنزيل) ==========
+# ========== رفع / تنزيل مسؤول ==========
 @client.on(events.NewMessage(pattern='/رفع_مسؤول'))
 async def promote_admin(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        return await event.reply("❌ هذا الأمر للمطور فقط.")
-
-    target_id = None
-    target_name = "مجهول"
-
+    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
+    target_id = None; target_name = ""
     if event.is_reply:
-        replied = await event.get_reply_message()
-        target_user = await replied.get_sender()
-        if target_user:
-            target_id = target_user.id
-            target_name = target_user.first_name or "لا اسم"
+        u = await (await event.get_reply_message()).get_sender()
+        if u: target_id = u.id; target_name = u.first_name
     else:
-        args = event.raw_text.strip().split()
+        args = event.raw_text.split()
         if len(args) >= 2:
-            try:
-                target_id = int(args[1])
-            except:
-                return await event.reply("❌ استخدم: /رفع_مسؤول <id> أو بالرد على الشخص.")
-
-    if not target_id:
-        return await event.reply("❌ الرجاء الرد على رسالة الشخص أو كتابة الآيدي.")
-
-    if target_id in GROUP_ADMINS:
-        return await event.reply(f"⚠️ العضو {target_name} مسؤول بالفعل.")
-
-    GROUP_ADMINS.append(target_id)
-    save_admins(GROUP_ADMINS)
-    await event.reply(f"✅ تم رفع {target_name} (ID: {target_id}) مسؤولاً في المجموعة.")
+            try: target_id = int(args[1])
+            except: pass
+    if not target_id: return await event.reply("❌ أرسل الأمر مع معرف العضو")
+    if target_id in GROUP_ADMINS: return await event.reply("⚠️ مسؤول بالفعل")
+    GROUP_ADMINS.append(target_id); save_admins(GROUP_ADMINS)
+    await event.reply(f"✅ تم رفع {target_name or target_id} مسؤولاً")
 
 @client.on(events.NewMessage(pattern='/تنزيل_مسؤول'))
 async def demote_admin(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        return await event.reply("❌ هذا الأمر للمطور فقط.")
-
+    if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     target_id = None
-    target_name = "مجهول"
-
     if event.is_reply:
-        replied = await event.get_reply_message()
-        target_user = await replied.get_sender()
-        if target_user:
-            target_id = target_user.id
-            target_name = target_user.first_name or "لا اسم"
+        u = await (await event.get_reply_message()).get_sender()
+        if u: target_id = u.id
     else:
-        args = event.raw_text.strip().split()
+        args = event.raw_text.split()
         if len(args) >= 2:
-            try:
-                target_id = int(args[1])
-            except:
-                return await event.reply("❌ استخدم: /تنزيل_مسؤول <id> أو بالرد على الشخص.")
+            try: target_id = int(args[1])
+            except: pass
+    if not target_id: return await event.reply("❌ أرسل الأمر مع معرف العضو")
+    if target_id not in GROUP_ADMINS: return await event.reply("⚠️ ليس مسؤولاً")
+    GROUP_ADMINS.remove(target_id); save_admins(GROUP_ADMINS)
+    await event.reply("✅ تم تنزيله من المسؤولين")
 
-    if not target_id:
-        return await event.reply("❌ الرجاء الرد على رسالة الشخص أو كتابة الآيدي.")
-
-    if target_id not in GROUP_ADMINS:
-        return await event.reply(f"⚠️ العضو غير موجود في قائمة المسؤولين.")
-
-    GROUP_ADMINS.remove(target_id)
-    save_admins(GROUP_ADMINS)
-    await event.reply(f"✅ تم تنزيل {target_name} (ID: {target_id}) من قائمة المسؤولين.")
-
-# ----------- نظام التحذيرات -----------
+# ========== تحذيرات ==========
 @client.on(events.NewMessage(pattern='/تحذير'))
 async def warn_user(event):
     if not is_admin(await event.get_sender()): return
-    if not event.is_reply:
-        return await event.reply("❌ يجب الرد على رسالة الشخص لتحذيره.")
-
-    replied = await event.get_reply_message()
-    target = await replied.get_sender()
-    if not target:
-        return await event.reply("❌ لا يمكن العثور على العضو.")
-
-    uid = target.id
-    name = target.first_name or "لا اسم"
+    if not event.is_reply: return await event.reply("❌ يجب الرد على الشخص")
+    target = await (await event.get_reply_message()).get_sender()
+    if not target: return
+    uid = target.id; name = target.first_name or "لا اسم"
     now_ts = time.time()
-    warnings_data[uid].append(now_ts)
-    save_warnings()
-    current_warns = len(warnings_data[uid])
-
-    await event.reply(f"⚠️ تم تحذير {name} - تحذير {current_warns}/{MAX_WARNINGS}")
-
-    if current_warns >= MAX_WARNINGS:
+    warnings_data[uid].append(now_ts); save_warnings()
+    cur = len(warnings_data[uid])
+    await event.reply(f"⚠️ {name} تحذير {cur}/{MAX_WARNINGS}")
+    if cur >= MAX_WARNINGS:
         if await mute_user(event.chat_id, uid, mute_duration):
             mute_status[uid] = {'until': now_ts + mute_duration, 'name': name}
-            await event.reply(f"🚫 {name} وصل لـ {MAX_WARNINGS} تحذيرات وتم كتمه {mute_duration//60} دقائق.")
-            try:
-                await client.send_message(uid, f"⚠️ لقد تم كتمك في المجموعة بسبب وصولك {MAX_WARNINGS} تحذيرات.\n👑 @{DEVELOPER_USERNAME}")
+            await event.reply(f"🚫 {name} كتم {mute_duration//60} د")
+            try: await client.send_message(uid, f"⚠️ تم كتمك بعد {MAX_WARNINGS} تحذيرات")
             except: pass
-        else:
-            await event.reply("❌ فشل كتم العضو.")
-        del warnings_data[uid]
-        save_warnings()
+        del warnings_data[uid]; save_warnings()
 
 @client.on(events.NewMessage(pattern='/عرض_التحذيرات'))
-async def show_warnings(event):
-    target_id = None
-    target_name = "مجهول"
+async def show_warn(event):
+    target_id = None; target_name = ""
     if event.is_reply:
-        replied = await event.get_reply_message()
-        u = await replied.get_sender()
-        if u:
-            target_id = u.id
-            target_name = u.first_name or "لا اسم"
+        u = await (await event.get_reply_message()).get_sender()
+        if u: target_id = u.id; target_name = u.first_name
     else:
-        args = event.raw_text.strip().split()
+        args = event.raw_text.split()
         if len(args) >= 2:
-            try:
-                target_id = int(args[1])
-            except:
-                return await event.reply("❌ استخدم /عرض_التحذيرات بالايدي أو بالرد.")
+            try: target_id = int(args[1])
+            except: pass
+    if not target_id: return await event.reply("❌ استخدم الأمر مع معرف أو رد")
+    c = len(warnings_data.get(target_id, []))
+    await event.reply(f"📊 {target_name or target_id} لديه {c}/{MAX_WARNINGS} تحذيرات")
 
-    if not target_id:
-        return await event.reply("❌ الرجاء الرد على الشخص أو كتابة الآيدي.")
-
-    warns = len(warnings_data.get(target_id, []))
-    await event.reply(f"📊 {target_name} لديه {warns}/{MAX_WARNINGS} تحذيرات.")
-
-# ----------- أوامر جديدة -----------
+# ========== أوامر متفرقة ==========
 @client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
 async def purge(event):
     if not is_admin(await event.get_sender()): return
-    count = int(event.pattern_match.group(1))
-    if count <= 0:
-        return await event.reply("❌ العدد يجب أن يكون أكبر من صفر.")
-    count = min(count, 100)
-    try:
-        messages = await client.get_messages(event.chat_id, limit=count)
-        to_delete = [m.id for m in messages if m]
-        await client.delete_messages(event.chat_id, to_delete)
-        await asyncio.sleep(1)
-        confirm = await event.reply(f"🧹 تم مسح {len(to_delete)} رسالة.")
-        await asyncio.sleep(2)
-        await confirm.delete()
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {str(e)}")
+    count = min(int(event.pattern_match.group(1)), 100)
+    if count <= 0: return
+    msgs = await client.get_messages(event.chat_id, limit=count)
+    ids = [m.id for m in msgs if m]
+    await client.delete_messages(event.chat_id, ids)
+    confirm = await event.reply(f"🧹 مسح {len(ids)} رسالة")
+    await asyncio.sleep(2); await confirm.delete()
 
 @client.on(events.NewMessage(pattern='/عرض_المكتومين'))
-async def show_muted(event):
-    if not mute_status:
-        return await event.reply("✅ لا يوجد مكتومين حاليًا.")
-
-    now = time.time()
-    txt = "📋 **قائمة المكتومين:**\n\n"
-    for uid, data in list(mute_status.items()):
-        remaining = int(data['until'] - now)
-        if remaining > 0:
-            mins = remaining // 60
-            try:
-                entity = await client.get_entity(uid)
-                name = entity.first_name or f"ID:{uid}"
-            except:
-                name = f"ID:{uid}"
-            txt += f"• {name} - ⏳ {mins} دقيقة\n"
-
-    await event.reply(txt if txt != "📋 **قائمة المكتومين:**\n\n" else "✅ لا يوجد مكتومين حاليًا.")
+async def muted_list(event):
+    if not mute_status: return await event.reply("✅ لا يوجد مكتومين")
+    now = time.time(); txt = "📋 المكتومين:\n"
+    for uid, d in mute_status.items():
+        rem = int(d['until'] - now)
+        if rem > 0:
+            try: name = (await client.get_entity(uid)).first_name
+            except: name = str(uid)
+            txt += f"• {name} - ⏳ {rem//60} د\n"
+    await event.reply(txt)
 
 @client.on(events.NewMessage(pattern='/تثبيت'))
 async def pin_msg(event):
     if not is_admin(await event.get_sender()): return
-    if not event.is_reply:
-        return await event.reply("❌ يجب الرد على رسالة لتثبيتها.")
-
+    if not event.is_reply: return await event.reply("❌ رد على رسالة")
     replied = await event.get_reply_message()
     try:
         await client.pin_message(event.chat_id, replied.id)
-        await event.reply("📌 تم تثبيت الرسالة.")
+        await event.reply("📌 تم التثبيت")
     except Exception as e:
-        await event.reply(f"❌ فشل التثبيت: {e}")
+        await event.reply(f"❌ فشل: {e}")
 
 @client.on(events.NewMessage(pattern='/مساعدة'))
 async def help_cmd(event):
     s = await event.get_sender()
     is_dev = s.username == DEVELOPER_USERNAME
     is_adm = is_admin(s)
-
-    help_text = "**📜 قائمة الأوامر:**\n\n"
+    txt = "**📜 قائمة الأوامر:**\n\n"
     if is_dev:
-        help_text += """**⚡ أوامر المطور:**
-/start - لوحة التحكم
-/قفل_المجموعة - قفل المجموعة
-/فك_القفل - فتح المجموعة
-/كتم (بالرد) - كتم دائم
-/كتم_عن_بعد (خاص) - كتم شخص عن بعد مع رسالة
-/مدة_الكتم <دقائق> - تعيين مدة الكتم
-/فك_كل_الكمات - فك كتم الجميع
-/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط
-/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه
-/رفع_مسؤول / تنزيل_مسؤول
-/زيادة_المدة - زيادة مدة آخر كتم
-/تحذير (بالرد) - تحذير شخص
-/عرض_التحذيرات - عرض التحذيرات
-/مسح <عدد> - مسح الرسائل
-/عرض_المكتومين - قائمة المكتومين
-/تثبيت (بالرد) - تثبيت رسالة
-/حالة_الحماية - عرض حالة الحماية
-/المطور - معلومات المطور
-/فيديو_المطور - تغيير فيديو المطور
-/فيديو_ترحيب - تغيير وسائط الترحيب
-/احذف_كامل_الرسائل - حذف كل رسائل البوت
-"""
+        txt += "**⚡ المطور:** /start /قفل /فك /كتم /كتم_عن_بعد /مدة_الكتم /فك_كل /حماية /رفع_مسؤول /تنزيل_مسؤول /تحذير /مسح /عرض_المكتومين /تثبيت /مساعدة /المطور /فيديو_المطور /فيديو_ترحيب /احذف\n"
     elif is_adm:
-        help_text += """**🛡️ أوامر المسؤولين:**
-/قفل_المجموعة - قفل المجموعة
-/فك_القفل - فتح المجموعة
-/كتم (بالرد) - كتم دائم
-/مدة_الكتم <دقائق> - تعيين مدة الكتم
-/فك_كل_الكمات - فك كتم الجميع
-/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط
-/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه
-/زيادة_المدة - زيادة مدة آخر كتم
-/تحذير (بالرد) - تحذير شخص
-/عرض_التحذيرات - عرض التحذيرات
-/مسح <عدد> - مسح الرسائل
-/عرض_المكتومين - قائمة المكتومين
-/تثبيت (بالرد) - تثبيت رسالة
-/حالة_الحماية - عرض حالة الحماية
-"""
+        txt += "**🛡️ المسؤول:** /قفل /فك /كتم /مدة_الكتم /فك_كل /حماية /زيادة_المدة /تحذير /مسح /عرض_المكتومين /تثبيت /مساعدة\n"
     else:
-        help_text += """**👤 أوامر الأعضاء:**
-/start - رسالة ترحيبية
-/ايدي - معرف المجموعة
-/مساعدة - هذه القائمة
-"""
-    await event.reply(help_text)
+        txt += "**👤 الأعضاء:** /start /ايدي /مساعدة\n"
+    await event.reply(txt)
 
 # ========== أزرار المطور ==========
 @client.on(events.CallbackQuery)
@@ -661,18 +508,16 @@ async def all_btns(event):
     if data.startswith("add_"):
         _, uid, mins = data.split("_"); uid = int(uid); mins = int(mins)
         await mute_user(GROUP_ID, uid, mins * 60)
-        nm = last_muted_user.get(GROUP_ID, {}).get('name', 'مجهول')
-        mute_status[uid] = {'until': time.time() + mins * 60, 'name': nm}
-        await event.edit(f"✅ +{mins} دقائق لـ {nm}"); return
-    if data == "mute_dur": await event.reply(f"⏰ {mute_duration // 60} دقائق")
+        mute_status[uid] = {'until': time.time() + mins * 60}
+        await event.edit(f"✅ +{mins} دقائق")
+    elif data == "mute_dur": await event.reply(f"⏰ {mute_duration//60} د")
     elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
     elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
     elif data == "unmute_all_btn":
-        c = 0
         for u in list(mute_status.keys()):
-            try: await unmute_user(mute_status[u].get('chat', GROUP_ID), u); del mute_status[u]; c += 1
+            try: await unmute_user(GROUP_ID, u); del mute_status[u]
             except: pass
-        await event.reply(f"🔓 فك {c} كتم")
+        await event.reply("🔓 فك الكل")
 
 # ========== حماية المجموعة ==========
 @client.on(events.NewMessage(chats=[GROUP_ID]))
@@ -680,8 +525,7 @@ async def handler(event):
     global link_protection, forward_protection, mute_duration
     if not event.raw_text or event.out: return
     s = await event.get_sender()
-    if not s or s.id == BOT_ID: return
-    if s.username == DEVELOPER_USERNAME: return
+    if not s or s.username == DEVELOPER_USERNAME: return
     t = event.raw_text.strip()
     if link_protection and contains_link(t): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
@@ -691,9 +535,8 @@ async def handler(event):
         await event.delete()
         await mute_user(GROUP_ID, uid, mute_duration)
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
-        last_muted_user[GROUP_ID] = {'uid': uid, 'name': name, 'username': s.username}
         await event.respond(get_mute_message(name, s.username, mute_duration // 60))
-        try: await client.send_message(uid, f"⚠️ تم كتمك {mute_duration // 60} دقائق\n🤬 الكلمة: `{t}`\n👑 @{DEVELOPER_USERNAME}")
+        try: await client.send_message(uid, f"⚠️ تم كتمك {mute_duration//60} د\n👑 @{DEVELOPER_USERNAME}")
         except: pass
 
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.media))
