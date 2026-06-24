@@ -3,6 +3,7 @@ from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
+from telethon.tl.functions.messages import PinMessageRequest
 
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
@@ -17,7 +18,7 @@ PROTECTED_CHANNELS = [CHANNEL_1, CHANNEL_2, CHANNEL_3]
 
 # ---- إعدادات المسؤولين ----
 ADMINS_FILE = "admins.json"
-DEFAULT_ADMINS = [6941580330]  # المسؤول الافتراضي
+DEFAULT_ADMINS = [6941580330]
 
 def load_admins():
     try:
@@ -37,6 +38,29 @@ GROUP_ADMINS = load_admins()
 
 def is_admin(sender):
     return sender.username == DEVELOPER_USERNAME or sender.id in GROUP_ADMINS
+
+# ---- نظام التحذيرات ----
+WARNINGS_FILE = "warnings.json"
+warnings_data = defaultdict(list)  # user_id -> list of timestamps
+
+def load_warnings():
+    global warnings_data
+    try:
+        if os.path.exists(WARNINGS_FILE):
+            with open(WARNINGS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # convert keys back to int
+                warnings_data.clear()
+                for k, v in data.items():
+                    warnings_data[int(k)] = v
+    except:
+        pass
+
+def save_warnings():
+    with open(WARNINGS_FILE, 'w', encoding='utf-8') as f:
+        json.dump({str(k): v for k, v in warnings_data.items()}, f, ensure_ascii=False, indent=2)
+
+MAX_WARNINGS = 3  # عدد التحذيرات قبل الكتم
 
 # ---------------------------------
 
@@ -176,6 +200,7 @@ async def send_welcome_media(chat_id, caption):
 
 load_welcome_media()
 load_dev_video()
+load_warnings()
 
 async def mute_user(chat_id, user_id, dur):
     try:
@@ -217,10 +242,8 @@ async def start(event):
         await event.respond(f"⚡ **PIPO BOT** ⚡\n👑 @{DEVELOPER_USERNAME}", buttons=btns)
     else:
         await event.reply("ياحييي داصرتوني ثم ثم 😒")
-        try:
-            await client.send_reaction(event.chat_id, event.id, '💋')
-        except:
-            pass
+        try: await client.send_reaction(event.chat_id, event.id, '💋')
+        except: pass
 
 @client.on(events.NewMessage(pattern='/قفل_المجموعة'))
 async def lock_chat(event):
@@ -410,7 +433,6 @@ async def promote_admin(event):
     target_id = None
     target_name = "مجهول"
 
-    # التحقق من الرد
     if event.is_reply:
         replied = await event.get_reply_message()
         target_user = await replied.get_sender()
@@ -418,7 +440,6 @@ async def promote_admin(event):
             target_id = target_user.id
             target_name = target_user.first_name or "لا اسم"
     else:
-        # محاولة قراءة الآيدي من الرسالة
         args = event.raw_text.strip().split()
         if len(args) >= 2:
             try:
@@ -468,6 +489,176 @@ async def demote_admin(event):
     GROUP_ADMINS.remove(target_id)
     save_admins(GROUP_ADMINS)
     await event.reply(f"✅ تم تنزيل {target_name} (ID: {target_id}) من قائمة المسؤولين.")
+
+# ----------- نظام التحذيرات -----------
+@client.on(events.NewMessage(pattern='/تحذير'))
+async def warn_user(event):
+    if not is_admin(await event.get_sender()): return
+    if not event.is_reply:
+        return await event.reply("❌ يجب الرد على رسالة الشخص لتحذيره.")
+
+    replied = await event.get_reply_message()
+    target = await replied.get_sender()
+    if not target:
+        return await event.reply("❌ لا يمكن العثور على العضو.")
+
+    uid = target.id
+    name = target.first_name or "لا اسم"
+    now_ts = time.time()
+    warnings_data[uid].append(now_ts)
+    save_warnings()
+    current_warns = len(warnings_data[uid])
+
+    await event.reply(f"⚠️ تم تحذير {name} - تحذير {current_warns}/{MAX_WARNINGS}")
+
+    if current_warns >= MAX_WARNINGS:
+        # كتم تلقائي للمدة الافتراضية
+        if await mute_user(event.chat_id, uid, mute_duration):
+            mute_status[uid] = {'until': now_ts + mute_duration, 'name': name}
+            await event.reply(f"🚫 {name} وصل لـ {MAX_WARNINGS} تحذيرات وتم كتمه {mute_duration//60} دقائق.")
+            try:
+                await client.send_message(uid, f"⚠️ لقد تم كتمك في المجموعة بسبب وصولك {MAX_WARNINGS} تحذيرات.\n👑 @{DEVELOPER_USERNAME}")
+            except: pass
+        else:
+            await event.reply("❌ فشل كتم العضو.")
+        # إعادة تعيين التحذيرات
+        del warnings_data[uid]
+        save_warnings()
+
+@client.on(events.NewMessage(pattern='/عرض_التحذيرات'))
+async def show_warnings(event):
+    target_id = None
+    target_name = "مجهول"
+    if event.is_reply:
+        replied = await event.get_reply_message()
+        u = await replied.get_sender()
+        if u:
+            target_id = u.id
+            target_name = u.first_name or "لا اسم"
+    else:
+        args = event.raw_text.strip().split()
+        if len(args) >= 2:
+            try:
+                target_id = int(args[1])
+            except:
+                return await event.reply("❌ استخدم /عرض_التحذيرات بالايدي أو بالرد.")
+
+    if not target_id:
+        return await event.reply("❌ الرجاء الرد على الشخص أو كتابة الآيدي.")
+
+    warns = len(warnings_data.get(target_id, []))
+    await event.reply(f"📊 {target_name} لديه {warns}/{MAX_WARNINGS} تحذيرات.")
+
+# ----------- أوامر جديدة -----------
+@client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
+async def purge(event):
+    if not is_admin(await event.get_sender()): return
+    count = int(event.pattern_match.group(1))
+    if count <= 0:
+        return await event.reply("❌ العدد يجب أن يكون أكبر من صفر.")
+    # لا تسمح بمسح أكثر من 100 رسالة دفعة واحدة
+    count = min(count, 100)
+    try:
+        messages = await client.get_messages(event.chat_id, limit=count)
+        # استبعاد رسائل الخدمة
+        to_delete = [m.id for m in messages if m]
+        await client.delete_messages(event.chat_id, to_delete)
+        await asyncio.sleep(1)
+        # تأكيد وحذف رسالة التأكيد بعد ثانيتين
+        confirm = await event.reply(f"🧹 تم مسح {len(to_delete)} رسالة.")
+        await asyncio.sleep(2)
+        await confirm.delete()
+    except Exception as e:
+        await event.reply(f"❌ حدث خطأ: {str(e)}")
+
+@client.on(events.NewMessage(pattern='/عرض_المكتومين'))
+async def show_muted(event):
+    if not mute_status:
+        return await event.reply("✅ لا يوجد مكتومين حاليًا.")
+
+    now = time.time()
+    txt = "📋 **قائمة المكتومين:**\n\n"
+    for uid, data in list(mute_status.items()):
+        remaining = int(data['until'] - now)
+        if remaining > 0:
+            mins = remaining // 60
+            try:
+                entity = await client.get_entity(uid)
+                name = entity.first_name or f"ID:{uid}"
+            except:
+                name = f"ID:{uid}"
+            txt += f"• {name} - ⏳ {mins} دقيقة\n"
+
+    await event.reply(txt if txt != "📋 **قائمة المكتومين:**\n\n" else "✅ لا يوجد مكتومين حاليًا.")
+
+@client.on(events.NewMessage(pattern='/تثبيت'))
+async def pin_msg(event):
+    if not is_admin(await event.get_sender()): return
+    if not event.is_reply:
+        return await event.reply("❌ يجب الرد على رسالة لتثبيتها.")
+
+    replied = await event.get_reply_message()
+    try:
+        await client(PinMessageRequest(event.chat_id, replied.id))
+        await event.reply("📌 تم تثبيت الرسالة.")
+    except:
+        await event.reply("❌ فشل التثبيت، تأكد من صلاحيات البوت.")
+
+@client.on(events.NewMessage(pattern='/مساعدة'))
+async def help_cmd(event):
+    s = await event.get_sender()
+    is_dev = s.username == DEVELOPER_USERNAME
+    is_adm = is_admin(s)
+
+    help_text = "**📜 قائمة الأوامر:**\n\n"
+    if is_dev:
+        help_text += """**⚡ أوامر المطور:**
+/start - لوحة التحكم
+/قفل_المجموعة - قفل المجموعة
+/فك_القفل - فتح المجموعة
+/كتم (بالرد) - كتم دائم
+/كتم_عن_بعد (خاص) - كتم شخص عن بعد مع رسالة
+/مدة_الكتم <دقائق> - تعيين مدة الكتم
+/فك_كل_الكمات - فك كتم الجميع
+/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط
+/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه
+/رفع_مسؤول / تنزيل_مسؤول
+/زيادة_المدة - زيادة مدة آخر كتم
+/تحذير (بالرد) - تحذير شخص
+/عرض_التحذيرات - عرض التحذيرات
+/مسح <عدد> - مسح الرسائل
+/عرض_المكتومين - قائمة المكتومين
+/تثبيت (بالرد) - تثبيت رسالة
+/حالة_الحماية - عرض حالة الحماية
+/المطور - معلومات المطور
+/فيديو_المطور - تغيير فيديو المطور
+/فيديو_ترحيب - تغيير وسائط الترحيب
+/احذف_كامل_الرسائل - حذف كل رسائل البوت
+"""
+    elif is_adm:
+        help_text += """**🛡️ أوامر المسؤولين:**
+/قفل_المجموعة - قفل المجموعة
+/فك_القفل - فتح المجموعة
+/كتم (بالرد) - كتم دائم
+/مدة_الكتم <دقائق> - تعيين مدة الكتم
+/فك_كل_الكمات - فك كتم الجميع
+/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط
+/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه
+/زيادة_المدة - زيادة مدة آخر كتم
+/تحذير (بالرد) - تحذير شخص
+/عرض_التحذيرات - عرض التحذيرات
+/مسح <عدد> - مسح الرسائل
+/عرض_المكتومين - قائمة المكتومين
+/تثبيت (بالرد) - تثبيت رسالة
+/حالة_الحماية - عرض حالة الحماية
+"""
+    else:
+        help_text += """**👤 أوامر الأعضاء:**
+/start - رسالة ترحيبية
+/ايدي - معرف المجموعة
+/مساعدة - هذه القائمة
+"""
+    await event.reply(help_text)
 
 # ========== أزرار المطور ==========
 @client.on(events.CallbackQuery)
