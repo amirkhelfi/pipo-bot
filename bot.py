@@ -3,7 +3,6 @@ from collections import defaultdict
 from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
-from telethon.tl.functions.messages import PinMessageRequest
 
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
@@ -41,7 +40,7 @@ def is_admin(sender):
 
 # ---- نظام التحذيرات ----
 WARNINGS_FILE = "warnings.json"
-warnings_data = defaultdict(list)  # user_id -> list of timestamps
+warnings_data = defaultdict(list)
 
 def load_warnings():
     global warnings_data
@@ -49,7 +48,6 @@ def load_warnings():
         if os.path.exists(WARNINGS_FILE):
             with open(WARNINGS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                # convert keys back to int
                 warnings_data.clear()
                 for k, v in data.items():
                     warnings_data[int(k)] = v
@@ -60,7 +58,7 @@ def save_warnings():
     with open(WARNINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump({str(k): v for k, v in warnings_data.items()}, f, ensure_ascii=False, indent=2)
 
-MAX_WARNINGS = 3  # عدد التحذيرات قبل الكتم
+MAX_WARNINGS = 3
 
 # ---------------------------------
 
@@ -512,7 +510,6 @@ async def warn_user(event):
     await event.reply(f"⚠️ تم تحذير {name} - تحذير {current_warns}/{MAX_WARNINGS}")
 
     if current_warns >= MAX_WARNINGS:
-        # كتم تلقائي للمدة الافتراضية
         if await mute_user(event.chat_id, uid, mute_duration):
             mute_status[uid] = {'until': now_ts + mute_duration, 'name': name}
             await event.reply(f"🚫 {name} وصل لـ {MAX_WARNINGS} تحذيرات وتم كتمه {mute_duration//60} دقائق.")
@@ -521,7 +518,6 @@ async def warn_user(event):
             except: pass
         else:
             await event.reply("❌ فشل كتم العضو.")
-        # إعادة تعيين التحذيرات
         del warnings_data[uid]
         save_warnings()
 
@@ -556,15 +552,12 @@ async def purge(event):
     count = int(event.pattern_match.group(1))
     if count <= 0:
         return await event.reply("❌ العدد يجب أن يكون أكبر من صفر.")
-    # لا تسمح بمسح أكثر من 100 رسالة دفعة واحدة
     count = min(count, 100)
     try:
         messages = await client.get_messages(event.chat_id, limit=count)
-        # استبعاد رسائل الخدمة
         to_delete = [m.id for m in messages if m]
         await client.delete_messages(event.chat_id, to_delete)
         await asyncio.sleep(1)
-        # تأكيد وحذف رسالة التأكيد بعد ثانيتين
         confirm = await event.reply(f"🧹 تم مسح {len(to_delete)} رسالة.")
         await asyncio.sleep(2)
         await confirm.delete()
@@ -599,10 +592,10 @@ async def pin_msg(event):
 
     replied = await event.get_reply_message()
     try:
-        await client(PinMessageRequest(event.chat_id, replied.id))
+        await client.pin_message(event.chat_id, replied.id)
         await event.reply("📌 تم تثبيت الرسالة.")
-    except:
-        await event.reply("❌ فشل التثبيت، تأكد من صلاحيات البوت.")
+    except Exception as e:
+        await event.reply(f"❌ فشل التثبيت: {e}")
 
 @client.on(events.NewMessage(pattern='/مساعدة'))
 async def help_cmd(event):
