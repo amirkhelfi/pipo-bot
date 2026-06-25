@@ -53,12 +53,10 @@ chat_locked = False
 last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
 
-# آلية الرد عبر التوجيه
 reply_requests = {}
 
-# ========== نظام كشف السب المتطور ==========
+# ========== كشف السب المتطور ==========
 BAD_WORDS = [
-    # كلمات مباشرة
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
     r'\b(قود|god|goud|gawd|gwd)\b',
@@ -70,7 +68,6 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-    # سب بالحروف المتفرقة
     r'ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6]',
     r'[كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$]',
     r'[ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ]',
@@ -78,12 +75,10 @@ BAD_WORDS = [
     r'[قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
     r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
     r'[nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر]',
-    # سب جزائري خاص
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
     r'\b(الله[\s]*ينعل|الله[\s]*يلعن|ينعل[\s]*دين|يلعن[\s]*دين)\b',
-    # تحايلات نمي
     r'ن\s*م\s*ي',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[مm][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*m[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*e[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
@@ -102,31 +97,32 @@ async def unmute_user(c, u):
     try: await client(EditBannedRequest(c, u, ChatBannedRights(until_date=None, send_messages=False))); return True
     except: return False
 
-# ========== الرد عبر التوجيه ==========
+# ========== الرد عبر التوجيه (مصحح) ==========
 @client.on(events.NewMessage(func=lambda e: e.is_private and e.forward))
 async def forward_handler(event):
     s = await event.get_sender()
     if not is_admin(s): return
-    fwd = event.message.forward
-    # استخراج معرف المجموعة والرسالة
+
+    fwd_from = event.message.fwd_from
+    if not fwd_from:
+        return await event.reply("❌ الرسالة لا تحتوي على معلومات التوجيه.")
+
     orig_chat = None
-    orig_msg = None
-    if hasattr(fwd, 'chat') and fwd.chat:
-        orig_chat = fwd.chat.id if hasattr(fwd.chat, 'id') else fwd.chat
-    if hasattr(fwd, 'channel_id'):
-        orig_chat = fwd.channel_id
-    if hasattr(fwd, 'id'):
-        orig_msg = fwd.id
-    elif hasattr(fwd, 'channel_post'):
-        orig_msg = fwd.channel_post
-    elif hasattr(fwd, 'message_id'):
-        orig_msg = fwd.message_id
-    if not orig_chat and hasattr(event.message, 'fwd_from') and event.message.fwd_from:
-        ff = event.message.fwd_from
-        if hasattr(ff, 'channel_id'): orig_chat = ff.channel_id
-        if hasattr(ff, 'channel_post'): orig_msg = ff.channel_post
+    orig_msg = fwd_from.channel_post
+
+    from_peer = fwd_from.from_id
+    if from_peer:
+        if hasattr(from_peer, 'channel_id'):
+            orig_chat = from_peer.channel_id
+        elif hasattr(from_peer, 'chat_id'):
+            orig_chat = from_peer.chat_id
+
     if not orig_chat or not orig_msg:
         return await event.reply("❌ لم أتمكن من تحديد المجموعة أو الرسالة الأصلية.")
+
+    if orig_chat != GROUP_ID:
+        return await event.reply("❌ يمكنك فقط توجيه رسائل من المجموعة المخصصة.")
+
     reply_requests[s.id] = {"chat_id": orig_chat, "msg_id": orig_msg}
     await event.reply("✍️ اكتب الرد الذي تريد إرساله إلى هذه الرسالة في المجموعة:")
 
@@ -141,7 +137,7 @@ async def handle_reply_text(event):
     except Exception as e:
         await event.reply(f"❌ فشل الإرسال: {str(e)}")
 
-# ========== الأوامر الأساسية ==========
+# ========== باقي الأوامر ==========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
@@ -225,7 +221,6 @@ async def inc_mute(event):
     btns = [[Button.inline("+10 د", f"add_{d['uid']}_10"), Button.inline("+30 د", f"add_{d['uid']}_30"), Button.inline("+1 س", f"add_{d['uid']}_60")]]
     await event.reply(f"⏰ زيادة كتم {d['name']}:", buttons=btns)
 
-# ========== كتم ==========
 @client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
 async def permanent_mute(event):
     sender = await event.get_sender()
@@ -253,7 +248,6 @@ async def remote_mute(event):
         except: await event.reply("✅ تم الكتم ولكن تعذر إرسال الرسالة")
     else: await event.reply("❌ فشل الكتم")
 
-# ========== مسؤولين ==========
 @client.on(events.NewMessage(pattern='/رفع_مسؤول'))
 async def promote_admin(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
@@ -288,7 +282,6 @@ async def demote_admin(event):
     GROUP_ADMINS.remove(target_id); save_admins(GROUP_ADMINS)
     await event.reply("✅ تم تنزيله من المسؤولين")
 
-# ========== تحذيرات ==========
 @client.on(events.NewMessage(pattern='/تحذير'))
 async def warn_user(event):
     if not is_admin(await event.get_sender()): return
@@ -322,7 +315,6 @@ async def show_warn(event):
     c = len(warnings_data.get(target_id, []))
     await event.reply(f"📊 {target_name or target_id} لديه {c}/{MAX_WARNINGS} تحذيرات")
 
-# ========== أوامر متفرقة ==========
 @client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
 async def purge(event):
     if not is_admin(await event.get_sender()): return
@@ -357,7 +349,6 @@ async def pin_msg(event):
     except Exception as e:
         await event.reply(f"❌ فشل: {e}")
 
-# ========== مميزات الأعضاء ==========
 @client.on(events.NewMessage(pattern='/تقرير', func=lambda e: e.is_reply))
 async def report_msg(event):
     target_msg = await event.get_reply_message()
@@ -418,7 +409,6 @@ async def top_members(event):
         txt += f"{i}. {name} - {cnt} رسالة\n"
     await event.reply(txt)
 
-# ========== مساعدة ==========
 @client.on(events.NewMessage(pattern='/مساعدة'))
 async def help_cmd(event):
     await event.reply("📜 اختر فئة الأوامر:", buttons=[
