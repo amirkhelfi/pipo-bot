@@ -57,6 +57,7 @@ def save_warnings():
 MAX_WARNINGS = 3
 
 mute_status = {}
+message_count = defaultdict(int)  # عداد الرسائل
 violation_count = defaultdict(int)
 mute_duration = 300
 link_protection = True
@@ -486,59 +487,27 @@ async def pin_msg(event):
     except Exception as e:
         await event.reply(f"❌ فشل: {e}")
 
-# ========== أمر المساعدة التفاعلي (أزرار) ==========
+# ========== أمر توب المتفاعلين ==========
+@client.on(events.NewMessage(pattern='/توب_المتفاعلين'))
+async def top_members(event):
+    if not message_count:
+        return await event.reply("❌ لا توجد إحصائيات بعد.")
+    sorted_items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
+    if not sorted_items:
+        return await event.reply("❌ لا توجد بيانات كافية.")
+    txt = "🏆 **توب المتفاعلين:**\n"
+    for i, (uid, count) in enumerate(sorted_items, 1):
+        try:
+            entity = await client.get_entity(uid)
+            name = entity.first_name or f"ID:{uid}"
+        except:
+            name = f"ID:{uid}"
+        txt += f"{i}. {name} - {count} رسالة\n"
+    await event.reply(txt)
+
+# ========== أمر المساعدة التفاعلي ==========
 @client.on(events.NewMessage(pattern='/مساعدة'))
 async def help_cmd(event):
-    # تعريف النصوص للفئات المختلفة
-    dev_text = (
-        "**⚡ أوامر المطور:**\n"
-        "/start - لوحة التحكم\n"
-        "/قفل_المجموعة - قفل المجموعة\n"
-        "/فك_القفل - فتح المجموعة\n"
-        "/كتم (بالرد) - كتم دائم\n"
-        "/كتم_عن_بعد (خاص) - كتم شخص عن بعد مع رسالة\n"
-        "/مدة_الكتم <دقائق> - تعيين مدة الكتم\n"
-        "/فك_كل_الكمات - فك كتم الجميع\n"
-        "/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط\n"
-        "/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه\n"
-        "/رفع_مسؤول / تنزيل_مسؤول\n"
-        "/زيادة_المدة - زيادة مدة آخر كتم\n"
-        "/تحذير (بالرد) - تحذير شخص\n"
-        "/عرض_التحذيرات - عرض التحذيرات\n"
-        "/مسح <عدد> - مسح الرسائل\n"
-        "/عرض_المكتومين - قائمة المكتومين\n"
-        "/تثبيت (بالرد) - تثبيت رسالة\n"
-        "/حالة_الحماية - عرض حالة الحماية\n"
-        "/المطور - معلومات المطور\n"
-        "/فيديو_المطور - تغيير فيديو المطور\n"
-        "/فيديو_ترحيب - تغيير وسائط الترحيب\n"
-        "/احذف_كامل_الرسائل - حذف كل رسائل البوت"
-    )
-    admin_text = (
-        "**🛡️ أوامر المسؤول:**\n"
-        "/قفل_المجموعة - قفل المجموعة\n"
-        "/فك_القفل - فتح المجموعة\n"
-        "/كتم (بالرد) - كتم دائم\n"
-        "/مدة_الكتم <دقائق> - تعيين مدة الكتم\n"
-        "/فك_كل_الكمات - فك كتم الجميع\n"
-        "/تفعيل_حماية_الروابط / تعطيل_حماية_الروابط\n"
-        "/تفعيل_حماية_التوجيه / تعطيل_حماية_التوجيه\n"
-        "/زيادة_المدة - زيادة مدة آخر كتم\n"
-        "/تحذير (بالرد) - تحذير شخص\n"
-        "/عرض_التحذيرات - عرض التحذيرات\n"
-        "/مسح <عدد> - مسح الرسائل\n"
-        "/عرض_المكتومين - قائمة المكتومين\n"
-        "/تثبيت (بالرد) - تثبيت رسالة\n"
-        "/حالة_الحماية - عرض حالة الحماية"
-    )
-    member_text = (
-        "**👤 أوامر الأعضاء:**\n"
-        "/start - رسالة ترحيبية\n"
-        "/ايدي - معرف المجموعة\n"
-        "/مساعدة - هذه القائمة"
-    )
-
-    # أزرار التصنيفات
     buttons = [
         [Button.inline("👤 الأعضاء", b"help_member")],
         [Button.inline("🛡️ المسؤول", b"help_admin")],
@@ -546,11 +515,9 @@ async def help_cmd(event):
     ]
     await event.reply("**📜 اختر فئة الأوامر:**", buttons=buttons)
 
-# التعامل مع ضغطات الأزرار (بما فيها المساعدة وغيرها)
 @client.on(events.CallbackQuery)
 async def all_btns(event):
     data = event.data.decode('utf-8')
-    # إذا كان أحد أزرار المساعدة
     if data == "help_dev":
         txt = (
             "**⚡ أوامر المطور:**\n"
@@ -601,10 +568,10 @@ async def all_btns(event):
             "**👤 أوامر الأعضاء:**\n"
             "/start - رسالة ترحيبية\n"
             "/ايدي - معرف المجموعة\n"
+            "/توب_المتفاعلين - عرض توب المتفاعلين\n"
             "/مساعدة - هذه القائمة"
         )
         await event.edit(txt)
-    # الأزرار الأخرى (الخاصة بالمطور) تبقى كما هي
     else:
         if (await event.get_sender()).username != DEVELOPER_USERNAME: return
         if data.startswith("add_"):
@@ -627,7 +594,10 @@ async def handler(event):
     global link_protection, forward_protection, mute_duration
     if not event.raw_text or event.out: return
     s = await event.get_sender()
-    if not s or s.username == DEVELOPER_USERNAME: return
+    if not s or s.id == BOT_ID: return
+    if s.username == DEVELOPER_USERNAME: return
+    # عدّاد الرسائل (يُستثنى المطور)
+    message_count[s.id] += 1
     t = event.raw_text.strip()
     if link_protection and contains_link(t): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
