@@ -71,7 +71,7 @@ async def reply_with_pic(event, text, emoji="", buttons=None):
         except: pass
     await event.reply(full, buttons=buttons)
 
-# ---------- نظام كشف السب المتطور جداً ----------
+# ---------- نظام كشف السب المتطور ----------
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -84,7 +84,6 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-    # التحايلات
     r'ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6]',
     r'[كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$]',
     r'[ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ]',
@@ -119,7 +118,7 @@ async def unban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=False))); return True
     except: return False
 
-# ---------- الدخول التلقائي (للمطور) ----------
+# ---------- الدخول التلقائي ----------
 @client.on(events.NewMessage(from_users=DEVELOPER_ID, pattern=r'^/دخول\s+(.+)', func=lambda e: e.is_private))
 async def join_group(event):
     arg = event.pattern_match.group(1).strip()
@@ -417,6 +416,71 @@ async def secret(event):
     await asyncio.sleep(1)
     await client.send_message(event.chat_id, f"📩 رسالة مجهولة: {text}")
 
+# ---------- معاينة الترحيب ----------
+@client.on(events.NewMessage(pattern='/معاينة_ترحيب'))
+async def preview_welcome(event):
+    if not is_admin(await event.get_sender()): return
+    if event.chat_id not in active_groups: return await reply_with_pic(event, "❌ البوت غير مفعل هنا.")
+    # استخدام بيانات المطور كعضو وهمي
+    me = await client.get_me()
+    name = me.first_name or "المطور"
+    uid = me.id
+    username = f"@{me.username}" if me.username else "لا يوجد"
+    now = datetime.datetime.now().strftime('%Y/%m/%d %I:%M %p')
+
+    welcome_text = (
+        f"⚡ **أهلاً بك في أسطورة المجموعات** ⚡\n\n"
+        f"👤 الاسم: {zakhrif(name)}\n"
+        f"🆔 الآيدي: `{uid}`\n"
+        f"📎 اليوزر: {username}\n"
+        f"📅 التاريخ: {now}\n\n"
+        f"🎉 نتمنى لك وقتاً ممتعاً بيننا!"
+    )
+
+    buttons = [
+        [Button.inline("🎉 ترحيب خاص", f"welcomesp_{uid}")],
+        [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
+        [Button.inline("🏆 توب المتفاعلين", "top_btn")]
+    ]
+
+    if welcome_media:
+        try:
+            fr = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
+            if welcome_media['type'] == 'photo':
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+            else:
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+            await client.send_file(event.chat_id, media, caption=welcome_text, buttons=buttons)
+            return
+        except: pass
+
+    await client.send_message(event.chat_id, welcome_text, buttons=buttons)
+
+# ---------- تعيين وسائط الترحيب ----------
+@client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
+async def set_welcome_media(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME: return await event.reply("❌ للمطور فقط.")
+    if not event.media: return await event.reply("❌ أرسل صورة أو فيديو مع الأمر.")
+    media = event.message.media
+    try:
+        if hasattr(media, 'photo') and media.photo:
+            mid = media.photo.id; ah = media.photo.access_hash; fr = media.photo.file_reference or b''
+            typ = 'photo'
+        elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower():
+            mid = media.document.id; ah = media.document.access_hash; fr = media.document.file_reference or b''
+            typ = 'video'
+        else:
+            return await event.reply("❌ يجب أن تكون صورة أو فيديو.")
+        welcome_media['type'] = typ
+        welcome_media['media_id'] = str(mid)
+        welcome_media['access_hash'] = str(ah)
+        welcome_media['file_reference'] = fr.hex()
+        save_welcome_media()
+        await event.reply(f"✅ تم حفظ وسائط الترحيب ({typ}).")
+    except Exception as e:
+        await event.reply(f"❌ خطأ: {str(e)}")
+
 # ---------- الأوامر العامة ----------
 @client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
 async def all_commands(event):
@@ -435,7 +499,7 @@ async def all_commands(event):
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب (في الخاص مع صورة/فيديو)"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
     )
     await reply_with_pic(event, txt)
 
@@ -488,30 +552,6 @@ async def legendary_welcome(event):
 
     await client.send_message(chat, welcome_text, buttons=buttons)
 
-@client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
-async def set_welcome_media(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME: return await event.reply("❌ للمطور فقط.")
-    if not event.media: return await event.reply("❌ أرسل صورة أو فيديو مع الأمر.")
-    media = event.message.media
-    try:
-        if hasattr(media, 'photo') and media.photo:
-            mid = media.photo.id; ah = media.photo.access_hash; fr = media.photo.file_reference or b''
-            typ = 'photo'
-        elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower():
-            mid = media.document.id; ah = media.document.access_hash; fr = media.document.file_reference or b''
-            typ = 'video'
-        else:
-            return await event.reply("❌ يجب أن تكون صورة أو فيديو.")
-        welcome_media['type'] = typ
-        welcome_media['media_id'] = str(mid)
-        welcome_media['access_hash'] = str(ah)
-        welcome_media['file_reference'] = fr.hex()
-        save_welcome_media()
-        await event.reply(f"✅ تم حفظ وسائط الترحيب ({typ}).")
-    except Exception as e:
-        await event.reply(f"❌ خطأ: {str(e)}")
-
 # ---------- أزرار الترحيب ----------
 @client.on(events.CallbackQuery)
 async def welcome_buttons(event):
@@ -538,7 +578,6 @@ async def welcome_buttons(event):
             txt = "\n".join(f"{i}. {name}" for i, (uid, _) in enumerate(items, 1) if (name := (await client.get_entity(uid)).first_name))
             await event.answer(txt, alert=True)
     else:
-        # الأزرار الإدارية الأخرى
         if data == "mute_dur": await event.reply(f"⏰ {mute_duration//60} د")
         elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
         elif data == "get_id": await event.reply(f"🆔 {event.chat_id}")
