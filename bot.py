@@ -50,8 +50,9 @@ last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# ---------- زخرفة النص ----------
+# ---------- زخرفة الخطوط ----------
 def zakhrif(text):
+    # 𝓜𝓪𝓽𝓱 𝓑𝓸𝓵𝓭 𝓢𝓬𝓻𝓲𝓹𝓽 (مائل) للإنجليزية
     eng_map = {
         'A':'𝓐','B':'𝓑','C':'𝓒','D':'𝓓','E':'𝓔','F':'𝓕','G':'𝓖','H':'𝓗','I':'𝓘','J':'𝓙',
         'K':'𝓚','L':'𝓛','M':'𝓜','N':'𝓝','O':'𝓞','P':'𝓟','Q':'𝓠','R':'𝓡','S':'𝓢','T':'𝓣',
@@ -63,8 +64,21 @@ def zakhrif(text):
     }
     return ''.join(eng_map.get(ch, ch) for ch in text)
 
+def zakhrif_bold(text):
+    # 𝐁𝐨𝐥𝐝 (عريض) للإنجليزية
+    bold_map = {
+        'A':'𝐀','B':'𝐁','C':'𝐂','D':'𝐃','E':'𝐄','F':'𝐅','G':'𝐆','H':'𝐇','I':'𝐈','J':'𝐉',
+        'K':'𝐊','L':'𝐋','M':'𝐌','N':'𝐍','O':'𝐎','P':'𝐏','Q':'𝐐','R':'𝐑','S':'𝐒','T':'𝐓',
+        'U':'𝐔','V':'𝐕','W':'𝐖','X':'𝐗','Y':'𝐘','Z':'𝐙',
+        'a':'𝐚','b':'𝐛','c':'𝐜','d':'𝐝','e':'𝐞','f':'𝐟','g':'𝐠','h':'𝐡','i':'𝐢','j':'𝐣',
+        'k':'𝐤','l':'𝐥','m':'𝐦','n':'𝐧','o':'𝐨','p':'𝐩','q':'𝐪','r':'𝐫','s':'𝐬','t':'𝐭',
+        'u':'𝐮','v':'𝐯','w':'𝐰','x':'𝐱','y':'𝐲','z':'𝐳',
+        '0':'𝟎','1':'𝟏','2':'𝟐','3':'𝟑','4':'𝟒','5':'𝟓','6':'𝟔','7':'𝟕','8':'𝟖','9':'𝟗'
+    }
+    return ''.join(bold_map.get(ch, ch) for ch in text)
+
 async def reply_with_pic(event, text, emoji="", buttons=None):
-    decorated = zakhrif(text)
+    decorated = zakhrif(text)  # الخط المائل هو الأساسي
     full = f"{emoji} {decorated} {emoji}" if emoji else decorated
     if BOT_PHOTO:
         try: await client.send_file(event.chat_id, BOT_PHOTO, caption=full, buttons=buttons); return
@@ -164,6 +178,16 @@ async def deactivate_group(event):
     if not is_admin(await event.get_sender()): return
     active_groups.discard(event.chat_id); save_groups()
     await reply_with_pic(event, "❌ تم تعطيل البوت في هذه المجموعة")
+
+@client.on(events.NewMessage(pattern='/المجموعات'))
+async def list_groups(event):
+    if not is_admin(await event.get_sender()): return
+    if not active_groups: return await reply_with_pic(event, "لا توجد مجموعات مفعلة.")
+    txt = "📋 **المجموعات المفعلة:**\n"
+    for gid in active_groups:
+        try: txt += f"• {(await client.get_entity(gid)).title} ({gid})\n"
+        except: txt += f"• {gid}\n"
+    await reply_with_pic(event, txt)
 
 @client.on(events.NewMessage(pattern='/قفل_المجموعة'))
 async def lock_chat(event):
@@ -421,20 +445,25 @@ async def secret(event):
 async def preview_welcome(event):
     if not is_admin(await event.get_sender()): return
     if event.chat_id not in active_groups: return await reply_with_pic(event, "❌ البوت غير مفعل هنا.")
-    # استخدام بيانات المطور كعضو وهمي
     me = await client.get_me()
     name = me.first_name or "المطور"
     uid = me.id
     username = f"@{me.username}" if me.username else "لا يوجد"
-    now = datetime.datetime.now().strftime('%Y/%m/%d %I:%M %p')
+    now = datetime.datetime.now()
+    date_str = now.strftime('%Y/%m/%d')
+    time_str = now.strftime('%I:%M %p')
 
+    # رسالة الترحيب الفاخرة
     welcome_text = (
-        f"⚡ **أهلاً بك في أسطورة المجموعات** ⚡\n\n"
-        f"👤 الاسم: {zakhrif(name)}\n"
-        f"🆔 الآيدي: `{uid}`\n"
-        f"📎 اليوزر: {username}\n"
-        f"📅 التاريخ: {now}\n\n"
-        f"🎉 نتمنى لك وقتاً ممتعاً بيننا!"
+        f"˹ {zakhrif_bold('BIENVENUE DANS LE GROUPE')} ˼\n"
+        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°\n\n"
+        f"°︙ نورت قروبنا يـ  『{zakhrif(name)}』 🥂✨.\n"
+        f"°︙ اسمك ⇚『{zakhrif(name)}』\n"
+        f"°︙ ايديك ⇚『{uid}』\n"
+        f"°︙ يوزرك ⇚『{username}』\n\n"
+        f"°︙ تاريخ انضمامك ☜ {date_str}\n"
+        f"°︙ الساعة ☜ {time_str}\n"
+        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°"
     )
 
     buttons = [
@@ -445,11 +474,11 @@ async def preview_welcome(event):
 
     if welcome_media:
         try:
-            fr = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
+            fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
             if welcome_media['type'] == 'photo':
-                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             else:
-                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             await client.send_file(event.chat_id, media, caption=welcome_text, buttons=buttons)
             return
         except: pass
@@ -522,15 +551,20 @@ async def legendary_welcome(event):
     name = user.first_name or "لاعب"
     uid = user.id
     username = f"@{user.username}" if user.username else "لا يوجد"
-    now = datetime.datetime.now().strftime('%Y/%m/%d %I:%M %p')
+    now = datetime.datetime.now()
+    date_str = now.strftime('%Y/%m/%d')
+    time_str = now.strftime('%I:%M %p')
 
     welcome_text = (
-        f"⚡ **أهلاً بك في أسطورة المجموعات** ⚡\n\n"
-        f"👤 الاسم: {zakhrif(name)}\n"
-        f"🆔 الآيدي: `{uid}`\n"
-        f"📎 اليوزر: {username}\n"
-        f"📅 التاريخ: {now}\n\n"
-        f"🎉 نتمنى لك وقتاً ممتعاً بيننا!"
+        f"˹ {zakhrif_bold('BIENVENUE DANS LE GROUPE')} ˼\n"
+        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°\n\n"
+        f"°︙ نورت قروبنا يـ  『{zakhrif(name)}』 🥂✨.\n"
+        f"°︙ اسمك ⇚『{zakhrif(name)}』\n"
+        f"°︙ ايديك ⇚『{uid}』\n"
+        f"°︙ يوزرك ⇚『{username}』\n\n"
+        f"°︙ تاريخ انضمامك ☜ {date_str}\n"
+        f"°︙ الساعة ☜ {time_str}\n"
+        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°"
     )
 
     buttons = [
@@ -541,11 +575,11 @@ async def legendary_welcome(event):
 
     if welcome_media:
         try:
-            fr = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
+            fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
             if welcome_media['type'] == 'photo':
-                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             else:
-                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr)
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
             return
         except: pass
