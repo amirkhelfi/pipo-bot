@@ -50,10 +50,21 @@ last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# ---------- زخرفة الخطوط ----------
-def zakhrif(text):
-    # 𝓜𝓪𝓽𝓱 𝓑𝓸𝓵𝓭 𝓢𝓬𝓻𝓲𝓹𝓽 (مائل) للإنجليزية
-    eng_map = {
+# ---------- زخرفة الخطوط (Mathematical Bold Fraktur - واضح وفخم) ----------
+def zakhrif_fraktur(text):
+    fraktur_map = {
+        'A':'𝕬','B':'𝕭','C':'𝕮','D':'𝕯','E':'𝕰','F':'𝕱','G':'𝕲','H':'𝕳','I':'𝕴','J':'𝕵',
+        'K':'𝕶','L':'𝕷','M':'𝕸','N':'𝕹','O':'𝕺','P':'𝕻','Q':'𝕼','R':'𝕽','S':'𝕾','T':'𝕿',
+        'U':'𝖀','V':'𝖁','W':'𝖂','X':'𝖃','Y':'𝖄','Z':'𝖅',
+        'a':'𝖆','b':'𝖇','c':'𝖈','d':'𝖉','e':'𝖊','f':'𝖋','g':'𝖌','h':'𝖍','i':'𝖎','j':'𝖏',
+        'k':'𝖐','l':'𝖑','m':'𝖒','n':'𝖓','o':'𝖔','p':'𝖕','q':'𝖖','r':'𝖗','s':'𝖘','t':'𝖙',
+        'u':'𝖚','v':'𝖛','w':'𝖜','x':'𝖝','y':'𝖞','z':'𝖟',
+        '0':'𝟎','1':'𝟏','2':'𝟐','3':'𝟑','4':'𝟒','5':'𝟓','6':'𝟔','7':'𝟕','8':'𝟖','9':'𝟗'
+    }
+    return ''.join(fraktur_map.get(ch, ch) for ch in text)
+
+def zakhrif_script(text):  # المائل للردود العامة
+    script_map = {
         'A':'𝓐','B':'𝓑','C':'𝓒','D':'𝓓','E':'𝓔','F':'𝓕','G':'𝓖','H':'𝓗','I':'𝓘','J':'𝓙',
         'K':'𝓚','L':'𝓛','M':'𝓜','N':'𝓝','O':'𝓞','P':'𝓟','Q':'𝓠','R':'𝓡','S':'𝓢','T':'𝓣',
         'U':'𝓤','V':'𝓥','W':'𝓦','X':'𝓧','Y':'𝓨','Z':'𝓩',
@@ -62,23 +73,10 @@ def zakhrif(text):
         'u':'𝓾','v':'𝓿','w':'𝔀','x':'𝔁','y':'𝔂','z':'𝔃',
         '0':'𝟬','1':'𝟭','2':'𝟮','3':'𝟯','4':'𝟰','5':'𝟱','6':'𝟲','7':'𝟳','8':'𝟴','9':'𝟵'
     }
-    return ''.join(eng_map.get(ch, ch) for ch in text)
-
-def zakhrif_bold(text):
-    # 𝐁𝐨𝐥𝐝 (عريض) للإنجليزية
-    bold_map = {
-        'A':'𝐀','B':'𝐁','C':'𝐂','D':'𝐃','E':'𝐄','F':'𝐅','G':'𝐆','H':'𝐇','I':'𝐈','J':'𝐉',
-        'K':'𝐊','L':'𝐋','M':'𝐌','N':'𝐍','O':'𝐎','P':'𝐏','Q':'𝐐','R':'𝐑','S':'𝐒','T':'𝐓',
-        'U':'𝐔','V':'𝐕','W':'𝐖','X':'𝐗','Y':'𝐘','Z':'𝐙',
-        'a':'𝐚','b':'𝐛','c':'𝐜','d':'𝐝','e':'𝐞','f':'𝐟','g':'𝐠','h':'𝐡','i':'𝐢','j':'𝐣',
-        'k':'𝐤','l':'𝐥','m':'𝐦','n':'𝐧','o':'𝐨','p':'𝐩','q':'𝐪','r':'𝐫','s':'𝐬','t':'𝐭',
-        'u':'𝐮','v':'𝐯','w':'𝐰','x':'𝐱','y':'𝐲','z':'𝐳',
-        '0':'𝟎','1':'𝟏','2':'𝟐','3':'𝟑','4':'𝟒','5':'𝟓','6':'𝟔','7':'𝟕','8':'𝟖','9':'𝟗'
-    }
-    return ''.join(bold_map.get(ch, ch) for ch in text)
+    return ''.join(script_map.get(ch, ch) for ch in text)
 
 async def reply_with_pic(event, text, emoji="", buttons=None):
-    decorated = zakhrif(text)  # الخط المائل هو الأساسي
+    decorated = zakhrif_script(text)
     full = f"{emoji} {decorated} {emoji}" if emoji else decorated
     if BOT_PHOTO:
         try: await client.send_file(event.chat_id, BOT_PHOTO, caption=full, buttons=buttons); return
@@ -440,6 +438,23 @@ async def secret(event):
     await asyncio.sleep(1)
     await client.send_message(event.chat_id, f"📩 رسالة مجهولة: {text}")
 
+# ---------- تعيين ملصق الترحيب ----------
+@client.on(events.NewMessage(pattern='/تعيين_ملصق_ترحيب', func=lambda e: e.is_private))
+async def set_welcome_sticker(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME: return await event.reply("❌ للمطور فقط.")
+    if not event.media or not hasattr(event.media, 'document'):
+        return await event.reply("❌ أرسل ملصق متحرك (.tgs) مع الأمر.")
+    doc = event.media.document
+    if 'video' in doc.mime_type or 'webm' in doc.mime_type or doc.mime_type == 'application/x-tgsticker':
+        welcome_media['sticker_id'] = doc.id
+        welcome_media['sticker_hash'] = doc.access_hash
+        welcome_media['sticker_ref'] = doc.file_reference.hex() if doc.file_reference else ''
+        save_welcome_media()
+        await event.reply("✅ تم حفظ ملصق الترحيب المتحرك.")
+    else:
+        await event.reply("❌ هذا ليس ملصقاً متحركاً. أرسل ملصق .tgs.")
+
 # ---------- معاينة الترحيب ----------
 @client.on(events.NewMessage(pattern='/معاينة_ترحيب'))
 async def preview_welcome(event):
@@ -452,18 +467,32 @@ async def preview_welcome(event):
     now = datetime.datetime.now()
     date_str = now.strftime('%Y/%m/%d')
     time_str = now.strftime('%I:%M %p')
+    group_title = "اسم المجموعة"
+    try: group_title = (await client.get_entity(event.chat_id)).title
+    except: pass
 
-    # رسالة الترحيب الفاخرة
+    # إرسال ملصق الترحيب المتحرك
+    if welcome_media.get('sticker_id'):
+        try:
+            await client.send_file(event.chat_id, InputDocument(
+                id=welcome_media['sticker_id'],
+                access_hash=welcome_media['sticker_hash'],
+                file_reference=bytes.fromhex(welcome_media.get('sticker_ref', ''))
+            ))
+        except: pass
+
     welcome_text = (
-        f"˹ {zakhrif_bold('BIENVENUE DANS LE GROUPE')} ˼\n"
-        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°\n\n"
-        f"°︙ نورت قروبنا يـ  『{zakhrif(name)}』 🥂✨.\n"
-        f"°︙ اسمك ⇚『{zakhrif(name)}』\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"⁣⁣ᯓ˹ {zakhrif_fraktur('BIENVENUE DANS LE GROUPE')} ˼\n"
+        f"°•——————  『 {zakhrif_fraktur(group_title)} 』 ——————•°\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"°︙ نورت قروبنا يـ  『{zakhrif_fraktur(name)}』 🥂✨\n"
+        f"°︙ اسمك ⇚『{zakhrif_fraktur(name)}』\n"
         f"°︙ ايديك ⇚『{uid}』\n"
-        f"°︙ يوزرك ⇚『{username}』\n\n"
+        f"°︙ يوزرك ⇚『{username}』\n"
         f"°︙ تاريخ انضمامك ☜ {date_str}\n"
         f"°︙ الساعة ☜ {time_str}\n"
-        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨"
     )
 
     buttons = [
@@ -472,7 +501,7 @@ async def preview_welcome(event):
         [Button.inline("🏆 توب المتفاعلين", "top_btn")]
     ]
 
-    if welcome_media:
+    if welcome_media.get('type'):
         try:
             fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
             if welcome_media['type'] == 'photo':
@@ -528,7 +557,8 @@ async def all_commands(event):
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب\n"
+        "/تعيين_ملصق_ترحيب"
     )
     await reply_with_pic(event, txt)
 
@@ -539,7 +569,7 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب الأسطوري ----------
+# ---------- الترحيب الأسطوري (بالملصقات المتحركة والخطوط الفخمة) ----------
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
@@ -554,17 +584,32 @@ async def legendary_welcome(event):
     now = datetime.datetime.now()
     date_str = now.strftime('%Y/%m/%d')
     time_str = now.strftime('%I:%M %p')
+    group_title = "اسم المجموعة"
+    try: group_title = (await client.get_entity(chat)).title
+    except: pass
+
+    # إرسال ملصق الترحيب المتحرك
+    if welcome_media.get('sticker_id'):
+        try:
+            await client.send_file(chat, InputDocument(
+                id=welcome_media['sticker_id'],
+                access_hash=welcome_media['sticker_hash'],
+                file_reference=bytes.fromhex(welcome_media.get('sticker_ref', ''))
+            ))
+        except: pass
 
     welcome_text = (
-        f"˹ {zakhrif_bold('BIENVENUE DANS LE GROUPE')} ˼\n"
-        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°\n\n"
-        f"°︙ نورت قروبنا يـ  『{zakhrif(name)}』 🥂✨.\n"
-        f"°︙ اسمك ⇚『{zakhrif(name)}』\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"⁣⁣ᯓ˹ {zakhrif_fraktur('BIENVENUE DANS LE GROUPE')} ˼\n"
+        f"°•——————  『 {zakhrif_fraktur(group_title)} 』 ——————•°\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"°︙ نورت قروبنا يـ  『{zakhrif_fraktur(name)}』 🥂✨\n"
+        f"°︙ اسمك ⇚『{zakhrif_fraktur(name)}』\n"
         f"°︙ ايديك ⇚『{uid}』\n"
-        f"°︙ يوزرك ⇚『{username}』\n\n"
+        f"°︙ يوزرك ⇚『{username}』\n"
         f"°︙ تاريخ انضمامك ☜ {date_str}\n"
         f"°︙ الساعة ☜ {time_str}\n"
-        f"°•—————— {zakhrif_bold('PIPO STUDIO')} ——————•°"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨"
     )
 
     buttons = [
@@ -573,7 +618,7 @@ async def legendary_welcome(event):
         [Button.inline("🏆 توب المتفاعلين", "top_btn")]
     ]
 
-    if welcome_media:
+    if welcome_media.get('type'):
         try:
             fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
             if welcome_media['type'] == 'photo':
