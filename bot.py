@@ -188,6 +188,40 @@ async def request_admin(event):
         "🤖 لكي يعمل الترحيب التلقائي والحماية، يرجى رفع البوت كمشرف في المجموعة."
     )
 
+# ---------- أمر فحص الصلاحيات ----------
+@client.on(events.NewMessage(pattern='^/تحقق_الصلاحيات$'))
+async def check_permissions(event):
+    if not is_admin(await event.get_sender()):
+        return
+    chat = event.chat_id
+    try:
+        me = await client.get_me()
+        perms = await client.get_permissions(chat, me.id)
+        required = {
+            'send_messages': 'إرسال الرسائل',
+            'manage_chat': 'إدارة المجموعة',
+            'delete_messages': 'حذف الرسائل',
+            'ban_users': 'حظر الأعضاء',
+            'invite_users': 'دعوة أعضاء',
+            'pin_messages': 'تثبيت الرسائل',
+            'add_admins': 'إضافة مشرفين',
+            'change_info': 'تغيير معلومات المجموعة'
+        }
+        missing = []
+        for perm, desc in required.items():
+            if not getattr(perms, perm, False):
+                missing.append(desc)
+        if missing:
+            await event.reply(
+                f"⚠️ الصلاحيات الناقصة:\n" +
+                "\n".join(f"- {m}" for m in missing) +
+                "\n\n🔧 يرجى تعديل صلاحيات البوت كمشرف ليعمل بشكل كامل."
+            )
+        else:
+            await event.reply("✅ جميع الصلاحيات المطلوبة متاحة.")
+    except Exception as e:
+        await event.reply(f"❌ حدث خطأ: {str(e)}")
+
 # ---------- الأوامر الإدارية ----------
 @client.on(events.NewMessage(pattern='^/start$'))
 async def start(event):
@@ -560,15 +594,15 @@ async def all_commands(event):
         "/تحذير - /عرض_التحذيرات - /مسح عدد\n"
         "/تثبيت - /فك_كل_الكمات - /عرض_المكتومين\n"
         "/مدة_الكتم - /حالة_الحماية - /زيادة_المدة\n"
-        "/تفعيل/تعطيل حماية الروابط والتوجيه\n\n"
+        "/تفعيل/تعطيل حماية الروابط والتوجيه\n"
+        "/تحقق_الصلاحيات - /طلب_صلاحية\n\n"
         "**👤 الأعضاء:**\n"
         "/start - /ايدي - /حب - /سر\n"
         "/توب_المتفاعلين - /قوانين - /معلومات (بالرد)\n"
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب\n"
-        "/طلب_صلاحية"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
     )
     await reply_with_pic(event, txt)
 
@@ -674,7 +708,7 @@ async def welcome_buttons(event):
             mute_status[uid] = {'until': time.time()+mins*60}
             await event.edit(f"✅ +{mins} دقائق")
         elif data == "help_admin":
-            await event.edit("🛡️ أوامر المسؤول:\n/تفعيل /تعطيل /قفل /فك /كتم /حظر /فك_الحظر /تحذير /مسح /تثبيت /مدة_الكتم /فك_كل /حماية /عرض_المكتومين /مساعدة")
+            await event.edit("🛡️ أوامر المسؤول:\n/تفعيل /تعطيل /قفل /فك /كتم /حظر /فك_الحظر /تحذير /مسح /تثبيت /مدة_الكتم /فك_كل /حماية /عرض_المكتومين /تحقق_الصلاحيات /طلب_صلاحية /مساعدة")
         elif data == "help_member":
             await event.edit("👤 أوامر الأعضاء:\n/start /حب /سر /توب_المتفاعلين /قوانين /معلومات /تقرير /الاوامر /مساعدة")
 
