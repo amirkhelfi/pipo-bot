@@ -171,8 +171,8 @@ async def join_group(event):
     except Exception as e:
         await reply_with_pic(event, f"❌ فشل الدخول: {str(e)}")
 
-# ---------- الأوامر الإدارية ----------
-@client.on(events.NewMessage(pattern='/start'))
+# ---------- الأوامر الإدارية (مع أنماط دقيقة) ----------
+@client.on(events.NewMessage(pattern='^/start$'))
 async def start(event):
     s = await event.get_sender()
     if s.username == DEVELOPER_USERNAME:
@@ -183,19 +183,19 @@ async def start(event):
     else:
         await reply_with_pic(event, "أهلاً، أنا بوت الحماية. استخدم /الاوامر لرؤية كل الأوامر.", "💋")
 
-@client.on(events.NewMessage(pattern='/تفعيل'))
+@client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
     if not is_admin(await event.get_sender()): return
     active_groups.add(event.chat_id); save_groups()
     await reply_with_pic(event, "✅ تم تفعيل البوت في هذه المجموعة", "⚡")
 
-@client.on(events.NewMessage(pattern='/تعطيل'))
+@client.on(events.NewMessage(pattern='^/تعطيل$'))
 async def deactivate_group(event):
     if not is_admin(await event.get_sender()): return
     active_groups.discard(event.chat_id); save_groups()
     await reply_with_pic(event, "❌ تم تعطيل البوت في هذه المجموعة")
 
-@client.on(events.NewMessage(pattern='/المجموعات'))
+@client.on(events.NewMessage(pattern='^/المجموعات$'))
 async def list_groups(event):
     if not is_admin(await event.get_sender()): return
     if not active_groups: return await reply_with_pic(event, "لا توجد مجموعات مفعلة.")
@@ -205,37 +205,37 @@ async def list_groups(event):
         except: txt += f"• {gid}\n"
     await reply_with_pic(event, txt)
 
-@client.on(events.NewMessage(pattern='/قفل_المجموعة'))
+@client.on(events.NewMessage(pattern='^/قفل_المجموعة$'))
 async def lock_chat(event):
     if not is_admin(await event.get_sender()): return
     global chat_locked; chat_locked = True
     await client.edit_permissions(event.chat_id, send_messages=False)
     await reply_with_pic(event, "🔒 تم قفل المجموعة", "🔐")
 
-@client.on(events.NewMessage(pattern='/فك_القفل'))
+@client.on(events.NewMessage(pattern='^/فك_القفل$'))
 async def unlock_chat(event):
     if not is_admin(await event.get_sender()): return
     global chat_locked; chat_locked = False
     await client.edit_permissions(event.chat_id, send_messages=True)
     await reply_with_pic(event, "🔓 تم فتح المجموعة", "🔓")
 
-@client.on(events.NewMessage(pattern='/ايدي'))
+@client.on(events.NewMessage(pattern='^/ايدي$'))
 async def get_id(event): await reply_with_pic(event, f"`{event.chat_id}`")
 
-@client.on(events.NewMessage(pattern='/حالة_الحماية'))
+@client.on(events.NewMessage(pattern='^/حالة_الحماية$'))
 async def prot_stat(event):
     await reply_with_pic(event, f"🛡️ الروابط: {'✅' if link_protection else '❌'} | التوجيه: {'✅' if forward_protection else '❌'} | السب: ✅ | القفل: {'🔒' if chat_locked else '🔓'}", "📊")
 
-@client.on(events.NewMessage(pattern=r'/مدة_الكتم (\d+)'))
+@client.on(events.NewMessage(pattern=r'^/مدة_الكتم (\d+)$'))
 async def set_md(event):
     if not is_admin(await event.get_sender()): return
     global mute_duration; mute_duration = int(event.pattern_match.group(1)) * 60
     await reply_with_pic(event, f"⏰ {mute_duration // 60} دقائق", "⏳")
 
-@client.on(events.NewMessage(pattern='/مدة_الكتم'))
+@client.on(events.NewMessage(pattern='^/مدة_الكتم$'))
 async def sh_md(event): await reply_with_pic(event, f"⏰ {mute_duration // 60} دقائق", "⏳")
 
-@client.on(events.NewMessage(pattern='/فك_كل_الكمات'))
+@client.on(events.NewMessage(pattern='^/فك_كل_الكمات$'))
 async def unm_all(event):
     if not is_admin(await event.get_sender()): return
     c = 0
@@ -244,25 +244,25 @@ async def unm_all(event):
         except: pass
     await reply_with_pic(event, f"✅ فك {c} كتم", "🔊")
 
-@client.on(events.NewMessage(pattern='/تفعيل_حماية_الروابط'))
+@client.on(events.NewMessage(pattern='^/تفعيل_حماية_الروابط$'))
 async def en_l(event):
     if not is_admin(await event.get_sender()): return
     global link_protection; link_protection = True
     await reply_with_pic(event, "✅ تم تفعيل حماية الروابط", "🛡️")
 
-@client.on(events.NewMessage(pattern='/تعطيل_حماية_الروابط'))
+@client.on(events.NewMessage(pattern='^/تعطيل_حماية_الروابط$'))
 async def dis_l(event):
     if not is_admin(await event.get_sender()): return
     global link_protection; link_protection = False
     await reply_with_pic(event, "❌ تم تعطيل حماية الروابط", "⚠️")
 
-@client.on(events.NewMessage(pattern='/تفعيل_حماية_التوجيه'))
+@client.on(events.NewMessage(pattern='^/تفعيل_حماية_التوجيه$'))
 async def en_f(event):
     if not is_admin(await event.get_sender()): return
     global forward_protection; forward_protection = True
     await reply_with_pic(event, "✅ تم تفعيل حماية التوجيه", "🛡️")
 
-@client.on(events.NewMessage(pattern='/تعطيل_حماية_التوجيه'))
+@client.on(events.NewMessage(pattern='^/تعطيل_حماية_التوجيه$'))
 async def dis_f(event):
     if not is_admin(await event.get_sender()): return
     global forward_protection; forward_protection = False
@@ -278,7 +278,7 @@ async def perm_mute(event):
     mute_status[target.id] = {'until': time.time()+ten_years, 'name': target.first_name}
     await reply_with_pic(event, f"🚫 هاك الكتمة يا {target.first_name} 😂", "🚫")
 
-@client.on(events.NewMessage(pattern='/حظر|/حضر', func=lambda e: e.is_reply))
+@client.on(events.NewMessage(pattern='^/(حظر|حضر)$', func=lambda e: e.is_reply))
 async def ban_handler(event):
     if not is_admin(await event.get_sender()): return
     target = await (await event.get_reply_message()).get_sender()
@@ -287,7 +287,7 @@ async def ban_handler(event):
     if await ban_user(event.chat_id, target.id): await reply_with_pic(event, f"🚫 {target.first_name} تم حظره", "🚫")
     else: await reply_with_pic(event, "❌ فشل الحظر")
 
-@client.on(events.NewMessage(pattern='/فك_الحظر', func=lambda e: e.is_reply))
+@client.on(events.NewMessage(pattern='^/فك_الحظر$', func=lambda e: e.is_reply))
 async def unban_handler(event):
     if not is_admin(await event.get_sender()): return
     target = await (await event.get_reply_message()).get_sender()
@@ -295,7 +295,7 @@ async def unban_handler(event):
     if await unban_user(event.chat_id, target.id): await reply_with_pic(event, f"🔓 {target.first_name} تم فك حظره")
     else: await reply_with_pic(event, "❌ فشل فك الحظر")
 
-@client.on(events.NewMessage(pattern='/تحذير'))
+@client.on(events.NewMessage(pattern='^/تحذير$'))
 async def warn(event):
     if not is_admin(await event.get_sender()): return
     if not event.is_reply: return await reply_with_pic(event, "❌ يجب الرد على الشخص")
@@ -311,7 +311,7 @@ async def warn(event):
             await reply_with_pic(event, f"🚫 {name} كتم {mute_duration//60} د", "🚫")
             del warnings_data[uid]; save_warnings()
 
-@client.on(events.NewMessage(pattern='/عرض_التحذيرات'))
+@client.on(events.NewMessage(pattern='^/عرض_التحذيرات$'))
 async def show_warn(event):
     target_id = None; target_name = ""
     if event.is_reply:
@@ -337,7 +337,7 @@ async def purge(event):
     confirm = await reply_with_pic(event, f"🧹 مسح {len(ids)} رسالة")
     await asyncio.sleep(2); await confirm.delete()
 
-@client.on(events.NewMessage(pattern='/عرض_المكتومين'))
+@client.on(events.NewMessage(pattern='^/عرض_المكتومين$'))
 async def muted_list(event):
     if not mute_status: return await reply_with_pic(event, "✅ لا يوجد مكتومين")
     now = time.time(); txt = "📋 المكتومين:\n"
@@ -349,7 +349,7 @@ async def muted_list(event):
             txt += f"• {name} - ⏳ {rem//60} د\n"
     await reply_with_pic(event, txt)
 
-@client.on(events.NewMessage(pattern='/تثبيت'))
+@client.on(events.NewMessage(pattern='^/تثبيت$'))
 async def pin_msg(event):
     if not is_admin(await event.get_sender()): return
     if not event.is_reply: return await reply_with_pic(event, "❌ رد على رسالة")
@@ -357,7 +357,7 @@ async def pin_msg(event):
     try: await client.pin_message(event.chat_id, replied.id); await reply_with_pic(event, "📌 تم التثبيت", "📌")
     except Exception as e: await reply_with_pic(event, f"❌ فشل: {e}")
 
-@client.on(events.NewMessage(pattern='/رفع_مسؤول'))
+@client.on(events.NewMessage(pattern='^/رفع_مسؤول$'))
 async def promote_admin(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     target_id = None; target_name = ""
@@ -374,7 +374,7 @@ async def promote_admin(event):
     admins.append(target_id); save_json(ADMINS_FILE, admins)
     await reply_with_pic(event, f"✅ تم رفع {target_name or target_id} مسؤولاً", "👑")
 
-@client.on(events.NewMessage(pattern='/تنزيل_مسؤول'))
+@client.on(events.NewMessage(pattern='^/تنزيل_مسؤول$'))
 async def demote_admin(event):
     if (await event.get_sender()).username != DEVELOPER_USERNAME: return
     target_id = None
@@ -404,13 +404,13 @@ async def report(event):
         except: pass
     await reply_with_pic(event, "✅ تم إرسال التقرير للمسؤولين")
 
-@client.on(events.NewMessage(pattern='/قوانين'))
+@client.on(events.NewMessage(pattern='^/قوانين$'))
 async def rules(event):
     if not os.path.exists(RULES_FILE): return await reply_with_pic(event, "❌ لم يقم المطور بتعيين القوانين بعد")
     with open(RULES_FILE, 'r') as f: rules_text = f.read()
     await reply_with_pic(event, f"📜 **قوانين المجموعة:**\n{rules_text}")
 
-@client.on(events.NewMessage(pattern='/معلومات', func=lambda e: e.is_reply))
+@client.on(events.NewMessage(pattern='^/معلومات$', func=lambda e: e.is_reply))
 async def info(event):
     target = await (await event.get_reply_message()).get_sender()
     if not target: return await reply_with_pic(event, "❌ خطأ")
@@ -426,7 +426,7 @@ async def info(event):
     info_text = f"📋 {target.first_name}\n🆔 {uid}\n⚠️ تحذيرات: {warns}/3\n🔇 {is_muted}\n⭐ {rank}"
     await reply_with_pic(event, info_text)
 
-@client.on(events.NewMessage(pattern='/توب_المتفاعلين'))
+@client.on(events.NewMessage(pattern='^/توب_المتفاعلين$'))
 async def top(event):
     if not message_count: return await reply_with_pic(event, "❌ لا توجد إحصائيات بعد")
     items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -437,7 +437,7 @@ async def top(event):
         txt += f"{i}. {name} - {cnt} رسالة\n"
     await reply_with_pic(event, txt)
 
-@client.on(events.NewMessage(pattern='/حب'))
+@client.on(events.NewMessage(pattern='^/حب$'))
 async def love(event):
     args = event.raw_text.split()
     if event.is_reply:
@@ -448,7 +448,7 @@ async def love(event):
     else: return await reply_with_pic(event, "❌ استخدم: /حب @username أو بالرد")
     await reply_with_pic(event, f"{u1} + {u2} = {random.choice(['💔','💖','💘','💕','💓'])} {random.randint(50,100)}%")
 
-@client.on(events.NewMessage(pattern='/سر'))
+@client.on(events.NewMessage(pattern='^/سر$'))
 async def secret(event):
     text = event.raw_text[5:].strip()
     if not text: return await reply_with_pic(event, "❌ اكتب رسالة بعد الأمر")
@@ -457,7 +457,7 @@ async def secret(event):
     await client.send_message(event.chat_id, f"📩 رسالة مجهولة: {text}")
 
 # ---------- معاينة الترحيب ----------
-@client.on(events.NewMessage(pattern='/معاينة_ترحيب'))
+@client.on(events.NewMessage(pattern='^/معاينة_ترحيب$'))
 async def preview_welcome(event):
     if not is_admin(await event.get_sender()): return
     if event.chat_id not in active_groups: return await reply_with_pic(event, "❌ البوت غير مفعل هنا.")
@@ -472,7 +472,6 @@ async def preview_welcome(event):
     try: group_title = (await client.get_entity(event.chat_id)).title
     except: pass
 
-    # إيموجي متحرك تلقائي
     try:
         await client.send_message(event.chat_id, "🎉")
         await asyncio.sleep(0.5)
@@ -558,14 +557,14 @@ async def all_commands(event):
     )
     await reply_with_pic(event, txt)
 
-@client.on(events.NewMessage(pattern='/مساعدة'))
+@client.on(events.NewMessage(pattern='^/مساعدة$'))
 async def help_cmd(event):
     await reply_with_pic(event, "📜 اختر فئة الأوامر:", buttons=[
         [Button.inline("🛡️ المسؤول", b"help_admin")],
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب الأسطوري (بدون ملصق إضافي) ----------
+# ---------- الترحيب الأسطوري ----------
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
@@ -584,7 +583,6 @@ async def legendary_welcome(event):
     try: group_title = (await client.get_entity(chat)).title
     except: pass
 
-    # إيموجي متحرك تلقائي (🎉)
     try:
         await client.send_message(chat, "🎉")
         await asyncio.sleep(0.5)
@@ -720,12 +718,10 @@ async def global_handler(event):
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
-        # الحصول على التوقيت الحالي بتوقيت الجزائر (UTC+1)
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         now_dz = now_utc + datetime.timedelta(hours=1)
         h, m = now_dz.hour, now_dz.minute
 
-        # تنبيه قبل القفل بـ 30 دقيقة (الساعة 11:30 مساءً بتوقيت الجزائر)
         if h == 23 and m == 30 and not reminder_sent and not chat_locked:
             reminder_sent = True
             for gid in active_groups:
@@ -737,7 +733,6 @@ async def auto_lock_unlock():
                     )
                 except: pass
 
-        # القفل الساعة 00:00 (منتصف الليل بتوقيت الجزائر)
         if h == 0 and m == 0 and not chat_locked:
             chat_locked = True
             reminder_sent = False
@@ -751,7 +746,6 @@ async def auto_lock_unlock():
                     )
                 except: pass
 
-        # الفتح الساعة 10:00 صباحاً بتوقيت الجزائر
         if h == 10 and m == 0 and chat_locked:
             chat_locked = False
             for gid in active_groups:
