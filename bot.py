@@ -51,12 +51,11 @@ last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# ---------- مراقبة الخصام والصلح التلقائي ----------
+# ---------- مراقبة الخصام ----------
 CONFLICT_WORDS = [
     r'\b(يا غبي|يا حمار|يا أحمق|اسكت|اخرس|انقلع|غبي|حمار|غبية|حمقاء|كلب|يا كلب|حيوان)\b',
     r'\b(stupid|shut up|idiot|fool|dumb|moron)\b',
 ]
-
 conflict_tracker = defaultdict(lambda: defaultdict(list))
 CONFLICT_THRESHOLD = 3
 CONFLICT_WINDOW = 300
@@ -68,7 +67,7 @@ def detect_conflict(text):
             return True
     return False
 
-# ---------- زخرفة الخطوط ----------
+# ---------- زخرفة ----------
 def zakhrif_fraktur(text):
     fraktur_map = {
         'A':'𝕬','B':'𝕭','C':'𝕮','D':'𝕯','E':'𝕰','F':'𝕱','G':'𝕲','H':'𝕳','I':'𝕴','J':'𝕵',
@@ -101,7 +100,7 @@ async def reply_with_pic(event, text, emoji="", buttons=None):
         except: pass
     await event.reply(full, buttons=buttons)
 
-# ---------- كشف السب المتطور ----------
+# ---------- كشف السب ----------
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -129,8 +128,8 @@ BAD_WORDS = [
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[مm][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*m[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*e[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
 ]
-
 LINK_PATTERNS = [r'https?://\S+', r't\.me/\S+', r'www\.\S+']
+
 def contains_swear(t): return any(re.search(p, t, re.I) for p in BAD_WORDS) if t else False
 def contains_link(t): return any(re.search(p, t, re.I) for p in LINK_PATTERNS) if t else False
 def is_forward(m): return bool(m.forward)
@@ -148,7 +147,7 @@ async def unban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=False))); return True
     except: return False
 
-# ---------- الدخول التلقائي ----------
+# ---------- دخول تلقائي ----------
 @client.on(events.NewMessage(from_users=DEVELOPER_ID, pattern=r'^/دخول\s+(.+)', func=lambda e: e.is_private))
 async def join_group(event):
     arg = event.pattern_match.group(1).strip()
@@ -171,7 +170,7 @@ async def join_group(event):
     except Exception as e:
         await reply_with_pic(event, f"❌ فشل الدخول: {str(e)}")
 
-# ---------- الأوامر الإدارية (مع أنماط دقيقة) ----------
+# ---------- الأوامر الإدارية ----------
 @client.on(events.NewMessage(pattern='^/start$'))
 async def start(event):
     s = await event.get_sender()
@@ -460,7 +459,6 @@ async def secret(event):
 @client.on(events.NewMessage(pattern='^/معاينة_ترحيب$'))
 async def preview_welcome(event):
     if not is_admin(await event.get_sender()): return
-    if event.chat_id not in active_groups: return await reply_with_pic(event, "❌ البوت غير مفعل هنا.")
     me = await client.get_me()
     name = me.first_name or "المطور"
     uid = me.id
@@ -472,9 +470,7 @@ async def preview_welcome(event):
     try: group_title = (await client.get_entity(event.chat_id)).title
     except: pass
 
-    try:
-        await client.send_message(event.chat_id, "🎉")
-        await asyncio.sleep(0.5)
+    try: await client.send_message(event.chat_id, "🎉"); await asyncio.sleep(0.5)
     except: pass
 
     welcome_text = (
@@ -564,11 +560,10 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب الأسطوري ----------
+# ---------- الترحيب الأسطوري (يعمل في أي مجموعة) ----------
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
-    if chat not in active_groups: return
     user = await event.get_user()
     if user.bot: return
     await asyncio.sleep(1)
@@ -583,9 +578,7 @@ async def legendary_welcome(event):
     try: group_title = (await client.get_entity(chat)).title
     except: pass
 
-    try:
-        await client.send_message(chat, "🎉")
-        await asyncio.sleep(0.5)
+    try: await client.send_message(chat, "🎉"); await asyncio.sleep(0.5)
     except: pass
 
     welcome_text = (
@@ -666,7 +659,7 @@ async def welcome_buttons(event):
         elif data == "help_member":
             await event.edit("👤 أوامر الأعضاء:\n/start /حب /سر /توب_المتفاعلين /قوانين /معلومات /تقرير /الاوامر /مساعدة")
 
-# ---------- حماية تلقائية مع مراقبة الخصام ----------
+# ---------- حماية (للمجموعات المفعلة فقط) ----------
 @client.on(events.NewMessage())
 async def global_handler(event):
     global link_protection, forward_protection, mute_duration
@@ -700,21 +693,19 @@ async def global_handler(event):
                 conflict_tracker[pair][sender.id] = [t for t in conflict_tracker[pair][sender.id] if now_ts - t < CONFLICT_WINDOW]
                 conflict_tracker[pair][other_user.id] = [t for t in conflict_tracker[pair][other_user.id] if now_ts - t < CONFLICT_WINDOW]
                 conflict_tracker[pair][sender.id].append(now_ts)
-                total_conflicts = len(conflict_tracker[pair][sender.id]) + len(conflict_tracker[pair][other_user.id])
-                if total_conflicts >= CONFLICT_THRESHOLD:
-                    last_reconcile = conflict_tracker[pair].get('last_reconcile', 0)
-                    if now_ts - last_reconcile > CONFLICT_COOLDOWN:
+                total = len(conflict_tracker[pair][sender.id]) + len(conflict_tracker[pair][other_user.id])
+                if total >= CONFLICT_THRESHOLD:
+                    last_rec = conflict_tracker[pair].get('last_reconcile', 0)
+                    if now_ts - last_rec > CONFLICT_COOLDOWN:
                         conflict_tracker[pair]['last_reconcile'] = now_ts
                         try:
                             await client.send_message(chat,
-                                "🕊️ لقد لاحظت تبادل كلمات حادة بينكما.\n"
-                                "أرجو منكما التوقف فوراً، فأنتم إخوة.\n"
-                                "قال تعالى: {وَأَصْلِحُوا ذَاتَ بَيْنِكُمْ}.\n"
-                                "تصافحوا وتآخوا، فما أجمل الودّ! 🌹"
+                                "🕊️ لاحظت تبادل كلمات حادة بينكما. أرجو التوقف فوراً، فأنتم إخوة.\n"
+                                "{وَأَصْلِحُوا ذَاتَ بَيْنِكُمْ}\nتصافحوا وتآخوا، فما أجمل الودّ! 🌹"
                             )
                         except: pass
 
-# ---------- القفل والفتح التلقائي بتوقيت الجزائر ----------
+# ---------- القفل والفتح التلقائي ----------
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
@@ -728,22 +719,17 @@ async def auto_lock_unlock():
                 try:
                     await client.send_message(gid,
                         f"⚠️ تنبيه: سيتم قفل المجموعة بعد 30 دقيقة (منتصف الليل بتوقيت الجزائر).\n"
-                        f"🔓 ستعاود الفتح الساعة 10:00 صباحاً.\n"
-                        f"👑 @{DEVELOPER_USERNAME}"
-                    )
+                        f"🔓 ستعاود الفتح الساعة 10:00 صباحاً.\n👑 @{DEVELOPER_USERNAME}")
                 except: pass
 
         if h == 0 and m == 0 and not chat_locked:
-            chat_locked = True
-            reminder_sent = False
+            chat_locked = True; reminder_sent = False
             for gid in active_groups:
                 try:
                     await client.edit_permissions(gid, send_messages=False)
                     await client.send_message(gid,
                         f"🔒 تم قفل المجموعة تلقائياً – منتصف الليل.\n"
-                        f"🌙 ستعود للفتح الساعة 10:00 صباحاً بتوقيت الجزائر.\n"
-                        f"👑 @{DEVELOPER_USERNAME}"
-                    )
+                        f"🌙 ستعود للفتح الساعة 10:00 صباحاً بتوقيت الجزائر.\n👑 @{DEVELOPER_USERNAME}")
                 except: pass
 
         if h == 10 and m == 0 and chat_locked:
@@ -753,9 +739,7 @@ async def auto_lock_unlock():
                     await client.edit_permissions(gid, send_messages=True)
                     await client.send_message(gid,
                         f"🔓 تم فتح المجموعة تلقائياً – صباح الخير!\n"
-                        f"☀️ استمتعوا بيومكم.\n"
-                        f"👑 @{DEVELOPER_USERNAME}"
-                    )
+                        f"☀️ استمتعوا بيومكم.\n👑 @{DEVELOPER_USERNAME}")
                 except: pass
 
         await asyncio.sleep(30)
