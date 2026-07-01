@@ -49,6 +49,7 @@ chat_locked = False
 reminder_sent = False
 last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
+BOT_ID = None
 BOT_PHOTO = None
 
 # ---------- مراقبة الخصام ----------
@@ -171,7 +172,7 @@ async def join_group(event):
         await reply_with_pic(event, f"❌ فشل الدخول: {str(e)}")
 
 # ---------- تنبيه الصلاحيات ----------
-@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == (await client.get_me()).id))
+@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == BOT_ID))
 async def on_bot_added(event):
     chat = event.chat_id
     try:
@@ -720,7 +721,7 @@ async def global_handler(event):
     chat = event.chat_id
     if chat not in active_groups: return
     sender = await event.get_sender()
-    if not sender or sender.id == (await client.get_me()).id: return
+    if not sender or sender.id == BOT_ID: return
     if sender.username == DEVELOPER_USERNAME: return
     message_count[sender.id] += 1
     text = event.raw_text.strip()
@@ -809,8 +810,10 @@ async def auto_unmute():
         await asyncio.sleep(30)
 
 async def main():
-    global BOT_PHOTO
+    global BOT_ID, BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
+    me = await client.get_me()
+    BOT_ID = me.id
     photos = await client.get_profile_photos('me', limit=1)
     if photos:
         BOT_PHOTO = InputPhoto(id=photos[0].id, access_hash=photos[0].access_hash, file_reference=photos[0].file_reference)
