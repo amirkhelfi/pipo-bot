@@ -54,7 +54,7 @@ BOT_PHOTO = None
 # ---------- مراقبة الخصام والصلح التلقائي ----------
 CONFLICT_WORDS = [
     r'\b(يا غبي|يا حمار|يا أحمق|اسكت|اخرس|انقلع|غبي|حمار|غبية|حمقاء|كلب|يا كلب|حيوان)\b',
-    r'\b(stupid|shut up|idiot|fool|dumb|moron|shut your mouth)\b',
+    r'\b(stupid|shut up|idiot|fool|dumb|moron)\b',
 ]
 
 conflict_tracker = defaultdict(lambda: defaultdict(list))
@@ -472,6 +472,12 @@ async def preview_welcome(event):
     try: group_title = (await client.get_entity(event.chat_id)).title
     except: pass
 
+    # إيموجي متحرك تلقائي
+    try:
+        await client.send_message(event.chat_id, "🎉")
+        await asyncio.sleep(0.5)
+    except: pass
+
     welcome_text = (
         f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
         f"⁣⁣ᯓ˹ {zakhrif_fraktur('BIENVENUE DANS LE GROUPE')} ˼\n"
@@ -530,22 +536,6 @@ async def set_welcome_media(event):
     except Exception as e:
         await event.reply(f"❌ خطأ: {str(e)}")
 
-@client.on(events.NewMessage(pattern='/تعيين_ملصق_ترحيب', func=lambda e: e.is_private))
-async def set_welcome_sticker(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME: return await event.reply("❌ للمطور فقط.")
-    if not event.media or not hasattr(event.media, 'document'):
-        return await event.reply("❌ أرسل ملصق متحرك (.tgs) مع الأمر.")
-    doc = event.media.document
-    if 'video' in doc.mime_type or 'webm' in doc.mime_type or doc.mime_type == 'application/x-tgsticker':
-        welcome_media['sticker_id'] = doc.id
-        welcome_media['sticker_hash'] = doc.access_hash
-        welcome_media['sticker_ref'] = doc.file_reference.hex() if doc.file_reference else ''
-        save_welcome_media()
-        await event.reply("✅ تم حفظ ملصق الترحيب المتحرك.")
-    else:
-        await event.reply("❌ هذا ليس ملصقاً متحركاً. أرسل ملصق .tgs.")
-
 # ---------- الأوامر العامة ----------
 @client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
 async def all_commands(event):
@@ -564,8 +554,7 @@ async def all_commands(event):
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب\n"
-        "/تعيين_ملصق_ترحيب"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
     )
     await reply_with_pic(event, txt)
 
@@ -576,7 +565,7 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب الأسطوري ----------
+# ---------- الترحيب الأسطوري (بدون ملصق إضافي) ----------
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
@@ -595,14 +584,11 @@ async def legendary_welcome(event):
     try: group_title = (await client.get_entity(chat)).title
     except: pass
 
-    if welcome_media.get('sticker_id'):
-        try:
-            await client.send_file(chat, InputDocument(
-                id=welcome_media['sticker_id'],
-                access_hash=welcome_media['sticker_hash'],
-                file_reference=bytes.fromhex(welcome_media.get('sticker_ref', ''))
-            ))
-        except: pass
+    # إيموجي متحرك تلقائي (🎉)
+    try:
+        await client.send_message(chat, "🎉")
+        await asyncio.sleep(0.5)
+    except: pass
 
     welcome_text = (
         f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
@@ -695,11 +681,9 @@ async def global_handler(event):
     message_count[sender.id] += 1
     text = event.raw_text.strip()
 
-    # 1- حماية الروابط والتوجيه
     if link_protection and contains_link(text): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
 
-    # 2- كشف السب
     if contains_swear(text.lower()):
         now = time.time(); uid = sender.id; name = sender.first_name or "مجهول"
         if uid in mute_status and mute_status[uid]['until'] > now: return
@@ -708,23 +692,18 @@ async def global_handler(event):
             mute_status[uid] = {'until': now+mute_duration, 'name': name}
             await client.send_message(chat, f"🚫 {name} كتم {mute_duration//60} د")
 
-    # 3- مراقبة الخصام والصلح التلقائي
     if detect_conflict(text):
-        # البحث عن رسالة مردود عليها
         reply = await event.get_reply_message()
         if reply:
             other_user = await reply.get_sender()
             if other_user and other_user.id != sender.id:
                 pair = tuple(sorted((sender.id, other_user.id)))
                 now_ts = time.time()
-                # تنظيف التتبعات القديمة
                 conflict_tracker[pair][sender.id] = [t for t in conflict_tracker[pair][sender.id] if now_ts - t < CONFLICT_WINDOW]
                 conflict_tracker[pair][other_user.id] = [t for t in conflict_tracker[pair][other_user.id] if now_ts - t < CONFLICT_WINDOW]
                 conflict_tracker[pair][sender.id].append(now_ts)
-
                 total_conflicts = len(conflict_tracker[pair][sender.id]) + len(conflict_tracker[pair][other_user.id])
                 if total_conflicts >= CONFLICT_THRESHOLD:
-                    # التحقق من وجود رسالة صلح سابقة حديثة
                     last_reconcile = conflict_tracker[pair].get('last_reconcile', 0)
                     if now_ts - last_reconcile > CONFLICT_COOLDOWN:
                         conflict_tracker[pair]['last_reconcile'] = now_ts
@@ -737,33 +716,54 @@ async def global_handler(event):
                             )
                         except: pass
 
-# ---------- القفل والفتح التلقائي ----------
+# ---------- القفل والفتح التلقائي بتوقيت الجزائر ----------
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
-        now = datetime.datetime.now(); h, m = now.hour, now.minute
-        # إشعار قبل القفل بـ 30 دقيقة
-        if h == 22 and m == 30 and not reminder_sent and not chat_locked:
+        # الحصول على التوقيت الحالي بتوقيت الجزائر (UTC+1)
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        now_dz = now_utc + datetime.timedelta(hours=1)
+        h, m = now_dz.hour, now_dz.minute
+
+        # تنبيه قبل القفل بـ 30 دقيقة (الساعة 11:30 مساءً بتوقيت الجزائر)
+        if h == 23 and m == 30 and not reminder_sent and not chat_locked:
             reminder_sent = True
             for gid in active_groups:
-                try: await client.send_message(gid, f"⚠️ باقي 30 دقيقة على القفل\n👑 @{DEVELOPER_USERNAME}")
+                try:
+                    await client.send_message(gid,
+                        f"⚠️ تنبيه: سيتم قفل المجموعة بعد 30 دقيقة (منتصف الليل بتوقيت الجزائر).\n"
+                        f"🔓 ستعاود الفتح الساعة 10:00 صباحاً.\n"
+                        f"👑 @{DEVELOPER_USERNAME}"
+                    )
                 except: pass
-        # القفل الساعة 11 مساءً
-        if h == 23 and m == 0 and not chat_locked:
-            chat_locked = True; reminder_sent = False
+
+        # القفل الساعة 00:00 (منتصف الليل بتوقيت الجزائر)
+        if h == 0 and m == 0 and not chat_locked:
+            chat_locked = True
+            reminder_sent = False
             for gid in active_groups:
                 try:
                     await client.edit_permissions(gid, send_messages=False)
-                    await client.send_message(gid, f"🔒 تم إغلاق المحادثة - 11:00 ليلاً\n🔓 الفتح: 10:00 صباحاً\n👑 @{DEVELOPER_USERNAME}")
+                    await client.send_message(gid,
+                        f"🔒 تم قفل المجموعة تلقائياً – منتصف الليل.\n"
+                        f"🌙 ستعود للفتح الساعة 10:00 صباحاً بتوقيت الجزائر.\n"
+                        f"👑 @{DEVELOPER_USERNAME}"
+                    )
                 except: pass
-        # الفتح الساعة 10 صباحاً
-        if h == 9 and m == 0 and chat_locked:
+
+        # الفتح الساعة 10:00 صباحاً بتوقيت الجزائر
+        if h == 10 and m == 0 and chat_locked:
             chat_locked = False
             for gid in active_groups:
                 try:
                     await client.edit_permissions(gid, send_messages=True)
-                    await client.send_message(gid, f"🔓 تم فتح المحادثة - 10:00 صباحاً\n👑 @{DEVELOPER_USERNAME}")
+                    await client.send_message(gid,
+                        f"🔓 تم فتح المجموعة تلقائياً – صباح الخير!\n"
+                        f"☀️ استمتعوا بيومكم.\n"
+                        f"👑 @{DEVELOPER_USERNAME}"
+                    )
                 except: pass
+
         await asyncio.sleep(30)
 
 async def auto_unmute():
