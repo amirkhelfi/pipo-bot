@@ -170,6 +170,24 @@ async def join_group(event):
     except Exception as e:
         await reply_with_pic(event, f"❌ فشل الدخول: {str(e)}")
 
+# ---------- تنبيه الصلاحيات ----------
+@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == (await client.get_me()).id))
+async def on_bot_added(event):
+    chat = event.chat_id
+    try:
+        await client.send_message(chat,
+            "🤖 لكي أعمل بشكل كامل (ترحيب، حماية، قفل تلقائي)، أحتاج صلاحية مشرف.\n"
+            "🔧 ارفعني مشرف في المجموعة."
+        )
+    except: pass
+
+@client.on(events.NewMessage(pattern='^/طلب_صلاحية$'))
+async def request_admin(event):
+    if not is_admin(await event.get_sender()): return
+    await client.send_message(event.chat_id,
+        "🤖 لكي يعمل الترحيب التلقائي والحماية، يرجى رفع البوت كمشرف في المجموعة."
+    )
+
 # ---------- الأوامر الإدارية ----------
 @client.on(events.NewMessage(pattern='^/start$'))
 async def start(event):
@@ -549,7 +567,8 @@ async def all_commands(event):
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب\n"
+        "/طلب_صلاحية"
     )
     await reply_with_pic(event, txt)
 
@@ -560,7 +579,7 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب الأسطوري (يعمل في أي مجموعة) ----------
+# ---------- الترحيب الأسطوري (لما البوت مشرف) ----------
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
