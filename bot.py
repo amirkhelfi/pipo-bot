@@ -104,10 +104,13 @@ pending_captchas = {} # format: {user_id: {"chat_id": chat_id, "message_id": msg
 async def ask_gemini_ai(prompt):
     if not bot_settings.get("gemini_active", True):
         return "⚠️ عذراً، تم تعطيل ميزة الذكاء الاصطناعي حالياً من قبل الإدارة."
-    if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_KEY":
+    
+    # Check bot_settings first, then fallback to environment variable
+    key = bot_settings.get("gemini_api_key") or GEMINI_API_KEY
+    if not key or key == "YOUR_GEMINI_KEY":
         return "⚠️ عذراً المطور لم يقم بتفعيل مفتاح الذكاء الاصطناعي Gemini في السيرفر بعد."
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
     system_instruction = (
         "أنت مساعد بيبو الذكي (Pipo AI)، بوت تليجرام شهير ومحبوب جداً ومحترف لإدارة وحماية مجموعات تليجرام. "
         "مهمتك هي الإجابة عن استفسارات الأعضاء بطريقة ودية، فكاهية، ذكية وسريعة باللغة العربية الفصحى مع لمسة لهجة جزائرية خفيفة وودودة إن أمكن. "
@@ -759,7 +762,6 @@ async def secret(event):
     await event.delete()
     await asyncio.sleep(0.5)
     await client.send_message(event.chat_id, f"📩 **رسالة مجهولة سرية وصلت:**\n\n💬 « {text} »\n\n🕵️‍♂️ المرسل مجهول الهوية!")
-
 # ==========================================================
 # 🤖 GEMINI CHAT COMMANDS
 # ==========================================================
@@ -770,6 +772,16 @@ async def ask_bebo_ai(event):
     response = await ask_gemini_ai(prompt)
     await loading_msg.delete()
     await event.reply(f"🤖 **بيبو الذكي يقول:**\n\n{response}")
+
+@client.on(events.NewMessage(pattern=r'^/تعيين_مفتاح\s+(.+)'))
+async def set_gemini_key_cmd(event):
+    sender = await event.get_sender()
+    if not is_admin(sender): return
+    key = event.pattern_match.group(1).strip()
+    bot_settings["gemini_api_key"] = key
+    save_settings()
+    await event.delete() # security delete
+    await reply_with_pic(event, "✅ تم حفظ مفتاح الذكاء الاصطناعي Gemini بنجاح في الإعدادات وحذف الرسالة للأمان!", "🤖")
 
 # ==========================================================
 # 🎉 INTERACTIVE TRUTH / DARE / GAME CHANNELS
@@ -812,7 +824,7 @@ async def game_dare(event):
 
 @client.on(events.NewMessage(pattern='^/عقاب$'))
 async def game_punish(event):
-    await reply_with_pic(event, f"⚡ **عقاب فكاهي وعادل من بيبو:**\n\n« {random.choice(PUNISHMENTS)} »\n\nيرجى الالتزام بالعقاب لسلامة روح التنافس! 😂", "🔨")
+    await reply_with_pic(event, f"🔨 **عقاب فكاهي وعادل من بيبو:**\n\n« {random.choice(PUNISHMENTS)} »\n\nيرجى الالتزام بالعقاب لسلامة روح التنافس! 😂", "🔨")
 
 # ==========================================================
 # 🎁 CAPTCHA HUMAN VALIDATION CHALLENGE
@@ -1052,8 +1064,9 @@ async def handle_captcha_callbacks(event):
             return
         
         # Check if the API key is configured
-        if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_KEY":
-            await event.answer("⚠️ لا يمكن تفعيل الذكاء الاصطناعي لأن مفتاح GEMINI_API_KEY غير متوفر في البيئة!", alert=True)
+        key = bot_settings.get("gemini_api_key") or GEMINI_API_KEY
+        if not key or key == "YOUR_GEMINI_KEY":
+            await event.answer("⚠️ لا يمكن تفعيل الذكاء الاصطناعي لأن مفتاح Gemini غير متوفر! استخدم أمر: /تعيين_مفتاح <المفتاح>", alert=True)
             return
 
         # Toggle the status
@@ -1125,7 +1138,7 @@ async def handle_captcha_callbacks(event):
         )
 
 # ==========================================================
-# 🔔 AUTOMATIC CAPTCHA & WELCOME ENGINE
+# 🛡️ AUTOMATIC CAPTCHA & WELCOME ENGINE
 # ==========================================================
 @client.on(events.ChatAction)
 async def welcome_action_handler(event):
@@ -1409,7 +1422,7 @@ async def auto_unmute_and_captcha_checks():
         await asyncio.sleep(15)
 
 # ==========================================================
-# 🛠️ GENERAL SERVICES GUIDE & DIRECTORY
+# 🛠 *GENERAL SERVICES GUIDE & DIRECTORY*
 # ==========================================================
 @client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
 async def all_commands(event):
