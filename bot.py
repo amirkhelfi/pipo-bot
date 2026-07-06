@@ -87,6 +87,7 @@ bot_settings = load_json(AUTO_SETTINGS_FILE, {
     "verification_captcha": True,# Ask new members to pass a captcha click challenge
     "service_cleanup": True,     # Auto-delete "joined/left" messages
     "chat_locked": False,        # If chat is fully locked
+    "gemini_active": True,       # Toggle Gemini AI status
 })
 
 def save_settings():
@@ -101,6 +102,8 @@ pending_captchas = {} # format: {user_id: {"chat_id": chat_id, "message_id": msg
 # 🤖 GEMINI AI CO-PILOT INTEGRATION
 # ==========================================================
 async def ask_gemini_ai(prompt):
+    if not bot_settings.get("gemini_active", True):
+        return "⚠️ عذراً، تم تعطيل ميزة الذكاء الاصطناعي حالياً من قبل الإدارة."
     if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_KEY":
         return "⚠️ عذراً المطور لم يقم بتفعيل مفتاح الذكاء الاصطناعي Gemini في السيرفر بعد."
     
@@ -153,7 +156,7 @@ BAD_WORDS = [
     r'[ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ]',
     r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
     r'[قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
-    r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
+    r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
     r'[nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر]',
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
@@ -306,7 +309,7 @@ async def start(event):
         await reply_with_pic(event, styled, "👑", buttons=[
             [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 الإحصائيات العامة", b"bot_stat")],
             [Button.inline("⚙️ إعدادات الحماية", b"security_settings"), Button.inline("🔓 فك كتم الجميع", b"unmute_all_btn")],
-            [Button.inline("🤖 تفعيل الذكاء الاصطناعي", b"toggle_gemini_setup")]
+            [Button.inline(f"🤖 الذكاء الاصطناعي: {'✅ مفعل' if bot_settings.get('gemini_active', True) else '❌ معطل'}", b"toggle_gemini_setup")]
         ])
     else:
         welcome_ordinary = (
@@ -396,6 +399,408 @@ async def set_md(event):
 @client.on(events.NewMessage(pattern='^/مدة_الكتم$'))
 async def sh_md(event): 
     await reply_with_pic(event, f"⏰ مدة الكتم التلقائية الحالية: **{bot_settings['mute_duration'] // 60} دقائق**", "⏳")
+
+@client.on(events.NewMessage(pattern='^/فك_كل_الكمات$'))
+async def unm_all(event):
+    if not is_admin(await event.get_sender()): return
+    c = 0
+    for u in list(mute_status.keys()):
+        try: 
+            await unmute_user(event.chat_id, u)
+            del mute_status[u]
+            c += 1
+        except: 
+            pass
+    await reply_with_pic(event, f"✅ تم فك الكتم عن **{c}** أعضاء بنجاح في هذه المجموعة!", "🔊")
+
+# --- Toggle Quick Protection Settings ---
+@client.on(events.NewMessage(pattern='^/تفعيل_حماية_الروابط$'))
+async def en_l(event):
+    if not is_admin(await event.get_sender()): return
+    bot_settings["link_protection"] = True
+    save_settings()
+    await reply_with_pic(event, "✅ تم تفعيل حماية الروابط ومنع الإعلانات بنجاح.", "🛡️")
+
+@client.on(events.NewMessage(pattern='^/تعطيل_حماية_الروابط$'))
+async def dis_l(event):
+    if not is_admin(await event.get_sender()): return
+    bot_settings["link_protection"] = False
+    save_settings()
+    await reply_with_pic(event, "⚠️ تم تعطيل حماية الروابط. يمكن للأعضاء مشاركة الروابط الآن.", "⚠️")
+
+@client.on(events.NewMessage(pattern='^/تفعيل_حماية_التوجيه$'))
+async def en_f(event):
+    if not is_admin(await event.get_sender()): return
+    bot_settings["forward_protection"] = True
+    save_settings()
+    await reply_with_pic(event, "✅ تم تفعيل حماية التوجيه لمنع السبام والمنشورات الخارجية.", "🛡️")
+
+@client.on(events.NewMessage(pattern='^/تعطيل_حماية_التوجيه$'))
+async def dis_f(event):
+    if not is_admin(await event.get_sender()): return
+    bot_settings["forward_protection"] = False
+    save_settings()
+    await reply_with_pic(event, "⚠️ تم تعطيل حماية التوجيه.", "⚠️")
+
+# ==========================================================
+# 🛑 ACTIVE MODERATION TOOLS (Bans, Mutes, Warns)
+# ==========================================================
+@client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
+async def perm_mute(event):
+    if not is_admin(await event.get_sender()): return
+    target_msg = await event.get_reply_message()
+    target = await target_msg.get_sender()
+    if not target: return await reply_with_pic(event, "❌ لم أستطع العثور على العضو المراد كتمه.")
+    
+    ten_years = 10*365*24*3600
+    await mute_user(event.chat_id, target.id, ten_years)
+    mute_status[target.id] = {'until': time.time()+ten_years, 'name': target.first_name}
+    await reply_with_pic(event, f"🚫 تم كتم العضو **{target.first_name}** بالكامل من قبل المشرف! كفاك ثرثرة غير لائقة. 😂", "🚫")
+
+@client.on(events.NewMessage(pattern='^/(حظر|حضر)$', func=lambda e: e.is_reply))
+async def ban_handler(event):
+    if not is_admin(await event.get_sender()): return
+    target_msg = await event.get_reply_message()
+    target = await target_msg.get_sender()
+    if not target: return await reply_with_pic(event, "❌ العضو غير موجود.")
+    if target.username == DEVELOPER_USERNAME or target.id in admins or target.id == DEVELOPER_ID: 
+        return await reply_with_pic(event, "❌ لا يمكن حظر المسؤول أو مطور البوت!")
+    
+    if await ban_user(event.chat_id, target.id): 
+        await reply_with_pic(event, f"🚫 طرد مطرود! تم حظر العضو **{target.first_name}** نهائياً من المجموعة ورميه خارجاً.", "🚫")
+    else: 
+        await reply_with_pic(event, "❌ فشل حظر العضو، تأكد من صلاحيات البوت.")
+
+@client.on(events.NewMessage(pattern='^/فك_الحظر$', func=lambda e: e.is_reply))
+async def unban_handler(event):
+    if not is_admin(await event.get_sender()): return
+    target_msg = await event.get_reply_message()
+    target = await target_msg.get_sender()
+    if not target: return await reply_with_pic(event, "❌ العضو غير موجود.")
+    
+    if await unban_user(event.chat_id, target.id): 
+        await reply_with_pic(event, f"🔓 أهلاً بعودتك! تم فك حظر العضو **{target.first_name}** ويمكنه الانضمام والمشاركة مجدداً.")
+    else: 
+        await reply_with_pic(event, "❌ فشل فك الحظر.")
+
+@client.on(events.NewMessage(pattern='^/تحذير$'))
+async def warn(event):
+    if not is_admin(await event.get_sender()): return
+    if not event.is_reply: 
+        return await reply_with_pic(event, "❌ يرجى الرد على رسالة المخالف لإصدار التحذير له.")
+    
+    target_msg = await event.get_reply_message()
+    target = await target_msg.get_sender()
+    if not target: return
+    
+    uid = target.id
+    name = target.first_name or "مجهول"
+    warnings_data[str(uid)].append(time.time())
+    save_warnings()
+    
+    cur = len(warnings_data[str(uid)])
+    await reply_with_pic(event, f"⚠️ العضو **{name}** تم تحذيره بسب ارتكاب مخالفة قوانين الدردشة!\nعدد التحذيرات الحالية: **{cur}/3**", "⚠️")
+    
+    if cur >= 3:
+        if await mute_user(event.chat_id, uid, bot_settings["mute_duration"]):
+            mute_status[uid] = {'until': time.time()+bot_settings["mute_duration"], 'name': name}
+            await reply_with_pic(event, f"🚫 تم كتم العضو **{name}** تلقائياً لمدة **{bot_settings['mute_duration']//60} دقيقة** بعد بلوغه 3 تحذيرات متتالية!", "🚫")
+            if str(uid) in warnings_data:
+                del warnings_data[str(uid)]
+                save_warnings()
+
+@client.on(events.NewMessage(pattern='^/عرض_التحذيرات$'))
+async def show_warn(event):
+    target_id = None
+    target_name = ""
+    if event.is_reply:
+        target_msg = await event.get_reply_message()
+        u = await target_msg.get_sender()
+        if u: 
+            target_id = u.id
+            target_name = u.first_name
+    else:
+        args = event.raw_text.split()
+        if len(args) >= 2:
+            try: 
+                target_id = int(args[1])
+            except: 
+                pass
+    if not target_id: 
+        return await reply_with_pic(event, "❌ يرجى كتابة الآيدي أو استخدام الأمر بالرد على رسالة العضو.")
+    
+    c = len(warnings_data.get(str(target_id), []))
+    await reply_with_pic(event, f"📊 العضو **{target_name or target_id}** لديه حالياً: **{c}/3 تحذيرات**", "📋")
+
+@client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
+async def purge(event):
+    if not is_admin(await event.get_sender()): return
+    count = min(int(event.pattern_match.group(1)), 100)
+    if count <= 0: return
+    
+    msgs = await client.get_messages(event.chat_id, limit=count)
+    ids = [m.id for m in msgs if m]
+    await client.delete_messages(event.chat_id, ids)
+    confirm = await reply_with_pic(event, f"🧹 تم تنظيف وإبادة **{len(ids)}** رسائل من الدردشة بنجاح!")
+    await asyncio.sleep(2)
+    await confirm.delete()
+
+@client.on(events.NewMessage(pattern='^/عرض_المكتومين$'))
+async def muted_list(event):
+    if not mute_status: 
+        return await reply_with_pic(event, "✅ الدردشة خالية من المكتومين، الجميع يتحدث بحرية!")
+    
+    now = time.time()
+    txt = "📋 **قائمة الأعضاء المكتومين حالياً:**\n\n"
+    for uid, d in mute_status.items():
+        rem = int(d['until'] - now)
+        if rem > 0:
+            try: 
+                name = (await client.get_entity(uid)).first_name
+            except: 
+                name = str(uid)
+            txt += f"• **{name}** - ⏳ متبقي: `{rem//60}` دقيقة\n"
+    await reply_with_pic(event, txt)
+
+@client.on(events.NewMessage(pattern='^/تثبيت$'))
+async def pin_msg(event):
+    if not is_admin(await event.get_sender()): return
+    if not event.is_reply: return await reply_with_pic(event, "❌ رد على الرسالة التي تود تثبيتها في أعلى المجموعة.")
+    replied = await event.get_reply_message()
+    try: 
+        await client.pin_message(event.chat_id, replied.id)
+        await reply_with_pic(event, "📌 تم تثبيت الرسالة بنجاح في لوحة الإعلانات للمجموعة.", "📌")
+    except Exception as e: 
+        await reply_with_pic(event, f"❌ فشل التثبيت: {e}")
+
+@client.on(events.NewMessage(pattern='^/رفع_مسؤول$'))
+async def promote_admin(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME and sender.id != DEVELOPER_ID: return
+    
+    target_id = None
+    target_name = ""
+    if event.is_reply:
+        target_msg = await event.get_reply_message()
+        u = await target_msg.get_sender()
+        if u: 
+            target_id = u.id
+            target_name = u.first_name
+    else:
+        args = event.raw_text.split()
+        if len(args) >= 2:
+            try: 
+                target_id = int(args[1])
+            except: 
+                pass
+    if not target_id: 
+        return await reply_with_pic(event, "❌ أرسل الأمر بالرد أو مع كتابة معرف المشرف الجديد.")
+    if target_id in admins: 
+        return await reply_with_pic(event, "⚠️ هذا العضو مشرف بالفعل في نظام بيبو.")
+    
+    admins.append(target_id)
+    save_json(ADMINS_FILE, admins)
+    await reply_with_pic(event, f"👑 تم رفع **{target_name or target_id}** مسؤولاً إدارياً جديداً لبوت بيبو بنجاح!", "👑")
+
+@client.on(events.NewMessage(pattern='^/تنزيل_مسؤول$'))
+async def demote_admin(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME and sender.id != DEVELOPER_ID: return
+    
+    target_id = None
+    if event.is_reply:
+        target_msg = await event.get_reply_message()
+        u = await target_msg.get_sender()
+        if u: target_id = u.id
+    else:
+        args = event.raw_text.split()
+        if len(args) >= 2:
+            try: target_id = int(args[1])
+            except: pass
+    if not target_id: 
+        return await reply_with_pic(event, "❌ يرجى كتابة آيدي المسؤول أو الرد عليه لتنزيله.")
+    if target_id not in admins: 
+        return await reply_with_pic(event, "⚠️ ليس مشرفاً إدارياً في البوت بالفعل.")
+    
+    admins.remove(target_id)
+    save_json(ADMINS_FILE, admins)
+    await reply_with_pic(event, "✅ تم تنزيل المسؤول من الصلاحيات الإدارية للبوت بنجاح.", "👋")
+
+# ==========================================================
+# 🛠️ SYSTEM DIAGNOSTIC PERMISSIONS HELPERS
+# ==========================================================
+@client.on(events.NewMessage(pattern='^/طلب_صلاحية$'))
+async def request_admin(event):
+    if not is_admin(await event.get_sender()): return
+    await client.send_message(event.chat_id,
+        "🤖 **نداء هام:** لكي يتمكن بيبو من الحماية الكاملة والترحيب بالأعضاء الجدد، يرجى ترقيتي إلى رتبة **مشرف** داخل المجموعة مع كامل الصلاحيات."
+    )
+
+@client.on(events.NewMessage(pattern='^/تحقق_الصلاحيات$'))
+async def check_permissions(event):
+    if not is_admin(await event.get_sender()): return
+    chat = event.chat_id
+    try:
+        me = await client.get_me()
+        perms = await client.get_permissions(chat, me.id)
+        required = {
+            'send_messages': 'إرسال الرسائل',
+            'manage_chat': 'إدارة المجموعة',
+            'delete_messages': 'حذف الرسائل',
+            'ban_users': 'حظر الأعضاء',
+            'invite_users': 'دعوة أعضاء',
+            'pin_messages': 'تثبيت الرسائل',
+            'add_admins': 'إضافة مشرفين',
+            'change_info': 'تغيير معلومات المجموعة'
+        }
+        missing = [desc for perm, desc in required.items() if not getattr(perms, perm, False)]
+        if missing:
+            await event.reply(f"⚠️ **هنالك صلاحيات مفقودة للبوت:**\n" + "\n".join(f"❌ {m}" for m in missing) + "\n\n🔧 يرجى تزويد البوت بها حتى يعمل نظام الحماية بكفاءة.")
+        else:
+            await event.reply("✅ **رائع جداً!** بيبو يمتلك كافة صلاحيات الإشراف المطلوبة لخدمتكم.")
+    except Exception as e:
+        await event.reply(f"❌ حدث خطأ أثناء التحقق من الصلاحيات: {str(e)}")
+
+# ==========================================================
+# 👤 GENERAL MEMBER UTILITIES & FUN ZONE
+# ==========================================================
+@client.on(events.NewMessage(pattern='^/تقرير$', func=lambda e: e.is_reply))
+async def report(event):
+    target_msg = await event.get_reply_message()
+    reported_user = await target_msg.get_sender()
+    reporter = await event.get_sender()
+    if not reported_user or not reporter: return
+    
+    report_text = (
+        f"🚨 **بلاغ بلاغ من الأعضاء!** 🚨\n\n"
+        f"👤 **المُبلغ:** {reporter.first_name} (ID: `{reporter.id}`)\n"
+        f"🚫 **المخالف:** {reported_user.first_name} (ID: `{reported_user.id}`)\n"
+        f"📝 **الرسالة المخالفة:** {target_msg.raw_text[:200]}"
+    )
+    for admin_id in admins:
+        try: 
+            await client.send_message(admin_id, report_text)
+        except: 
+            pass
+    await reply_with_pic(event, "✅ تم إرسال التقرير للمسؤولين سرياً ومراجعته فوراً.")
+
+@client.on(events.NewMessage(pattern='^/قوانين$'))
+async def rules(event):
+    if not os.path.exists(RULES_FILE): 
+        return await reply_with_pic(event, "📜 لا توجد قوانين محددة بعد للمجموعة من قبل المطور. يرجى التفاهم بود!")
+    with open(RULES_FILE, 'r', encoding='utf-8') as f: 
+        rules_text = f.read()
+    await reply_with_pic(event, f"📜 **قوانين المجموعة الرسمية:**\n\n{rules_text}")
+
+@client.on(events.NewMessage(pattern='^/معلومات$', func=lambda e: e.is_reply))
+async def info(event):
+    target_msg = await event.get_reply_message()
+    target = await target_msg.get_sender()
+    if not target: return await reply_with_pic(event, "❌ خطأ في التعرف على العضو.")
+    
+    uid = target.id
+    warns = len(warnings_data.get(str(uid), []))
+    is_muted = "✅ غير مكتوم"
+    if uid in mute_status:
+        rem = mute_status[uid]['until'] - time.time()
+        if rem > 0: is_muted = f"🚫 مكتوم مؤقتاً ({int(rem//60)} د)"
+    
+    rank = "👤 عضو عادي"
+    if target.username == DEVELOPER_USERNAME or target.id == DEVELOPER_ID: 
+        rank = "👑 مطور البوت الخارق"
+    elif uid in admins: 
+        rank = "🛡️ مسؤول المجموعات"
+        
+    info_text = (
+        f"👤 **الاسم:** {target.first_name}\n"
+        f"🆔 **الآيدي:** `{uid}`\n"
+        f"⭐ **الرتبة:** {rank}\n"
+        f"⚠️ **التحذيرات:** {warns}/3\n"
+        f"🔇 **حالة الكتم:** {is_muted}"
+    )
+    await reply_with_pic(event, style_box("بطاقة تعريف العضو", info_text), "📋")
+
+@client.on(events.NewMessage(pattern='^/توب_المتفاعلين$'))
+async def top(event):
+    if not message_count: return await reply_with_pic(event, "❌ لا توجد إحصائيات تفاعل مسجلة بعد.")
+    items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
+    txt = "🏆 **جدول شرف توب المتفاعلين في المجموعة:**\n\n"
+    for i, (uid, cnt) in enumerate(items, 1):
+        try: 
+            name = (await client.get_entity(uid)).first_name
+        except: 
+            name = str(uid)
+        txt += f"🥇 {i}. **{name}** ⇚ `{cnt}` رسائل\n"
+    await reply_with_pic(event, txt)
+
+# --- Love Test Match Game ---
+@client.on(events.NewMessage(pattern='^/حب$'))
+async def love(event):
+    args = event.raw_text.split()
+    if event.is_reply:
+        target_msg = await event.get_reply_message()
+        target = await target_msg.get_sender()
+        u1 = (await event.get_sender()).first_name
+        u2 = target.first_name if target else "مجهول"
+    elif len(args) >= 3: 
+        u1, u2 = args[1], args[2]
+    else: 
+        return await reply_with_pic(event, "❌ استخدم الأمر بالرد على شخص أو اكتب الاسمين كالتالي:\n`/حب أحمد سارة`")
+    
+    heart = random.choice(['💔','💖','💘','💕','💓'])
+    perc = random.randint(50,100) if heart != '💔' else random.randint(5,45)
+    await reply_with_pic(event, f"💖 **اختبار الحب المتطور من بيبو:**\n👩‍❤️‍👨 [{u1}] ➕ [{u2}]\n\n💞 نسبة التوافق والحب بينكما هي: **{perc}%** {heart}", "💞")
+
+# --- Anonymous Message ---
+@client.on(events.NewMessage(pattern='^/سر$'))
+async def secret(event):
+    text = event.raw_text[5:].strip()
+    if not text: return await reply_with_pic(event, "❌ اكتب الرسالة التي تريد إرسالها بشكل مجهول بعد الأمر.")
+    await event.delete()
+    await asyncio.sleep(0.5)
+    await client.send_message(event.chat_id, f"📩 **رسالة مجهولة سرية وصلت:**\n\n💬 « {text} »\n\n🕵️‍♂️ المرسل مجهول الهوية!")
+
+# ==========================================================
+# 🤖 GEMINI CHAT COMMANDS
+# ==========================================================
+@client.on(events.NewMessage(pattern=r'^/(اسأل|اسال|بيبو|يا_بيبو)\s+(.+)'))
+async def ask_bebo_ai(event):
+    prompt = event.pattern_match.group(2).strip()
+    loading_msg = await event.reply("🤖 *جاري التفكير وصياغة الرد من بيبو الذكي...*")
+    response = await ask_gemini_ai(prompt)
+    await loading_msg.delete()
+    await event.reply(f"🤖 **بيبو الذكي يقول:**\n\n{response}")
+
+# ==========================================================
+# 🎉 INTERACTIVE TRUTH / DARE / GAME CHANNELS
+# ==========================================================
+TRUTHS = [
+    "ما هي أكثر صفة تكرهها في نفسك؟",
+    "هل كذبت كذبة كبيرة من قبل؟ ما هي؟",
+    "من هو الشخص المفضل لديك في هذا الجروب؟",
+    "ما هو أكبر مخاوفك في الحياة؟",
+    "لو أتيحت لك فرصة تغيير اسمك، ماذا ستسمي نفسك؟",
+    "هل تبكي بمفردك غالباً؟"
+]
+
+DARES = [
+    "اكتب رسالة اعتذار لأخر شخص تحدثت معه على الخاص.",
+    "أرسل أكثر إيموجي تحبه في المجموعة بدون تعليق.",
+    "قم بتغيير سيرتك الذاتية في تليجرام لمدة ساعة إلى 'أنا أحب بيبو بوت'.",
+    "قم بالرد على رسالة المشرف وقل له 'أنت الأفضل اليوم'.",
+    "اصمت ولا ترسل أي رسالة في المجموعة لمدة نصف ساعة!"
+]
+
+PUNISHMENTS = [
+    "عقابك: ألا ترسل أي ملصق (Sticker) لمدة يوم كامل!",
+    "عقابك: أن تتحدث باللغة العربية الفصحى فقط طوال اليوم!",
+    "عقابك: الإجابة على سؤال المطور القادم بكل صراحة.",
+    "عقابك: كتابة منشور جميل تمدح فيه أعضاء هذا الجروب."
+]
+
+@client.on(events.NewMessage(pattern='^/حقيقة$'))
+async def game_truth(event):
+    await reply_with_pic(event, f"🧠 **سؤال حقيقة محرج لك:**\n\n« {random.choice(TRUTHS)} »\n\nأجبنا بكل صراحة وصدق! 😉", "🧐")
 
 @client.on(events.NewMessage(pattern='^/صراحة$'))
 async def game_saraha(event):
@@ -552,7 +957,7 @@ async def handle_captcha_callbacks(event):
             buttons=[
                 [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 الإحصائيات العامة", b"bot_stat")],
                 [Button.inline("⚙️ إعدادات الحماية", b"security_settings"), Button.inline("🔓 فك كتم الجميع", b"unmute_all_btn")],
-                [Button.inline("🤖 تفعيل الذكاء الاصطناعي", b"toggle_gemini_setup")]
+                [Button.inline(f"🤖 الذكاء الاصطناعي: {'✅ مفعل' if bot_settings.get('gemini_active', True) else '❌ معطل'}", b"toggle_gemini_setup")]
             ]
         )
         
@@ -636,7 +1041,7 @@ async def handle_captcha_callbacks(event):
             buttons=[
                 [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 الإحصائيات العامة", b"bot_stat")],
                 [Button.inline("⚙️ إعدادات الحماية", b"security_settings"), Button.inline("🔓 فك كتم الجميع", b"unmute_all_btn")],
-                [Button.inline("🤖 تفعيل الذكاء الاصطناعي", b"toggle_gemini_setup")]
+                [Button.inline(f"🤖 الذكاء الاصطناعي: {'✅ مفعل' if bot_settings.get('gemini_active', True) else '❌ معطل'}", b"toggle_gemini_setup")]
             ]
         )
 
@@ -645,10 +1050,32 @@ async def handle_captcha_callbacks(event):
         if not is_admin(sender):
             await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
             return
-        if GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_KEY":
-            await event.answer("🤖 الذكاء الاصطناعي مفعل مسبقاً وجاهز للرد على الأعضاء عبر /اسأل أو /بيبو!", alert=True)
-        else:
-            await event.answer("⚠️ الذكاء الاصطناعي غير مفعل حالياً. يرجى إدخال مفتاح GEMINI_API_KEY في البيئة لتفعيله.", alert=True)
+        
+        # Check if the API key is configured
+        if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_KEY":
+            await event.answer("⚠️ لا يمكن تفعيل الذكاء الاصطناعي لأن مفتاح GEMINI_API_KEY غير متوفر في البيئة!", alert=True)
+            return
+
+        # Toggle the status
+        bot_settings["gemini_active"] = not bot_settings.get("gemini_active", True)
+        save_settings()
+
+        status_str = "مفعل ✅" if bot_settings["gemini_active"] else "معطل ❌"
+        await event.answer(f"🤖 تم تغيير حالة الذكاء الاصطناعي إلى: {status_str}", alert=True)
+
+        # Update the menu
+        menu_text = (
+            "👋 أهلاً بك يا مطوري العزيز في لوحة تحكم بيبو الخارقة!\n"
+            "يمكنك التحكم بكامل المجموعة وتعديل خيارات الحماية بضغطة زر واحدة."
+        )
+        await event.edit(
+            style_box("لوحة تحكم بيبو للمطورين", menu_text),
+            buttons=[
+                [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 الإحصائيات العامة", b"bot_stat")],
+                [Button.inline("⚙️ إعدادات الحماية", b"security_settings"), Button.inline("🔓 فك كتم الجميع", b"unmute_all_btn")],
+                [Button.inline(f"🤖 الذكاء الاصطناعي: {'✅ مفعل' if bot_settings.get('gemini_active', True) else '❌ معطل'}", b"toggle_gemini_setup")]
+            ]
+        )
 
     elif data == "help_admin":
         admin_help_text = (
