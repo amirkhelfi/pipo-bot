@@ -159,7 +159,7 @@ BAD_WORDS = [
     r'[ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ]',
     r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
     r'[قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
-    r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
+    r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
     r'[nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر]',
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
@@ -762,6 +762,7 @@ async def secret(event):
     await event.delete()
     await asyncio.sleep(0.5)
     await client.send_message(event.chat_id, f"📩 **رسالة مجهولة سرية وصلت:**\n\n💬 « {text} »\n\n🕵️‍♂️ المرسل مجهول الهوية!")
+
 # ==========================================================
 # 🤖 GEMINI CHAT COMMANDS
 # ==========================================================
@@ -782,6 +783,83 @@ async def set_gemini_key_cmd(event):
     save_settings()
     await event.delete() # security delete
     await reply_with_pic(event, "✅ تم حفظ مفتاح الذكاء الاصطناعي Gemini بنجاح في الإعدادات وحذف الرسالة للأمان!", "🤖")
+
+@client.on(events.NewMessage(pattern=r'^/تعيين_نص_الترحيب\s+(.+)'))
+async def set_welcome_text_cmd(event):
+    sender = await event.get_sender()
+    if not is_admin(sender): return
+    text = event.pattern_match.group(1).strip()
+    welcome_media["custom_text"] = text
+    save_welcome_media()
+    await reply_with_pic(event, "✅ تم حفظ نص الترحيب المخصص بنجاح!\nاستخدم المتغيرات التالية إن أردت:\n`{name}` (الاسم)\n`{id}` (الأيدي)\n`{username}` (اليوزر)\n`{title}` (اسم المجموعة)", "🎉")
+
+@client.on(events.NewMessage(pattern=r'^/تعيين_ميديا_الترحيب'))
+async def set_welcome_media_cmd(event):
+    sender = await event.get_sender()
+    if not is_admin(sender): return
+    if not event.is_reply:
+        await reply_with_pic(event, "❌ يرجى الرد بهذا الأمر على الفيديو أو الصورة أو الملصق الذي تود تعيينه كترحيب!", "❌")
+        return
+    
+    reply_msg = await event.get_reply_message()
+    if not reply_msg or not reply_msg.media:
+        await reply_with_pic(event, "❌ الرسالة التي رددت عليها لا تحتوي على ميديا (فيديو أو صورة أو متحركة)!", "❌")
+        return
+    
+    loading = await event.reply("⏳ جاري تحميل الميديا وحفظها كملف ترحيبي، يرجى الانتظار...")
+    try:
+        # Detect type of media
+        media_type = None
+        ext = "file"
+        if reply_msg.photo:
+            media_type = "photo"
+            ext = "jpg"
+        elif reply_msg.video:
+            media_type = "video"
+            ext = "mp4"
+        elif reply_msg.gif:
+            media_type = "gif"
+            ext = "mp4"
+        elif reply_msg.document:
+            media_type = "document"
+            if reply_msg.file and reply_msg.file.ext:
+                ext = reply_msg.file.ext.lstrip('.')
+            
+        # Ensure telegram_bot folder exists
+        os.makedirs("telegram_bot", exist_ok=True)
+        file_path = f"telegram_bot/welcome_media.{ext}"
+        # Download file to local path
+        downloaded = await client.download_media(reply_msg, file_path)
+        if downloaded:
+            welcome_media["type"] = media_type
+            welcome_media["file_path"] = file_path
+            welcome_media["ext"] = ext
+            # Clear legacy Telegram media object fields
+            if "media_id" in welcome_media: del welcome_media["media_id"]
+            if "access_hash" in welcome_media: del welcome_media["access_hash"]
+            if "file_reference" in welcome_media: del welcome_media["file_reference"]
+            save_welcome_media()
+            await loading.delete()
+            await reply_with_pic(event, f"✅ تم تعيين ميديا الترحيب بنجاح وحفظها كملف ترحيبي (`{ext}`)!", "🎉")
+        else:
+            await loading.delete()
+            await reply_with_pic(event, "❌ فشل تحميل الميديا، يرجى المحاولة مرة أخرى.", "❌")
+    except Exception as e:
+        await loading.delete()
+        await reply_with_pic(event, f"❌ حدث خطأ أثناء الحفظ: {str(e)}", "❌")
+
+@client.on(events.NewMessage(pattern=r'^/حذف_ميديا_الترحيب'))
+async def delete_welcome_media_cmd(event):
+    sender = await event.get_sender()
+    if not is_admin(sender): return
+    welcome_media.clear()
+    save_welcome_media()
+    # Also delete physical file if exists
+    for file in os.listdir("telegram_bot"):
+        if file.startswith("welcome_media."):
+            try: os.remove(os.path.join("telegram_bot", file))
+            except: pass
+    await reply_with_pic(event, "✅ تم حذف ميديا الترحيب المخصصة والعودة للرسالة النصية بدون ميديا!", "🗑️")
 
 # ==========================================================
 # 🎉 INTERACTIVE TRUTH / DARE / GAME CHANNELS
@@ -824,7 +902,7 @@ async def game_dare(event):
 
 @client.on(events.NewMessage(pattern='^/عقاب$'))
 async def game_punish(event):
-    await reply_with_pic(event, f"🔨 **عقاب فكاهي وعادل من بيبو:**\n\n« {random.choice(PUNISHMENTS)} »\n\nيرجى الالتزام بالعقاب لسلامة روح التنافس! 😂", "🔨")
+    await reply_with_pic(event, f"⚡ **عقاب فكاهي وعادل من بيبو:**\n\n« {random.choice(PUNISHMENTS)} »\n\nيرجى الالتزام بالعقاب لسلامة روح التنافس! 😂", "🔨")
 
 # ==========================================================
 # 🎁 CAPTCHA HUMAN VALIDATION CHALLENGE
@@ -864,10 +942,7 @@ async def handle_captcha_callbacks(event):
                 
                 # Welcome user officially with nice greeting
                 user_entity = await client.get_entity(target_uid)
-                await client.send_message(
-                    event.chat_id,
-                    f"🎉 **عضو جديد رائع تجاوز الاختبار!**\nمرحباً بك يا {user_entity.first_name} في مجموعتنا المحترمة."
-                )
+                await send_welcome(event.chat_id, user_entity)
             except Exception as e:
                 print(f"Error resolving captcha click: {e}")
                 await event.answer("❌ حدث خطأ، يرجى التواصل مع المشرفين.", alert=True)
@@ -1104,7 +1179,11 @@ async def handle_captcha_callbacks(event):
             "├ `/مسح` + عدد ⇚ حذف الرسائل بسرعة فائقة\n"
             "├ `/عرض_المكتومين` ⇚ عرض قائمة الأعضاء المكتومين\n"
             "├ `/تثبيت` (بالرد) ⇚ تثبيت إعلان في الأعلى\n"
-            "└ `/حالة_الحماية` ⇚ عرض إعدادات حماية البوت الحالية"
+            "├ `/حالة_الحماية` ⇚ عرض إعدادات حماية البوت الحالية\n"
+            "├ `/تعيين_نص_الترحيب` + نص ⇚ تخصيص رسالة الترحيب\n"
+            "├ `/تعيين_ميديا_الترحيب` (بالرد) ⇚ تعيين فيديو/صورة للترحيب\n"
+            "├ `/حذف_ميديا_الترحيب` ⇚ العودة للترحيب النصي بدون وسائط\n"
+            "└ `/تعيين_مفتاح` + مفتاح ⇚ تعيين مفتاح الذكاء الاصطناعي Gemini"
         )
         await event.edit(
             style_box("مساعدة المسؤولين", admin_help_text),
@@ -1138,15 +1217,81 @@ async def handle_captcha_callbacks(event):
         )
 
 # ==========================================================
-# 🛡️ AUTOMATIC CAPTCHA & WELCOME ENGINE
+# 🔔 AUTOMATIC CAPTCHA & WELCOME ENGINE
 # ==========================================================
+async def send_welcome(chat, user):
+    name = user.first_name or "صديقنا"
+    uid = user.id
+    username = f"@{user.username}" if user.username else "لا يوجد"
+    now = datetime.datetime.now()
+    
+    try: 
+        group_title = (await client.get_entity(chat)).title
+    except: 
+        group_title = "مجموعتنا الرائعة"
+
+    default_welcome_text = (
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"ᯓ˹ BIENVENUE DANS LE GROUPE ˼\n"
+        f"°•——————  『 {group_title} 』 ——————•°\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
+        f"°︙ نورت قروبنا يـ  『{name}』 🥂✨\n"
+        f"°︙ اسمك ⇚『{name}』\n"
+        f"°︙ ايديك ⇚『{uid}』\n"
+        f"°︙ يوزرك ⇚『{username}』\n"
+        f"°︙ تاريخ انضمامك ☜ {now.strftime('%Y/%m/%d')}\n"
+        f"°︙ الساعة ☜ {now.strftime('%I:%M %p')}\n"
+        f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨"
+    )
+
+    custom_template = welcome_media.get("custom_text")
+    if custom_template:
+        welcome_text = custom_template\
+            .replace("{name}", name)\
+            .replace("{id}", str(uid))\
+            .replace("{username}", username)\
+            .replace("{title}", group_title)
+    else:
+        welcome_text = default_welcome_text
+
+    buttons = [
+        [Button.inline("🎉 ترحيب خاص", f"welcomesp_{uid}")],
+        [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
+        [Button.inline("🏆 توب المتفاعلين", "top_btn")]
+    ]
+
+    # Try sending with downloaded local media file
+    import os
+    media_file = welcome_media.get("file_path")
+    if media_file and os.path.exists(media_file):
+        try:
+            await client.send_file(chat, media_file, caption=welcome_text, buttons=buttons)
+            return
+        except Exception as e:
+            print(f"Error sending welcome file: {e}")
+
+    # Fallback to direct Telethon media object (legacy stored in welcome.json)
+    if welcome_media.get('type'):
+        try:
+            fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
+            if welcome_media['type'] == 'photo':
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            else:
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
+            return
+        except Exception as e:
+            print(f"Error sending legacy welcome media: {e}")
+
+    await client.send_message(chat, welcome_text, buttons=buttons)
+
 @client.on(events.ChatAction)
 async def welcome_action_handler(event):
     chat = event.chat_id
     if chat not in active_groups: return
     
     # Clean up service join/leave messages
-    if event.user_joined or event.user_left:
+    if event.user_joined or event.user_added or event.user_left or event.user_kicked:
         if bot_settings["service_cleanup"]:
             try:
                 msg = await event.get_message()
@@ -1155,14 +1300,14 @@ async def welcome_action_handler(event):
             except Exception as e:
                 print(f"Error clean service msg: {e}")
                 
-    if event.user_joined:
+    if event.user_joined or event.user_added:
         user = await event.get_user()
+        if not user: return
         if user.bot: return # Ignore bot integrations for captcha
         
         name = user.first_name or "صديقنا"
         uid = user.id
         username = f"@{user.username}" if user.username else "لا يوجد"
-        now = datetime.datetime.now()
         
         try: 
             group_title = (await client.get_entity(chat)).title
@@ -1194,39 +1339,7 @@ async def welcome_action_handler(event):
             return
 
         # Regular welcome message if captcha is turned off
-        welcome_text = (
-            f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
-            f"ᯓ˹ BIENVENUE DANS LE GROUPE ˼\n"
-            f"°•——————  『 {group_title} 』 ——————•°\n"
-            f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
-            f"°︙ نورت قروبنا يـ  『{name}』 🥂✨\n"
-            f"°︙ اسمك ⇚『{name}』\n"
-            f"°︙ ايديك ⇚『{uid}』\n"
-            f"°︙ يوزرك ⇚『{username}』\n"
-            f"°︙ تاريخ انضمامك ☜ {now.strftime('%Y/%m/%d')}\n"
-            f"°︙ الساعة ☜ {now.strftime('%I:%M %p')}\n"
-            f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨"
-        )
-
-        buttons = [
-            [Button.inline("🎉 ترحيب خاص", f"welcomesp_{uid}")],
-            [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
-            [Button.inline("🏆 توب المتفاعلين", "top_btn")]
-        ]
-
-        if welcome_media.get('type'):
-            try:
-                fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
-                if welcome_media['type'] == 'photo':
-                    media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
-                else:
-                    media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
-                await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
-                return
-            except: 
-                pass
-
-        await client.send_message(chat, welcome_text, buttons=buttons)
+        await send_welcome(chat, user)
 
 # Delay helper
 async def delete_message_after_delay(chat_id, message_id, delay):
@@ -1422,7 +1535,7 @@ async def auto_unmute_and_captcha_checks():
         await asyncio.sleep(15)
 
 # ==========================================================
-# 🛠 *GENERAL SERVICES GUIDE & DIRECTORY*
+# 🛠️ GENERAL SERVICES GUIDE & DIRECTORY
 # ==========================================================
 @client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
 async def all_commands(event):
