@@ -1141,12 +1141,6 @@ async def main():
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
     print(f"✅ PIPO BOT READY: @{me.username} | Command & Control: All Systems Green")
-    # تحميل صورة البوت للردود المميزة
-    try:
-        photos = await client.get_profile_photos('me', limit=1)
-        if photos:
-            BOT_PHOTO = InputPhoto(id=photos[0].id, access_hash=photos[0].access_hash, file_reference=photos[0].file_reference)
-    except: pass
     asyncio.create_task(auto_unmute_monitor())
     await client.run_until_disconnected()
 
