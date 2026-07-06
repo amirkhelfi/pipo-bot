@@ -23,10 +23,10 @@ BOT_TOKEN = '8957362371:AAGC_GviR84bM0kl3Zmp4Ek9Okq56C9tWJM'
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
 
-# اختياري: يمكنك وضع مفتاح Gemini API هنا للذكاء الاصطناعي أو تفعيله عبر متغيرات البيئة
+# Optional: Set your Google Gemini API Key here for Smart AI features
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# مسارات ملفات حفظ البيانات المحلية لضمان ثباتها عند إعادة التشغيل
+# File paths for local persistence
 GROUPS_FILE = "groups.json"
 ADMINS_FILE = "admins.json"
 WARNINGS_FILE = "warnings.json"
@@ -36,7 +36,7 @@ AUTO_SETTINGS_FILE = "auto_settings.json"
 DEFAULT_ADMINS = [6941580330]
 
 # ==========================================================
-# 💾 DATA STORAGE & PERSISTENCE ENGINE (محرك حفظ البيانات)
+# 💾 DATA STORAGE & PERSISTENCE ENGINE
 # ==========================================================
 def load_json(path, default):
     try:
@@ -54,54 +54,51 @@ def save_json(path, data):
     except Exception as e:
         print(f"Error saving {path}: {e}")
 
-# تحميل وحفظ المجموعات المفعلة
+# Load dynamic data
 active_groups = set(load_json(GROUPS_FILE, []))
 def save_groups(): save_json(GROUPS_FILE, list(active_groups))
 
-# إدارة رتب الإدارة والمسؤولين
 admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
 def is_admin(sender): 
     if not sender: return False
     return sender.username == DEVELOPER_USERNAME or sender.id in admins or sender.id == DEVELOPER_ID
 
-# تحميل وحفظ التحذيرات
 warnings_data = defaultdict(list, load_json(WARNINGS_FILE, {}))
 def save_warnings(): save_json(WARNINGS_FILE, dict(warnings_data))
 
-# وسائط الترحيب المخصصة
 welcome_media = load_json(WELCOME_FILE, {})
 def save_welcome_media(): save_json(WELCOME_FILE, welcome_media)
 
-# متغيرات التشغيل الديناميكية في الذاكرة
+# Dynamic in-memory stats and variables
 mute_status = {}
 message_count = defaultdict(int)
 last_muted_user = {}
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# إعدادات الحماية الشاملة والقابلة للتحكم والتبديل السريع
+# Custom configurable protection settings
 bot_settings = load_json(AUTO_SETTINGS_FILE, {
-    "mute_duration": 300,        # مدة الكتم الافتراضية بالثواني (5 دقائق)
-    "link_protection": True,     # كتم الروابط والإعلانات وحذفها
-    "forward_protection": True,  # منع التوجيهات الخارجية المنشورة من القنوات وحذفها
-    "swear_protection": True,    # تصفية الشتائم والكلام البذيء وحذفها تلقائياً
-    "anti_flood": True,          # منع السبام والإغراق بالرسائل السريعة
-    "anti_raid": True,           # منع الحسابات العشوائية السريعة الدخول
-    "verification_captcha": True,# التحقق البشري الذكي للأعضاء الجدد (Captcha)
-    "service_cleanup": True,     # الحذف التلقائي لإشعارات الخدمة "انضم/غادر المجموعة"
-    "chat_locked": False,        # قفل الدردشة بشكل كامل
+    "mute_duration": 300,        # Default mute duration in seconds (5 minutes)
+    "link_protection": True,     # Delete links
+    "forward_protection": True,  # Delete forwarded posts
+    "swear_protection": True,    # Filter bad words
+    "anti_flood": True,          # Prevent fast spamming
+    "anti_raid": True,           # Ban accounts joining too fast
+    "verification_captcha": True,# Ask new members to pass a captcha click challenge
+    "service_cleanup": True,     # Auto-delete "joined/left" messages
+    "chat_locked": False,        # If chat is fully locked
 })
 
 def save_settings():
     save_json(AUTO_SETTINGS_FILE, bot_settings)
 
-# تتبع رسائل المستخدمين لمنع السبام (Anti-Flood)
+# In-memory rate limits tracking for Anti-Flood
 user_messages_timestamps = defaultdict(list)
-# تحديات التحقق البشري المعلقة
-pending_captchas = {} # الهيكل: {user_id: {"chat_id": chat_id, "message_id": msg_id, "timestamp": ts, "first_name": name}}
+# In-memory captcha challenge tracking
+pending_captchas = {} # format: {user_id: {"chat_id": chat_id, "message_id": msg_id, "timestamp": ts}}
 
 # ==========================================================
-# 🤖 GEMINI AI CO-PILOT INTEGRATION (دمج ذكاء اصطناعي بيبو)
+# 🤖 GEMINI AI CO-PILOT INTEGRATION
 # ==========================================================
 async def ask_gemini_ai(prompt):
     if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_KEY":
@@ -131,7 +128,7 @@ async def ask_gemini_ai(prompt):
         return f"❌ حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: {str(e)}"
 
 # ==========================================================
-# 🛡️ ADVANCED CONFLICT & TEXT DETECTORS (الفلاتر المتطورة)
+# 🛡️ ADVANCED CONFLICT & TEXT DETECTORS
 # ==========================================================
 CONFLICT_WORDS = [
     r'\b(يا غبي|يا حمار|يا أحمق|اسكت|اخرس|انقلع|غبي|حمار|غبية|حمقاء|كلب|يا كلب|حيوان)\b',
@@ -171,7 +168,7 @@ LINK_PATTERNS = [
     r'https?://\S+', 
     r't\.me/\S+', 
     r'www\.\S+', 
-    r'@\S+\s+(جروب|قناة|اشترك|تبادل)', # تتبع الإعلانات واليوزرات المزعجة
+    r'@\S+\s+(جروب|قناة|اشترك|تبادل)', # advertising user handles
     r'telegram\.me/\S+'
 ]
 
@@ -198,10 +195,10 @@ def is_forward(m):
     return bool(m.forward)
 
 # ==========================================================
-# 💎 PREMIUM DESIGN COVERS (زخرفة وصياغة النصوص الجمالية)
+# 💎 PREMIUM DESIGN COVERS & RESPONSES (Zakhrafa Decor)
 # ==========================================================
 def style_box(title, text, footer="👑 PIPO PROTECT"):
-    """صياغة إطارات جمالية راقية للإعلانات والإشعارات الفنية"""
+    """Creates a beautifully framed premium text box for group feedback"""
     border_top    = "╔════════════════════════╗"
     border_mid    = "╠────────────────────────╢"
     border_bottom = "╚════════════════════════╝"
@@ -227,7 +224,7 @@ async def reply_with_pic(event, text, emoji="", buttons=None):
     await event.reply(full, buttons=buttons)
 
 # ==========================================================
-# ⚡ CORE MODERATION FUNCTIONS (محرك كتم وحظر الأعضاء)
+# ⚡ CORE MODERATION FUNCTIONS
 # ==========================================================
 async def mute_user(chat, user, dur):
     try: 
@@ -268,7 +265,7 @@ async def unban_user(chat, user):
         return False
 
 # ==========================================================
-# 📥 AUTO-JOIN COMMANDS (سحب البوت للمجموعات وتفعيله تلقائياً)
+# 📥 AUTO-JOIN COMMANDS
 # ==========================================================
 @client.on(events.NewMessage(from_users=DEVELOPER_ID, pattern=r'^/دخول\s+(.+)', func=lambda e: e.is_private))
 async def join_group(event):
@@ -295,7 +292,7 @@ async def join_group(event):
         await reply_with_pic(event, f"❌ فشل الدخول: {str(e)}")
 
 # ==========================================================
-# 👑 MASTER ADMINISTRATIVE COMMANDS (لوحة تحكم إلكترونية تفاعلية)
+# 👑 MASTER ADMINISTRATIVE COMMANDS (Beautiful Dashboard)
 # ==========================================================
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -315,7 +312,7 @@ async def start(event):
         welcome_ordinary = (
             "✨ مرحباً بك! أنا بيبو بوت الحماية والأمان الخارق لمجموعتك.\n"
             "مهمتي الحفاظ على سلامة الدردشة من السابين، المزعجين والسبام.\n\n"
-            "💬 أرسل /الاوامر لرؤية كل ما يمكنني القيام به!"
+            "💬 أرسل /الاوامر لعرض كل ما يمكنني القيام به!"
         )
         await reply_with_pic(event, style_box("بيبو حامي المجموعات", welcome_ordinary), "🛡️")
 
@@ -400,408 +397,6 @@ async def set_md(event):
 async def sh_md(event): 
     await reply_with_pic(event, f"⏰ مدة الكتم التلقائية الحالية: **{bot_settings['mute_duration'] // 60} دقائق**", "⏳")
 
-@client.on(events.NewMessage(pattern='^/فك_الكل|/فك_كل_الكمات$'))
-async def unm_all(event):
-    if not is_admin(await event.get_sender()): return
-    c = 0
-    for u in list(mute_status.keys()):
-        try: 
-            await unmute_user(event.chat_id, u)
-            del mute_status[u]
-            c += 1
-        except: 
-            pass
-    await reply_with_pic(event, f"✅ تم فك الكتم عن **{c}** أعضاء بنجاح في هذه المجموعة!", "🔊")
-
-# --- التبديل السريع لحماية الروابط والتوجيه عبر الأوامر السريعة ---
-@client.on(events.NewMessage(pattern='^/تفعيل_حماية_الروابط$'))
-async def en_l(event):
-    if not is_admin(await event.get_sender()): return
-    bot_settings["link_protection"] = True
-    save_settings()
-    await reply_with_pic(event, "✅ تم تفعيل حماية الروابط ومنع الإعلانات بنجاح.", "🛡️")
-
-@client.on(events.NewMessage(pattern='^/تعطيل_حماية_الروابط$'))
-async def dis_l(event):
-    if not is_admin(await event.get_sender()): return
-    bot_settings["link_protection"] = False
-    save_settings()
-    await reply_with_pic(event, "⚠️ تم تعطيل حماية الروابط. يمكن للأعضاء مشاركة الروابط الآن.", "⚠️")
-
-@client.on(events.NewMessage(pattern='^/تفعيل_حماية_التوجيه$'))
-async def en_f(event):
-    if not is_admin(await event.get_sender()): return
-    bot_settings["forward_protection"] = True
-    save_settings()
-    await reply_with_pic(event, "✅ تم تفعيل حماية التوجيه لمنع السبام والمنشورات الخارجية.", "🛡️")
-
-@client.on(events.NewMessage(pattern='^/تعطيل_حماية_التوجيه$'))
-async def dis_f(event):
-    if not is_admin(await event.get_sender()): return
-    bot_settings["forward_protection"] = False
-    save_settings()
-    await reply_with_pic(event, "⚠️ تم تعطيل حماية التوجيه.", "⚠️")
-
-# ==========================================================
-# 🛑 ACTIVE MODERATION TOOLS (إدارة العقوبات الفورية والتنبيهات)
-# ==========================================================
-@client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
-async def perm_mute(event):
-    if not is_admin(await event.get_sender()): return
-    target_msg = await event.get_reply_message()
-    target = await target_msg.get_sender()
-    if not target: return await reply_with_pic(event, "❌ لم أستطع العثور على العضو المراد كتمه.")
-    
-    ten_years = 10*365*24*3600
-    await mute_user(event.chat_id, target.id, ten_years)
-    mute_status[target.id] = {'until': time.time()+ten_years, 'name': target.first_name}
-    await reply_with_pic(event, f"🚫 تم كتم العضو **{target.first_name}** بالكامل من قبل المشرف! كفاك ثرثرة غير لائقة. 😂", "🚫")
-
-@client.on(events.NewMessage(pattern='^/(حظر|حضر)$', func=lambda e: e.is_reply))
-async def ban_handler(event):
-    if not is_admin(await event.get_sender()): return
-    target_msg = await event.get_reply_message()
-    target = await target_msg.get_sender()
-    if not target: return await reply_with_pic(event, "❌ العضو غير موجود.")
-    if target.username == DEVELOPER_USERNAME or target.id in admins or target.id == DEVELOPER_ID: 
-        return await reply_with_pic(event, "❌ لا يمكن حظر المسؤول أو مطور البوت!")
-    
-    if await ban_user(event.chat_id, target.id): 
-        await reply_with_pic(event, f"🚫 طرد مطرود! تم حظر العضو **{target.first_name}** نهائياً من المجموعة ورميه خارجاً.", "🚫")
-    else: 
-        await reply_with_pic(event, "❌ فشل حظر العضو، تأكد من صلاحيات البوت.")
-
-@client.on(events.NewMessage(pattern='^/فك_الحظر$', func=lambda e: e.is_reply))
-async def unban_handler(event):
-    if not is_admin(await event.get_sender()): return
-    target_msg = await event.get_reply_message()
-    target = await target_msg.get_sender()
-    if not target: return await reply_with_pic(event, "❌ العضو غير موجود.")
-    
-    if await unban_user(event.chat_id, target.id): 
-        await reply_with_pic(event, f"🔓 أهلاً بعودتك! تم فك حظر العضو **{target.first_name}** ويمكنه الانضمام والمشاركة مجدداً.")
-    else: 
-        await reply_with_pic(event, "❌ فشل فك الحظر.")
-
-@client.on(events.NewMessage(pattern='^/تحذير$'))
-async def warn(event):
-    if not is_admin(await event.get_sender()): return
-    if not event.is_reply: 
-        return await reply_with_pic(event, "❌ يرجى الرد على رسالة المخالف لإصدار التحذير له.")
-    
-    target_msg = await event.get_reply_message()
-    target = await target_msg.get_sender()
-    if not target: return
-    
-    uid = target.id
-    name = target.first_name or "مجهول"
-    warnings_data[str(uid)].append(time.time())
-    save_warnings()
-    
-    cur = len(warnings_data[str(uid)])
-    await reply_with_pic(event, f"⚠️ العضو **{name}** تم تحذيره بسب ارتكاب مخالفة قوانين الدردشة!\nعدد التحذيرات الحالية: **{cur}/3**", "⚠️")
-    
-    if cur >= 3:
-        if await mute_user(event.chat_id, uid, bot_settings["mute_duration"]):
-            mute_status[uid] = {'until': time.time()+bot_settings["mute_duration"], 'name': name}
-            await reply_with_pic(event, f"🚫 تم كتم العضو **{name}** تلقائياً لمدة **{bot_settings['mute_duration']//60} دقيقة** بعد بلوغه 3 تحذيرات متتالية!", "🚫")
-            if str(uid) in warnings_data:
-                del warnings_data[str(uid)]
-                save_warnings()
-
-@client.on(events.NewMessage(pattern='^/عرض_التحذيرات$'))
-async def show_warn(event):
-    target_id = None
-    target_name = ""
-    if event.is_reply:
-        target_msg = await event.get_reply_message()
-        u = await target_msg.get_sender()
-        if u: 
-            target_id = u.id
-            target_name = u.first_name
-    else:
-        args = event.raw_text.split()
-        if len(args) >= 2:
-            try: 
-                target_id = int(args[1])
-            except: 
-                pass
-    if not target_id: 
-        return await reply_with_pic(event, "❌ يرجى كتابة الآيدي أو استخدام الأمر بالرد على رسالة العضو.")
-    
-    c = len(warnings_data.get(str(target_id), []))
-    await reply_with_pic(event, f"📊 العضو **{target_name or target_id}** لديه حالياً: **{c}/3 تحذيرات**", "📋")
-
-@client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
-async def purge(event):
-    if not is_admin(await event.get_sender()): return
-    count = min(int(event.pattern_match.group(1)), 100)
-    if count <= 0: return
-    
-    msgs = await client.get_messages(event.chat_id, limit=count)
-    ids = [m.id for m in msgs if m]
-    await client.delete_messages(event.chat_id, ids)
-    confirm = await reply_with_pic(event, f"🧹 تم تنظيف وإبادة **{len(ids)}** رسائل من الدردشة بنجاح!")
-    await asyncio.sleep(2)
-    await confirm.delete()
-
-@client.on(events.NewMessage(pattern='^/عرض_المكتومين$'))
-async def muted_list(event):
-    if not mute_status: 
-        return await reply_with_pic(event, "✅ الدردشة خالية من المكتومين، الجميع يتحدث بحرية!")
-    
-    now = time.time()
-    txt = "📋 **قائمة الأعضاء المكتومين حالياً:**\n\n"
-    for uid, d in mute_status.items():
-        rem = int(d['until'] - now)
-        if rem > 0:
-            try: 
-                name = (await client.get_entity(uid)).first_name
-            except: 
-                name = str(uid)
-            txt += f"• **{name}** - ⏳ متبقي: `{rem//60}` دقيقة\n"
-    await reply_with_pic(event, txt)
-
-@client.on(events.NewMessage(pattern='^/تثبيت$'))
-async def pin_msg(event):
-    if not is_admin(await event.get_sender()): return
-    if not event.is_reply: return await reply_with_pic(event, "❌ رد على الرسالة التي تود تثبيتها في أعلى المجموعة.")
-    replied = await event.get_reply_message()
-    try: 
-        await client.pin_message(event.chat_id, replied.id)
-        await reply_with_pic(event, "📌 تم تثبيت الرسالة بنجاح في لوحة الإعلانات للمجموعة.", "📌")
-    except Exception as e: 
-        await reply_with_pic(event, f"❌ فشل التثبيت: {e}")
-
-@client.on(events.NewMessage(pattern='^/رفع_مسؤول$'))
-async def promote_admin(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME and sender.id != DEVELOPER_ID: return
-    
-    target_id = None
-    target_name = ""
-    if event.is_reply:
-        target_msg = await event.get_reply_message()
-        u = await target_msg.get_sender()
-        if u: 
-            target_id = u.id
-            target_name = u.first_name
-    else:
-        args = event.raw_text.split()
-        if len(args) >= 2:
-            try: 
-                target_id = int(args[1])
-            except: 
-                pass
-    if not target_id: 
-        return await reply_with_pic(event, "❌ أرسل الأمر بالرد أو مع كتابة معرف المشرف الجديد.")
-    if target_id in admins: 
-        return await reply_with_pic(event, "⚠️ هذا العضو مشرف بالفعل في نظام بيبو.")
-    
-    admins.append(target_id)
-    save_json(ADMINS_FILE, admins)
-    await reply_with_pic(event, f"👑 تم رفع **{target_name or target_id}** مسؤولاً إدارياً جديداً لبوت بيبو بنجاح!", "👑")
-
-@client.on(events.NewMessage(pattern='^/تنزيل_مسؤول$'))
-async def demote_admin(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME and sender.id != DEVELOPER_ID: return
-    
-    target_id = None
-    if event.is_reply:
-        target_msg = await event.get_reply_message()
-        u = await target_msg.get_sender()
-        if u: target_id = u.id
-    else:
-        args = event.raw_text.split()
-        if len(args) >= 2:
-            try: target_id = int(args[1])
-            except: pass
-    if not target_id: 
-        return await reply_with_pic(event, "❌ يرجى كتابة آيدي المسؤول أو الرد عليه لتنزيله.")
-    if target_id not in admins: 
-        return await reply_with_pic(event, "⚠️ ليس مشرفاً إدارياً في البوت بالفعل.")
-    
-    admins.remove(target_id)
-    save_json(ADMINS_FILE, admins)
-    await reply_with_pic(event, "✅ تم تنزيل المسؤول من الصلاحيات الإدارية للبوت بنجاح.", "👋")
-
-# ==========================================================
-# 🛠️ SYSTEM DIAGNOSTIC PERMISSIONS HELPERS (فحص الصلاحيات)
-# ==========================================================
-@client.on(events.NewMessage(pattern='^/طلب_صلاحية$'))
-async def request_admin(event):
-    if not is_admin(await event.get_sender()): return
-    await client.send_message(event.chat_id,
-        "🤖 **نداء هام:** لكي يتمكن بيبو من الحماية الكاملة والترحيب بالأعضاء الجدد، يرجى ترقيتي إلى رتبة **مشرف** داخل المجموعة مع كامل الصلاحيات."
-    )
-
-@client.on(events.NewMessage(pattern='^/تحقق_الصلاحيات$'))
-async def check_permissions(event):
-    if not is_admin(await event.get_sender()): return
-    chat = event.chat_id
-    try:
-        me = await client.get_me()
-        perms = await client.get_permissions(chat, me.id)
-        required = {
-            'send_messages': 'إرسال الرسائل',
-            'manage_chat': 'إدارة المجموعة',
-            'delete_messages': 'حذف الرسائل',
-            'ban_users': 'حظر الأعضاء',
-            'invite_users': 'دعوة أعضاء',
-            'pin_messages': 'تثبيت الرسائل',
-            'add_admins': 'إضافة مشرفين',
-            'change_info': 'تغيير معلومات المجموعة'
-        }
-        missing = [desc for perm, desc in required.items() if not getattr(perms, perm, False)]
-        if missing:
-            await event.reply(f"⚠️ **هنالك صلاحيات مفقودة للبوت:**\n" + "\n".join(f"❌ {m}" for m in missing) + "\n\n🔧 يرجى تزويد البوت بها حتى يعمل نظام الحماية بكفاءة.")
-        else:
-            await event.reply("✅ **رائع جداً!** بيبو يمتلك كافة صلاحيات الإشراف المطلوبة لخدمتكم.")
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ أثناء التحقق من الصلاحيات: {str(e)}")
-
-# ==========================================================
-# 👤 GENERAL MEMBER UTILITIES & FUN ZONE (قسم الألعاب والترفيه)
-# ==========================================================
-@client.on(events.NewMessage(pattern='^/تقرير$', func=lambda e: e.is_reply))
-async def report(event):
-    target_msg = await event.get_reply_message()
-    reported_user = await target_msg.get_sender()
-    reporter = await event.get_sender()
-    if not reported_user or not reporter: return
-    
-    report_text = (
-        f"🚨 **بلاغ بلاغ من الأعضاء!** 🚨\n\n"
-        f"👤 **المُبلغ:** {reporter.first_name} (ID: `{reporter.id}`)\n"
-        f"🚫 **المخالف:** {reported_user.first_name} (ID: `{reported_user.id}`)\n"
-        f"📝 **الرسالة المخالفة:** {target_msg.raw_text[:200]}"
-    )
-    for admin_id in admins:
-        try: 
-            await client.send_message(admin_id, report_text)
-        except: 
-            pass
-    await reply_with_pic(event, "✅ تم إرسال التقرير للمسؤولين سرياً ومراجعته فوراً.")
-
-@client.on(events.NewMessage(pattern='^/قوانين$'))
-async def rules(event):
-    if not os.path.exists(RULES_FILE): 
-        return await reply_with_pic(event, "📜 لا توجد قوانين محددة بعد للمجموعة من قبل المطور. يرجى التفاهم بود!")
-    with open(RULES_FILE, 'r', encoding='utf-8') as f: 
-        rules_text = f.read()
-    await reply_with_pic(event, f"📜 **قوانين المجموعة الرسمية:**\n\n{rules_text}")
-
-@client.on(events.NewMessage(pattern='^/معلومات$', func=lambda e: e.is_reply))
-async def info(event):
-    target_msg = await event.get_reply_message()
-    target = await target_msg.get_sender()
-    if not target: return await reply_with_pic(event, "❌ خطأ في التعرف على العضو.")
-    
-    uid = target.id
-    warns = len(warnings_data.get(str(uid), []))
-    is_muted = "✅ غير مكتوم"
-    if uid in mute_status:
-        rem = mute_status[uid]['until'] - time.time()
-        if rem > 0: is_muted = f"🚫 مكتوم مؤقتاً ({int(rem//60)} د)"
-    
-    rank = "👤 عضو عادي"
-    if target.username == DEVELOPER_USERNAME or target.id == DEVELOPER_ID: 
-        rank = "👑 مطور البوت الخارق"
-    elif uid in admins: 
-        rank = "🛡️ مسؤول المجموعات"
-        
-    info_text = (
-        f"👤 **الاسم:** {target.first_name}\n"
-        f"🆔 **الآيدي:** `{uid}`\n"
-        f"⭐ **الرتبة:** {rank}\n"
-        f"⚠️ **التحذيرات:** {warns}/3\n"
-        f"🔇 **حالة الكتم:** {is_muted}"
-    )
-    await reply_with_pic(event, style_box("بطاقة تعريف العضو", info_text), "📋")
-
-@client.on(events.NewMessage(pattern='^/توب_المتفاعلين$'))
-async def top(event):
-    if not message_count: return await reply_with_pic(event, "❌ لا توجد إحصائيات تفاعل مسجلة بعد.")
-    items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
-    txt = "🏆 **جدول شرف توب المتفاعلين في المجموعة:**\n\n"
-    for i, (uid, cnt) in enumerate(items, 1):
-        try: 
-            name = (await client.get_entity(uid)).first_name
-        except: 
-            name = str(uid)
-        txt += f"🥇 {i}. **{name}** ⇚ `{cnt}` رسائل\n"
-    await reply_with_pic(event, txt)
-
-# --- لعبة قياس الحب والتوافق الكوميدية ---
-@client.on(events.NewMessage(pattern='^/حب$'))
-async def love(event):
-    args = event.raw_text.split()
-    if event.is_reply:
-        target_msg = await event.get_reply_message()
-        target = await target_msg.get_sender()
-        u1 = (await event.get_sender()).first_name
-        u2 = target.first_name if target else "مجهول"
-    elif len(args) >= 3: 
-        u1, u2 = args[1], args[2]
-    else: 
-        return await reply_with_pic(event, "❌ استخدم الأمر بالرد على شخص أو اكتب الاسمين كالتالي:\n`/حب أحمد سارة`")
-    
-    heart = random.choice(['💔','💖','💘','💕','💓'])
-    perc = random.randint(50,100) if heart != '💔' else random.randint(5,45)
-    await reply_with_pic(event, f"💖 **اختبار الحب المتطور من بيبو:**\n👩‍❤️‍👨 [{u1}] ➕ [{u2}]\n\n💞 نسبة التوافق والحب بينكما هي: **{perc}%** {heart}", "💞")
-
-# --- ميزة إرسال سر مجهول الهوية ---
-@client.on(events.NewMessage(pattern='^/سر$'))
-async def secret(event):
-    text = event.raw_text[5:].strip()
-    if not text: return await reply_with_pic(event, "❌ اكتب الرسالة التي تريد إرسالها بشكل مجهول بعد الأمر.")
-    await event.delete()
-    await asyncio.sleep(0.5)
-    await client.send_message(event.chat_id, f"📩 **رسالة مجهولة سرية وصلت:**\n\n💬 « {text} »\n\n🕵️‍♂️ المرسل مجهول الهوية!")
-
-# ==========================================================
-# 🤖 GEMINI CHAT COMMANDS (سؤال ذكاء بيبو الاصطناعي)
-# ==========================================================
-@client.on(events.NewMessage(pattern=r'^/(اسأل|اسال|بيبو|يا_بيبو)\s+(.+)'))
-async def ask_bebo_ai(event):
-    prompt = event.pattern_match.group(2).strip()
-    loading_msg = await event.reply("🤖 *جاري التفكير وصياغة الرد من بيبو الذكي...*")
-    response = await ask_gemini_ai(prompt)
-    await loading_msg.delete()
-    await event.reply(f"🤖 **بيبو الذكي يقول:**\n\n{response}")
-
-# ==========================================================
-# 🎉 INTERACTIVE TRUTH / DARE / GAME CHANNELS (قسم صراحة أو تحدي)
-# ==========================================================
-TRUTHS = [
-    "ما هي أكثر صفة تكرهها في نفسك؟",
-    "هل كذبت كذبة كبيرة من قبل؟ ما هي؟",
-    "من هو الشخص المفضل لديك في هذا الجروب؟",
-    "ما هو أكبر مخاوفك في الحياة؟",
-    "لو أتيحت لك فرصة تغيير اسمك، ماذا ستسمي نفسك؟",
-    "هل تبكي بمفردك غالباً؟"
-]
-
-DARES = [
-    "اكتب رسالة اعتذار لأخر شخص تحدثت معه على الخاص.",
-    "أرسل أكثر إيموجي تحبه في المجموعة بدون تعليق.",
-    "قم بتغيير سيرتك الذاتية في تليجرام لمدة ساعة إلى 'أنا أحب بيبو بوت'.",
-    "قم بالرد على رسالة المشرف وقل له 'أنت الأفضل اليوم'.",
-    "اصمت ولا ترسل أي رسالة في المجموعة لمدة نصف ساعة!"
-]
-
-PUNISHMENTS = [
-    "عقابك: ألا ترسل أي ملصق (Sticker) لمدة يوم كامل!",
-    "عقابك: أن تتحدث باللغة العربية الفصحى فقط طوال اليوم!",
-    "عقابك: الإجابة على سؤال المطور القادم بكل صراحة.",
-    "عقابك: كتابة منشور جميل تمدح فيه أعضاء هذا الجروب."
-]
-
-@client.on(events.NewMessage(pattern='^/حقيقة$'))
-async def game_truth(event):
-    await reply_with_pic(event, f"🧠 **سؤال حقيقة محرج لك:**\n\n« {random.choice(TRUTHS)} »\n\nأجبنا بكل صراحة وصدق! 😉", "🧐")
-
 @client.on(events.NewMessage(pattern='^/صراحة$'))
 async def game_saraha(event):
     await reply_with_pic(event, f"🧠 **سؤال حقيقة محرج لك:**\n\n« {random.choice(TRUTHS)} »\n\nأجبنا بكل صراحة وصدق! 😉", "🧐")
@@ -815,14 +410,14 @@ async def game_punish(event):
     await reply_with_pic(event, f"⚡ **عقاب فكاهي وعادل من بيبو:**\n\n« {random.choice(PUNISHMENTS)} »\n\nيرجى الالتزام بالعقاب لسلامة روح التنافس! 😂", "🔨")
 
 # ==========================================================
-# 🎁 CAPTCHA HUMAN VALIDATION CHALLENGE (نظام التحقق البشري التفاعلي)
+# 🎁 CAPTCHA HUMAN VALIDATION CHALLENGE
 # ==========================================================
 @client.on(events.CallbackQuery)
 async def handle_captcha_callbacks(event):
     data = event.data.decode('utf-8')
     sender_id = event.sender_id
     
-    # التحقق مما إذا كانت الكبسة تابعة للعضو الجديد وتحدي الروبوتات
+    # Check if this matches a human captcha challenge
     if data.startswith("verify_"):
         parts = data.split("_")
         target_uid = int(parts[1])
@@ -831,17 +426,17 @@ async def handle_captcha_callbacks(event):
             await event.answer("⚠️ هذا الزر مخصص للعضو الجديد فقط للتحقق!", alert=True)
             return
             
-        # نجاح التحقق! فك الكتم التلقائي وحذفه من قائمة الانتظار
+        # Success! Unmute and remove from pending
         if target_uid in pending_captchas:
             try:
-                # إزالة القيود البرمجية عن التحدث
+                # Remove restrictions
                 await client(EditBannedRequest(
                     pending_captchas[target_uid]["chat_id"],
                     target_uid,
                     ChatBannedRights(until_date=None, send_messages=False)
                 ))
                 
-                # حذف رسالة التحدي (Captcha Message) لتنظيف الدردشة
+                # Delete the captcha message
                 await client.delete_messages(
                     pending_captchas[target_uid]["chat_id"],
                     pending_captchas[target_uid]["message_id"]
@@ -850,7 +445,7 @@ async def handle_captcha_callbacks(event):
                 del pending_captchas[target_uid]
                 await event.answer("✅ تم التحقق من هويتك البشرية! استمتع بالدردشة الآن.", alert=True)
                 
-                # الترحيب الرسمي بالعضو الجديد بعد تجاوزه الاختبار بنجاح
+                # Welcome user officially with nice greeting
                 user_entity = await client.get_entity(target_uid)
                 await client.send_message(
                     event.chat_id,
@@ -860,7 +455,7 @@ async def handle_captcha_callbacks(event):
                 print(f"Error resolving captcha click: {e}")
                 await event.answer("❌ حدث خطأ، يرجى التواصل مع المشرفين.", alert=True)
 
-    # معالجة الضغطات الأخرى من القوائم القديمة
+    # Handlers for older menu clicks
     elif data.startswith("welcomesp_"):
         _, uid = data.split("_")
         try: 
@@ -899,7 +494,11 @@ async def handle_captcha_callbacks(event):
             await event.answer(txt if txt else "مرحباً بالمتفاعلين!", alert=True)
             
     elif data == "security_settings":
-        # عرض لوحة التحكم بالحمايات التفاعلية السريعة بضغطة زر
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        # Interactive security panel
         await event.edit(
             "⚙️ **لوحة تفعيل حمايات بيبو السريعة:**",
             buttons=[
@@ -912,7 +511,11 @@ async def handle_captcha_callbacks(event):
         )
         
     elif data.startswith("toggle_"):
-        # معالجة كبسات التفعيل والتعطيل السريع للحمايات
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        # Toggles configurations
         setting_key = data.replace("toggle_", "")
         mapped_keys = {
             "links": "link_protection",
@@ -936,6 +539,10 @@ async def handle_captcha_callbacks(event):
             )
             
     elif data == "back_to_main":
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
         menu_text = (
             "👋 أهلاً بك يا مطوري العزيز في لوحة تحكم بيبو الخارقة!\n"
             "يمكنك التحكم بكامل المجموعة وتعديل خيارات الحماية بضغطة زر واحدة."
@@ -949,18 +556,156 @@ async def handle_captcha_callbacks(event):
             ]
         )
         
+    elif data == "mute_dur":
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        await event.edit(
+            "⏳ **تعديل مدة الكتم الافتراضية للشتائم والمخالفات:**\n\n"
+            f"المدة الحالية: **{bot_settings['mute_duration'] // 60} دقيقة**\n\n"
+            "اختر المدة المناسبة للكتم التلقائي للمخالفين:",
+            buttons=[
+                [Button.inline("5 دقائق", b"setdur_5"), Button.inline("10 دقائق", b"setdur_10")],
+                [Button.inline("30 دقيقة", b"setdur_30"), Button.inline("ساعة واحدة", b"setdur_60")],
+                [Button.inline("⬅️ العودة للرئيسية", b"back_to_main")]
+            ]
+        )
+
+    elif data.startswith("setdur_"):
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        mins = int(data.split("_")[1])
+        bot_settings["mute_duration"] = mins * 60
+        save_settings()
+        await event.answer(f"✅ تم تعديل مدة الكتم الافتراضية إلى {mins} دقائق!", alert=True)
+        await event.edit(
+            "⏳ **تعديل مدة الكتم الافتراضية للشتائم والمخالفات:**\n\n"
+            f"المدة الحالية: **{bot_settings['mute_duration'] // 60} دقيقة**\n\n"
+            "اختر المدة المناسبة للكتم التلقائي للمخالفين:",
+            buttons=[
+                [Button.inline("5 دقائق", b"setdur_5"), Button.inline("10 دقائق", b"setdur_10")],
+                [Button.inline("30 دقيقة", b"setdur_30"), Button.inline("ساعة واحدة", b"setdur_60")],
+                [Button.inline("⬅️ العودة للرئيسية", b"back_to_main")]
+            ]
+        )
+
+    elif data == "bot_stat":
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        stat_text = (
+            f"👥 **المجموعات المحمية النشطة:** `{len(active_groups)}` مجموعة\n"
+            f"🔇 **الأعضاء المكتومون حالياً:** `{len(mute_status)}` عضو\n"
+            f"⚠️ **إجمالي الأعضاء المنذرين:** `{len(warnings_data)}` عضو\n"
+            f"💬 **تفاعل الجروبات الإجمالي:** `{sum(message_count.values())}` رسالة"
+        )
+        await event.edit(
+            style_box("إحصائيات بيبو العامة", stat_text),
+            buttons=[[Button.inline("⬅️ العودة للرئيسية", b"back_to_main")]]
+        )
+
+    elif data == "unmute_all_btn":
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        if not mute_status:
+            await event.answer("⚠️ لا يوجد أي أعضاء مكتومين حالياً في البوت!", alert=True)
+            return
+        
+        c = 0
+        for u in list(mute_status.keys()):
+            try:
+                await unmute_user(event.chat_id, u)
+                del mute_status[u]
+                c += 1
+            except Exception as e:
+                print(f"Error unmuting: {e}")
+        
+        await event.answer(f"✅ تم فك الكتم عن {c} أعضاء بنجاح!", alert=True)
+        menu_text = (
+            "👋 أهلاً بك يا مطوري العزيز في لوحة تحكم بيبو الخارقة!\n"
+            "يمكنك التحكم بكامل المجموعة وتعديل خيارات الحماية بضغطة زر واحدة."
+        )
+        await event.edit(
+            style_box("لوحة تحكم بيبو للمطورين", menu_text),
+            buttons=[
+                [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 الإحصائيات العامة", b"bot_stat")],
+                [Button.inline("⚙️ إعدادات الحماية", b"security_settings"), Button.inline("🔓 فك كتم الجميع", b"unmute_all_btn")],
+                [Button.inline("🤖 تفعيل الذكاء الاصطناعي", b"toggle_gemini_setup")]
+            ]
+        )
+
     elif data == "toggle_gemini_setup":
-        await event.answer("لتفعيل الذكاء الاصطناعي، يرجى وضع الـ API Key في الكود الرئيسي للبوت.", alert=True)
+        sender = await event.get_sender()
+        if not is_admin(sender):
+            await event.answer("⚠️ عذراً، هذا الزر مخصص لمالك البوت أو المشرفين فقط!", alert=True)
+            return
+        if GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_KEY":
+            await event.answer("🤖 الذكاء الاصطناعي مفعل مسبقاً وجاهز للرد على الأعضاء عبر /اسأل أو /بيبو!", alert=True)
+        else:
+            await event.answer("⚠️ الذكاء الاصطناعي غير مفعل حالياً. يرجى إدخال مفتاح GEMINI_API_KEY في البيئة لتفعيله.", alert=True)
+
+    elif data == "help_admin":
+        admin_help_text = (
+            "├ `/تفعيل` ⇚ تفعيل حماية بيبو في المجموعة\n"
+            "├ `/تعطيل` ⇚ تعطيل حماية بيبو مؤقتاً\n"
+            "├ `/قفل_المجموعة` ⇚ منع إرسال الرسائل للأعضاء\n"
+            "├ `/فك_القفل` ⇚ السماح للأعضاء بإرسال الرسائل\n"
+            "├ `/كتم` (بالرد) ⇚ كتم العضو نهائياً\n"
+            "├ `/حظر` (بالرد) ⇚ حظر العضو وطرد خارجاً\n"
+            "├ `/فك_الحظر` (بالرد) ⇚ إلغاء حظر العضو\n"
+            "├ `/تحذير` (بالرد) ⇚ إعطاء إنذار (3 إنذارات = كتم)\n"
+            "├ `/عرض_التحذيرات` ⇚ لمعرفة عدد مخالفات العضو\n"
+            "├ `/مسح` + عدد ⇚ حذف الرسائل بسرعة فائقة\n"
+            "├ `/عرض_المكتومين` ⇚ عرض قائمة الأعضاء المكتومين\n"
+            "├ `/تثبيت` (بالرد) ⇚ تثبيت إعلان في الأعلى\n"
+            "└ `/حالة_الحماية` ⇚ عرض إعدادات حماية البوت الحالية"
+        )
+        await event.edit(
+            style_box("مساعدة المسؤولين", admin_help_text),
+            buttons=[[Button.inline("⬅️ العودة للمساعدة", b"back_to_help")]]
+        )
+
+    elif data == "help_member":
+        member_help_text = (
+            "├ `/ايدي` ⇚ عرض الآيدي الخاص بك والمجموعة\n"
+            "├ `/حب` (بالرد أو مع اسمين) ⇚ لعبة قياس الحب الكوميدية\n"
+            "├ `/سر` + رسالة ⇚ إرسال رسالة مجهولة داخل المجموعة\n"
+            "├ `/حقيقة` ⇚ الحصول على سؤال صراحة محرج جداً\n"
+            "├ `/تحدي` ⇚ الحصول على تحدي وقبول كوميدي وممتع\n"
+            "├ `/عقاب` ⇚ عقاب فكاهي وعادل للألعاب\n"
+            "├ `/توب_المتفاعلين` ⇚ عرض جدول شرف التفاعل بالرسائل\n"
+            "├ `/قوانين` ⇚ لقراءة شروط وقواعد الدردشة\n"
+            "└ `/تقرير` (بالرد) ⇚ للإبلاغ سرياً عن شخص يزعجك للمشرفين"
+        )
+        await event.edit(
+            style_box("مساعدة الأعضاء والألعاب", member_help_text),
+            buttons=[[Button.inline("⬅️ العودة للمساعدة", b"back_to_help")]]
+        )
+
+    elif data == "back_to_help":
+        await event.edit(
+            "📜 اختر الفئة التي تود عرض تفاصيل خدماتها:",
+            buttons=[
+                [Button.inline("🛡️ لوحة المسؤولين", b"help_admin")],
+                [Button.inline("👤 قائمة الأعضاء والألعاب", b"help_member")],
+            ]
+        )
 
 # ==========================================================
-# 🔔 AUTOMATIC CAPTCHA & WELCOME ENGINE (محرك الترحيب والتحقق الذاتي)
+# 🔔 AUTOMATIC CAPTCHA & WELCOME ENGINE
 # ==========================================================
 @client.on(events.ChatAction)
 async def welcome_action_handler(event):
     chat = event.chat_id
     if chat not in active_groups: return
     
-    # تنظيف وحذف رسائل الخدمة المزعجة تلقائياً لجروب نظيف ومرتب
+    # Clean up service join/leave messages
     if event.user_joined or event.user_left:
         if bot_settings["service_cleanup"]:
             try:
@@ -972,7 +717,7 @@ async def welcome_action_handler(event):
                 
     if event.user_joined:
         user = await event.get_user()
-        if user.bot: return # تجاهل الروبوتات المضافة يدوياً
+        if user.bot: return # Ignore bot integrations for captcha
         
         name = user.first_name or "صديقنا"
         uid = user.id
@@ -984,10 +729,10 @@ async def welcome_action_handler(event):
         except: 
             group_title = "مجموعتنا الرائعة"
 
-        # --- تفعيل الكابتشا والتحقق التلقائي للأعضاء الجدد ---
+        # --- Active Human Validation CAPTCHA Challenge ---
         if bot_settings["verification_captcha"]:
-            # كتم العضو الجدد تلقائياً لحين تجاوز الكابتشا
-            await mute_user(chat, uid, 300) # كتم مؤقت
+            # Mute the user first until they solve captcha
+            await mute_user(chat, uid, 300) # mute for 5 mins initially
             
             captcha_text = (
                 f"🚨 **مرحباً بك يا {name} في {group_title}!** 🚨\n\n"
@@ -998,7 +743,7 @@ async def welcome_action_handler(event):
             buttons = [[Button.inline("✅ أنا لست روبوت (تحقق) ✅", f"verify_{uid}")]]
             sent_captcha = await client.send_message(chat, captcha_text, buttons=buttons)
             
-            # تسجيل بيانات الكابتشا مع توقيت الدخول لتتبع انتهاء المهلة
+            # Store in captcha records
             pending_captchas[uid] = {
                 "chat_id": chat,
                 "message_id": sent_captcha.id,
@@ -1008,7 +753,7 @@ async def welcome_action_handler(event):
             }
             return
 
-        # ترحيب عادي جميل في حال تم تعطيل الكابتشا
+        # Regular welcome message if captcha is turned off
         welcome_text = (
             f"▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨▨\n"
             f"ᯓ˹ BIENVENUE DANS LE GROUPE ˼\n"
@@ -1043,7 +788,7 @@ async def welcome_action_handler(event):
 
         await client.send_message(chat, welcome_text, buttons=buttons)
 
-# دالة مساعدة لتأخير المسح
+# Delay helper
 async def delete_message_after_delay(chat_id, message_id, delay):
     await asyncio.sleep(delay)
     try:
@@ -1052,7 +797,7 @@ async def delete_message_after_delay(chat_id, message_id, delay):
         pass
 
 # ==========================================================
-# ⚡ THE ULTIMATE PROTECTION & ANTI-SPAM ENGINE (محرك المراقبة والتحليل المستمر)
+# ⚡ THE ULTIMATE PROTECTION & ANTI-SPAM ENGINE
 # ==========================================================
 @client.on(events.NewMessage())
 async def global_handler(event):
@@ -1064,40 +809,41 @@ async def global_handler(event):
     if not sender or sender.id == (await client.get_me()).id: return
     if is_admin(sender): return
     
-    # زيادة إحصائيات التفاعل وحفظ الرسالة
+    # Count general interaction stats
     message_count[sender.id] += 1
     text = event.raw_text.strip()
 
-    # --- مكافحة السبام التلقائي (Anti-Flood Check) ---
+    # --- Anti-Flood / Anti-Spam Check ---
     if bot_settings["anti_flood"]:
         now_ts = time.time()
         user_id = sender.id
-        # تصفية الطوابع الزمنية وإبقاء آخر 3 ثوانٍ فقط
+        # keep only timestamps from last 3 seconds
         user_messages_timestamps[user_id] = [t for t in user_messages_timestamps[user_id] if now_ts - t < 3]
         user_messages_timestamps[user_id].append(now_ts)
         
-        # الحد الأقصى هو إرسال أكثر من 5 رسائل في ظرف 3 ثوانٍ
+        # limit is 5 messages in 3 seconds
         if len(user_messages_timestamps[user_id]) > 5:
             await event.delete()
-            # كتم مرتكب السبام فوراً لمدة 10 دقائق
+            # Mute the flooder for 10 minutes
             await mute_user(chat, user_id, 600)
             mute_status[user_id] = {'until': now_ts + 600, 'name': sender.first_name}
             await client.send_message(chat, f"🚨 **إشعار سبام:** تم كتم العضو **{sender.first_name}** لمدة **10 دقائق** لتكراره إرسال الرسائل بسرعة مفرطة (Anti-Flood)!")
             return
 
-    # --- فلتر حماية الروابط والإعلانات ---
+    # --- Link Protection ---
     if bot_settings["link_protection"] and contains_link(text): 
         await event.delete()
+        # Warn user
         await client.send_message(chat, f"⚠️ عذراً يا **{sender.first_name}**، يمنع إرسال الروابط والإعلانات هنا تماماً حظر لسلامة الجميع.")
         return
         
-    # --- فلتر حماية التوجيه والمنشورات الخارجية ---
+    # --- Forward Protection ---
     if bot_settings["forward_protection"] and is_forward(event.message): 
         await event.delete()
         await client.send_message(chat, f"⚠️ عذراً يا **{sender.first_name}**، يمنع توجيه المنشورات من قنوات أو مجموعات خارجية.")
         return
 
-    # --- فلتر الكلمات البذيئة والشتائم المتطور ---
+    # --- Swear & Insult Filter ---
     if bot_settings["swear_protection"] and contains_swear(text.lower()):
         now = time.time()
         uid = sender.id
@@ -1109,7 +855,7 @@ async def global_handler(event):
             await client.send_message(chat, f"🚫 **كتم فوري:** تم كتم العضو **{name}** لـ **{bot_settings['mute_duration']//60} دقيقة** بسبب إرساله كلاماً غير لائق بالجروب.")
         return
 
-    # --- صانع ومراقب السلام الذكي (رصد المشاحنات والخصام بين الأعضاء) ---
+    # --- Conflict Peacemaker (Detecting Fights) ---
     if detect_conflict(text):
         reply = await event.get_reply_message()
         if reply:
@@ -1127,33 +873,178 @@ async def global_handler(event):
                     if now_ts - last_rec > CONFLICT_COOLDOWN:
                         conflict_tracker[pair]['last_reconcile'] = now_ts
                         try:
-                            await client.send_message(chat,
-                                "🕊️ لاحظت تبادل كلمات حادة بينكما. أرجو التوقف فوراً، فأنتم إخوة.\n"
-                                "{وَأَصْلِحُوا ذَاتَ بَيْنِكُمْ}\nتصافحوا وتآخوا، فما أجمل الودّ! 🌹"
+                            peacemaker_text = (
+                                "🕊️ **صلح ذات البين (مراقبة السلام):**\n"
+                                "لاحظت تصاعد كلمات حادة بينكما يا إخوتي. أرجو التوقف فوراً والترفع عن الخصام.\n\n"
+                                "📖 يقول الله عز وجل: *{وَأَصْلِحُوا ذَاتَ بَيْنِكُمْ}*\n\n"
+                                "تصافحوا وتآخوا فما أجمل الود والصفح! 🌹"
                             )
-                        except: pass
+                            await client.send_message(chat, peacemaker_text)
+                        except Exception as e:
+                            print(f"Error sending peacemaker: {e}")
 
 # ==========================================================
-# 🚀 LAUNCH & HEARTBEAT MONITOR (بدء تشغيل البوت ومراقبة النبض)
+# 🕰️ ALGERIAN AUTOMATIC GROUP LOCK/UNLOCK TIMER (UTC+1)
 # ==========================================================
-async def main():
-    global BOT_PHOTO
-    await client.start(bot_token=BOT_TOKEN)
-    me = await client.get_me()
-    print(f"✅ PIPO BOT READY: @{me.username} | Command & Control: All Systems Green")
-    asyncio.create_task(auto_unmute_monitor())
-    await client.run_until_disconnected()
+reminder_sent = False
 
-async def auto_unmute_monitor():
+async def auto_lock_unlock():
+    global reminder_sent
+    while True:
+        # Get UTC time and adjust to Algeria (UTC+1)
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        now_dz = now_utc + datetime.timedelta(hours=1)
+        h, m = now_dz.hour, now_dz.minute
+
+        # 1. Lock Warning at 23:30 (Algerian Time)
+        if h == 23 and m == 30 and not reminder_sent and not bot_settings["chat_locked"]:
+            reminder_sent = True
+            for gid in active_groups:
+                try:
+                    await client.send_message(gid,
+                        f"⚠️ **تنبيه هام للجميع:** سيتم قفل المجموعة بعد 30 دقيقة (عند منتصف الليل بتوقيت الجزائر).\n"
+                        f"🔓 ستعاود الفتح تلقائياً الساعة 10:00 صباحاً.\n👑 طاقم الإدارة @{DEVELOPER_USERNAME}")
+                except: 
+                    pass
+
+        # 2. Lock at 00:00 (Algerian Time)
+        if h == 0 and m == 0 and not bot_settings["chat_locked"]:
+            bot_settings["chat_locked"] = True
+            reminder_sent = False
+            save_settings()
+            for gid in active_groups:
+                try:
+                    await client.edit_permissions(gid, send_messages=False)
+                    await client.send_message(gid,
+                        f"🔒 **تنبيه الوقت:** تم قفل المجموعة تلقائياً الآن.\n"
+                        f"🌙 تصبحون على خير! سنعاود الفتح في تمام الساعة 10:00 صباحاً بتوقيت الجزائر.\n👑 @{DEVELOPER_USERNAME}")
+                except: 
+                    pass
+
+        # 3. Unlock at 10:00 AM (Algerian Time)
+        if h == 10 and m == 0 and bot_settings["chat_locked"]:
+            bot_settings["chat_locked"] = False
+            save_settings()
+            for gid in active_groups:
+                try:
+                    await client.edit_permissions(gid, send_messages=True)
+                    await client.send_message(gid,
+                        f"🔓 **صباح الخير والنشاط!** تم فتح المجموعة تلقائياً الآن.\n"
+                        f"☀️ مرحباً بكم جميعاً واستمتعوا بيومكم بكل ود واحترام.\n👑 @{DEVELOPER_USERNAME}")
+                except: 
+                    pass
+
+        await asyncio.sleep(30)
+
+# ==========================================================
+# ⏳ AUTOMATIC CLEANER LOGICS & TIMEOUT CAPTCHAS
+# ==========================================================
+async def auto_unmute_and_captcha_checks():
     while True:
         now = time.time()
+        
+        # 1. Unmute expired users
         for uid in list(mute_status.keys()):
             if mute_status[uid]['until'] < now:
                 for gid in active_groups:
-                    try: await unmute_user(gid, uid)
-                    except: pass
+                    try: 
+                        await unmute_user(gid, uid)
+                    except: 
+                        pass
                 del mute_status[uid]
-        await asyncio.sleep(30)
+                
+        # 2. Check pending captchas for timeout (2 minutes)
+        for uid in list(pending_captchas.keys()):
+            chall = pending_captchas[uid]
+            if now - chall["timestamp"] > 120: # 120 seconds timeout
+                try:
+                    # Time has run out! Kick user
+                    await client(EditBannedRequest(
+                        chall["chat_id"],
+                        uid,
+                        ChatBannedRights(until_date=datetime.datetime.fromtimestamp(now + 180), view_messages=True) # temporarily kick for 3 mins
+                    ))
+                    
+                    # Delete challenge message
+                    await client.delete_messages(chall["chat_id"], chall["message_id"])
+                    
+                    # Send notice
+                    await client.send_message(
+                        chall["chat_id"], 
+                        f"⛔ تم طرد العضو **{chall['first_name']}** لعدم إثبات الهوية البشرية خلال دقيقتين."
+                    )
+                except Exception as e:
+                    print(f"Error kicking captcha timeout user: {e}")
+                
+                if uid in pending_captchas:
+                    del pending_captchas[uid]
+                    
+        await asyncio.sleep(15)
+
+# ==========================================================
+# 🛠️ GENERAL SERVICES GUIDE & DIRECTORY
+# ==========================================================
+@client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
+async def all_commands(event):
+    txt = (
+        "⚡ **جميع أوامر بيبو بوت الحماية والأمان الخارق** ⚡\n\n"
+        "**🛡️ أوامر المسؤولين والمشرفين:**\n"
+        "├ `/تفعيل` ⇚ تفعيل حماية بيبو في المجموعة\n"
+        "├ `/تعطيل` ⇚ تعطيل حماية بيبو مؤقتاً\n"
+        "├ `/قفل_المجموعة` ⇚ منع إرسال الرسائل للأعضاء\n"
+        "├ `/فك_القفل` ⇚ السماح للأعضاء بإرسال الرسائل\n"
+        "├ `/كتم` (بالرد) ⇚ كتم العضو نهائياً\n"
+        "├ `/حظر` (بالرد) ⇚ حظر العضو وطرد خارجاً\n"
+        "├ `/فك_الحظر` (بالرد) ⇚ إلغاء حظر العضو\n"
+        "├ `/تحذير` (بالرد) ⇚ إعطاء إنذار (3 إنذارات = كتم)\n"
+        "├ `/عرض_التحذيرات` ⇚ لمعرفة عدد مخالفات العضو\n"
+        "├ `/مسح` + عدد ⇚ حذف الرسائل بسرعة فائقة\n"
+        "├ `/عرض_المكتومين` ⇚ عرض قائمة الأعضاء المكتومين\n"
+        "├ `/تثبيت` (بالرد) ⇚ تثبيت إعلان في الأعلى\n"
+        "└ `/حالة_الحماية` ⇚ عرض إعدادات حماية البوت الحالية\n\n"
+        "**👤 أوامر ومميزات الأعضاء:**\n"
+        "├ `/ايدي` ⇚ عرض الآيدي الخاص بك والمجموعة\n"
+        "├ `/حب` (بالرد أو مع اسمين) ⇚ لعبة قياس الحب الكوميدية\n"
+        "├ `/سر` + رسالة ⇚ إرسال رسالة مجهولة داخل المجموعة\n"
+        "├ `/حقيقة` ⇚ الحصول على سؤال صراحة محرج جداً\n"
+        "├ `/تحدي` ⇚ الحصول على تحدي وقبول كوميدي وممتع\n"
+        "├ `/عقاب` ⇚ عقاب فكاهي وعادل للألعاب\n"
+        "├ `/توب_المتفاعلين` ⇚ عرض جدول شرف التفاعل بالرسائل\n"
+        "├ `/قوانين` ⇚ لقراءة شروط وقواعد الدردشة\n"
+        "└ `/تقرير` (بالرد) ⇚ للإبلاغ سرياً عن شخص يزعجك للمشرفين\n\n"
+        "**🤖 أوامر بيبو الذكية بالذكاء الاصطناعي:**\n"
+        "└ `/اسأل` أو `/بيبو` + سؤالك ⇚ يجاوبك بيبو بالذكاء الاصطناعي!"
+    )
+    await reply_with_pic(event, txt)
+
+@client.on(events.NewMessage(pattern='^/مساعدة$'))
+async def help_cmd(event):
+    await reply_with_pic(event, "📜 اختر الفئة التي تود عرض تفاصيل خدماتها:", buttons=[
+        [Button.inline("🛡️ لوحة المسؤولين", b"help_admin")],
+        [Button.inline("👤 قائمة الأعضاء والألعاب", b"help_member")],
+    ])
+
+# ==========================================================
+# 🚀 INITIALIZATION & RUN
+# ==========================================================
+async def main():
+    global BOT_PHOTO
+    print("⏳ جاري تشغيل بيبو بوت وتحميل البيانات...")
+    await client.start(bot_token=BOT_TOKEN)
+    
+    try:
+        photos = await client.get_profile_photos('me', limit=1)
+        if photos:
+            BOT_PHOTO = InputPhoto(id=photos[0].id, access_hash=photos[0].access_hash, file_reference=photos[0].file_reference)
+    except Exception as e:
+        print(f"Error fetching bot profile photo: {e}")
+        
+    print(f"✅ بيبو بوت جاهز ونشط في {len(active_groups)} مجموعات مفعلة!")
+    
+    # Run backgrounds tasks
+    asyncio.create_task(auto_unmute_and_captcha_checks())
+    asyncio.create_task(auto_lock_unlock())
+    await client.run_until_disconnected()
 
 if __name__ == '__main__':
     asyncio.run(main())
