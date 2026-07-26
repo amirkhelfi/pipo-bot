@@ -1,7 +1,7 @@
 import asyncio, os, time, random, datetime, re, json
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
-from telethon.tl.functions.channels import EditBannedRequest, JoinChannelRequest
+from telethon.tl.functions.channels import EditBannedRequest, JoinChannelRequest, LeaveChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
 from aiohttp import web
@@ -450,6 +450,43 @@ async def secret(event):
     await asyncio.sleep(1)
     await client.send_message(event.chat_id, f"📩 رسالة مجهولة: {text}")
 
+# ---------- ميزة الخروج من المجموعة (خاص بالمطور) ----------
+@client.on(events.NewMessage(pattern='^/الخروج_من_المجموعة$', from_users=DEVELOPER_ID, func=lambda e: e.is_private))
+async def leave_group_prompt(event):
+    if not active_groups:
+        return await event.reply("❌ لا توجد مجموعات مفعلة حالياً.")
+    buttons = []
+    for gid in list(active_groups)[:30]:
+        try:
+            entity = await client.get_entity(gid)
+            name = entity.title[:30]
+        except:
+            name = str(gid)
+        buttons.append([Button.inline(f"🚪 {name}", f"leave_{gid}")])
+    await event.reply("**اختر المجموعة التي تريد الخروج منها:**", buttons=buttons)
+
+@client.on(events.CallbackQuery(func=lambda e: e.data.startswith(b'leave_')))
+async def leave_group_handler(event):
+    if event.sender_id != DEVELOPER_ID:
+        return await event.answer("❌ هذا الأمر للمطور فقط.", alert=True)
+    gid = int(event.data.decode('utf-8').split('_')[1])
+    farewell_msg = (
+        f"🚨 **BAAY** 🚨\n\n"
+        f"🛑 أنا طالع من المجموعة بأمر من المطور.\n"
+        f"🔒 تم إلغاء الحماية من هذه المجموعة.\n"
+        f"👑 **المطور:** @{DEVELOPER_USERNAME}\n"
+        f"🛡️ PIPO BOT"
+    )
+    try: await client.send_message(gid, farewell_msg)
+    except: pass
+    try:
+        await client(LeaveChannelRequest(gid))
+        active_groups.discard(gid)
+        save_groups()
+        await event.edit(f"✅ تم الخروج من المجموعة `{gid}` وإلغاء الحماية.")
+    except Exception as e:
+        await event.answer(f"❌ فشل الخروج: {e}", alert=True)
+
 # ---------- معاينة الترحيب ----------
 @client.on(events.NewMessage(pattern='^/معاينة_ترحيب$'))
 async def preview_welcome(event):
@@ -538,7 +575,8 @@ async def all_commands(event):
         "/تقرير (بالرد) - /الاوامر - /مساعدة\n\n"
         "**👑 المطور:**\n"
         "/دخول معرف_المجموعة - /رفع_مسؤول - /تنزيل_مسؤول\n"
-        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب"
+        "/المجموعات - /تعيين_ترحيب - /معاينة_ترحيب\n"
+        "/الخروج_من_المجموعة (خاص)"
     )
     await event.reply(txt)
 
