@@ -4,6 +4,7 @@ from telethon import TelegramClient, events, Button
 from telethon.tl.functions.channels import EditBannedRequest, JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
+from aiohttp import web
 
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
@@ -49,6 +50,18 @@ chat_locked = False
 reminder_sent = False
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
+
+# ---------- Health check server for Render ----------
+async def handle_health(request):
+    return web.Response(text="OK")
+
+async def run_health_server():
+    app = web.Application()
+    app.router.add_get('/', handle_health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 10000)
+    await site.start()
 
 # ---------- كشف السب المتطور ----------
 BAD_WORDS = [
