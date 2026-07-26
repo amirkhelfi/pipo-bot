@@ -697,6 +697,7 @@ async def main():
     print(f"✅ PIPO BOT: @{(await client.get_me()).username}")
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
+    asyncio.create_task(run_health_server())
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
