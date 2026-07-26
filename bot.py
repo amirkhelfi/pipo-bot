@@ -1,3 +1,4 @@
+cat > ~/bot-repo/bot.py << 'ENDOFFILE'
 import asyncio, os, time, random, datetime, re, json
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
@@ -111,26 +112,27 @@ async def unban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=False))); return True
     except: return False
 
-# ---------- الدخول التلقائي ----------
+# ---------- الدخول التلقائي (معدل) ----------
 @client.on(events.NewMessage(from_users=DEVELOPER_ID, pattern=r'^/دخول\s+(.+)', func=lambda e: e.is_private))
 async def join_group(event):
     arg = event.pattern_match.group(1).strip()
     try:
         if arg.startswith('https://t.me/') or arg.startswith('t.me/'):
             if 'joinchat' in arg or '+' in arg:
-                hash_part = arg.split('/')[-1].split('?')[0]
-                await client(ImportChatInviteRequest(hash_part))
-                return await event.reply("تم الدخول. استخدم /تفعيل داخل المجموعة.")
+                return await event.reply("❌ لا يمكن للبوت الانضمام عبر رابط دعوة خاص. استخدم @username أو رابط عام.")
             else:
                 username = arg.rstrip('/').split('/')[-1]
                 entity = await client.get_entity(f'@{username}')
         elif arg.startswith('@'):
             entity = await client.get_entity(arg)
         else:
-            entity = await client.get_entity(int(arg))
+            try:
+                entity = await client.get_entity(int(arg))
+            except:
+                return await event.reply("❌ صيغة غير صحيحة. استخدم @username أو رابط عام مثل https://t.me/groupname.")
         await client(JoinChannelRequest(entity))
         active_groups.add(entity.id); save_groups()
-        await event.reply(f"✅ تم دخول المجموعة وتفعيل البوت.\nالآيدي: {entity.id}")
+        await event.reply(f"✅ تم دخول المجموعة وتفعيل البوت.\n📝 {entity.title}\n🆔 {entity.id}")
     except Exception as e:
         await event.reply(f"❌ فشل الدخول: {str(e)}")
 
@@ -292,13 +294,17 @@ async def show_warn(event):
 @client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
 async def purge(event):
     if not is_admin(await event.get_sender()): return
-    count = min(int(event.pattern_match.group(1)), 100)
-    if count <= 0: return
+    count = int(event.pattern_match.group(1))
+    if count <= 0: return await event.reply("❌ الرجاء إدخال عدد صحيح موجب.")
+    if count > 100: return await event.reply("❌ الحد الأقصى هو 100 رسالة.")
+    await event.delete()
     msgs = await client.get_messages(event.chat_id, limit=count)
     ids = [m.id for m in msgs if m]
+    if not ids: return
     await client.delete_messages(event.chat_id, ids)
-    confirm = await event.reply(f"🧹 مسح {len(ids)} رسالة")
-    await asyncio.sleep(2); await confirm.delete()
+    confirm = await event.respond(f"🧹 تم مسح {len(ids)} رسالة.")
+    await asyncio.sleep(2)
+    await confirm.delete()
 
 @client.on(events.NewMessage(pattern='^/عرض_المكتومين$'))
 async def muted_list(event):
@@ -753,3 +759,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+ENDOFFILE
