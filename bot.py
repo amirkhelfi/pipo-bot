@@ -1,4 +1,3 @@
-cat > ~/bot-repo/bot.py << 'ENDOFFILE'
 import asyncio, os, time, random, datetime, re, json
 from collections import defaultdict
 from telethon import TelegramClient, events, Button
@@ -7,6 +6,7 @@ from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
 from aiohttp import web
 
+# ================= CONFIGURATION =================
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
 BOT_TOKEN = '8957362371:AAGC_GviR84bM0kl3Zmp4Ek9Okq56C9tWJM'
@@ -18,6 +18,7 @@ ADMINS_FILE = "admins.json"
 WARNINGS_FILE = "warnings.json"
 RULES_FILE = "rules.txt"
 WELCOME_FILE = "welcome.json"
+CHANNEL_LIMITS_FILE = "channel_limits.json"
 DEFAULT_ADMINS = [6941580330]
 
 def load_json(path, default):
@@ -30,6 +31,7 @@ def load_json(path, default):
 def save_json(path, data):
     with open(path, 'w') as f: json.dump(data, f)
 
+# ================= DATA STORAGE =================
 active_groups = set(load_json(GROUPS_FILE, []))
 def save_groups(): save_json(GROUPS_FILE, list(active_groups))
 
@@ -42,6 +44,10 @@ def save_warnings(): save_json(WARNINGS_FILE, warnings_data)
 welcome_media = load_json(WELCOME_FILE, {})
 def save_welcome_media(): save_json(WELCOME_FILE, welcome_media)
 
+channel_limits = load_json(CHANNEL_LIMITS_FILE, {})  # {chat_id: {"max_msgs": 3, "window": 300}}
+user_channel_msgs = defaultdict(lambda: defaultdict(list))  # {chat_id: {user_id: [timestamps]}}
+user_channel_mutes = {}  # {chat_id: {user_id: until_time}}
+
 mute_status = {}
 message_count = defaultdict(int)
 mute_duration = 300
@@ -52,7 +58,7 @@ reminder_sent = False
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# ---------- Health check server for Render ----------
+# ================= HEALTH CHECK SERVER =================
 async def handle_health(request):
     return web.Response(text="OK")
 
@@ -64,7 +70,7 @@ async def run_health_server():
     site = web.TCPSite(runner, '0.0.0.0', 10000)
     await site.start()
 
-# ---------- كشف السب المتطور ----------
+# ================= BAD WORDS DETECTION =================
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -77,13 +83,13 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-    r'ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪﻛﻚ6]',
-    r'[كڪﻛﻚګگ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$]',
+    r'ن[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*ي[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[كڪKbB6]',
+    r'[كڪKbB][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[سښصث5\$]',
     r'[ططـظظـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[زژڗژظڞ]',
     r'[زژڗژ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
     r'[قڨ9][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ححـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[ببـپپـ]',
     r'f[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[uوؤ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[cكڪ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[kكڪ]',
-    r'[nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر]',
+    r'[nن][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[i1!|][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[gج][\s\.\,\;\:\!\@\#\$\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[e3][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[rر]',
     r'\b(زبي|زبيي|كسك|طيزك|قحبتك|قحبتي)\b',
     r'\b(يا[\s]*ود[\s]*الكبدة|يا[\s]*ولد[\s]*القحبة|ولد[\s]*الزانية)\b',
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
@@ -99,48 +105,50 @@ def contains_swear(t): return any(re.search(p, t, re.I) for p in BAD_WORDS) if t
 def contains_link(t): return any(re.search(p, t, re.I) for p in LINK_PATTERNS) if t else False
 def is_forward(m): return bool(m.forward)
 
+# ================= MODERATION FUNCTIONS =================
 async def mute_user(chat, user, dur):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=datetime.datetime.fromtimestamp(time.time()+dur), send_messages=True))); return True
     except: return False
+
 async def unmute_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, send_messages=False))); return True
     except: return False
+
 async def ban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=True))); return True
     except: return False
+
 async def unban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=False))); return True
     except: return False
 
-# ---------- الدخول التلقائي (معدل) ----------
+# ================= AUTO JOIN =================
 @client.on(events.NewMessage(from_users=DEVELOPER_ID, pattern=r'^/دخول\s+(.+)', func=lambda e: e.is_private))
 async def join_group(event):
     arg = event.pattern_match.group(1).strip()
     try:
         if arg.startswith('https://t.me/') or arg.startswith('t.me/'):
             if 'joinchat' in arg or '+' in arg:
-                return await event.reply("❌ لا يمكن للبوت الانضمام عبر رابط دعوة خاص. استخدم @username أو رابط عام.")
+                return await event.reply("❌ لا يمكن للبوت الانضمام عبر رابط دعوة خاص. استخدم @username لمجموعة عامة، أو أضف البوت يدويًا.")
             else:
                 username = arg.rstrip('/').split('/')[-1]
                 entity = await client.get_entity(f'@{username}')
         elif arg.startswith('@'):
             entity = await client.get_entity(arg)
         else:
-            try:
-                entity = await client.get_entity(int(arg))
-            except:
-                return await event.reply("❌ صيغة غير صحيحة. استخدم @username أو رابط عام مثل https://t.me/groupname.")
+            try: entity = await client.get_entity(int(arg))
+            except: return await event.reply("❌ صيغة غير صحيحة. استخدم @username أو رابط عام مثل https://t.me/groupname.")
         await client(JoinChannelRequest(entity))
         active_groups.add(entity.id); save_groups()
-        await event.reply(f"✅ تم دخول المجموعة وتفعيل البوت.\n📝 {entity.title}\n🆔 {entity.id}")
+        await event.reply(f"✅ تم دخول المجموعة وتفعيل البوت.\n📝 الاسم: {entity.title}\n🆔 الآيدي: {entity.id}")
     except Exception as e:
         await event.reply(f"❌ فشل الدخول: {str(e)}")
 
-# ---------- الأوامر الإدارية ----------
+# ================= ADMIN COMMANDS =================
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
-    if s.username == DEVELOPER_USERNAME:
+    if is_admin(s):
         await event.reply("⚡ PIPO BOT ⚡ 👑 @amirx_xpipo", buttons=[
             [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
             [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("🔓 فك الكل", b"unmute_all_btn")]
@@ -303,8 +311,7 @@ async def purge(event):
     if not ids: return
     await client.delete_messages(event.chat_id, ids)
     confirm = await event.respond(f"🧹 تم مسح {len(ids)} رسالة.")
-    await asyncio.sleep(2)
-    await confirm.delete()
+    await asyncio.sleep(2); await confirm.delete()
 
 @client.on(events.NewMessage(pattern='^/عرض_المكتومين$'))
 async def muted_list(event):
@@ -360,7 +367,7 @@ async def demote_admin(event):
     admins.remove(target_id); save_json(ADMINS_FILE, admins)
     await event.reply("✅ تم تنزيله من المسؤولين")
 
-# ---------- تنبيه الصلاحيات ----------
+# ================= PERMISSION CHECK =================
 @client.on(events.NewMessage(pattern='^/طلب_صلاحية$'))
 async def request_admin(event):
     if not is_admin(await event.get_sender()): return
@@ -391,7 +398,7 @@ async def check_permissions(event):
     except Exception as e:
         await event.reply(f"❌ حدث خطأ: {str(e)}")
 
-# ---------- أوامر الأعضاء ----------
+# ================= MEMBER COMMANDS =================
 @client.on(events.NewMessage(pattern='^/تقرير$', func=lambda e: e.is_reply))
 async def report(event):
     target_msg = await event.get_reply_message()
@@ -456,7 +463,7 @@ async def secret(event):
     await asyncio.sleep(1)
     await client.send_message(event.chat_id, f"📩 رسالة مجهولة: {text}")
 
-# ---------- ميزة الخروج من المجموعة (خاص بالمطور) ----------
+# ================= DEVELOPER LEAVE GROUP =================
 @client.on(events.NewMessage(pattern='^/الخروج_من_المجموعة$', from_users=DEVELOPER_ID, func=lambda e: e.is_private))
 async def leave_group_prompt(event):
     if not active_groups:
@@ -471,29 +478,22 @@ async def leave_group_prompt(event):
         buttons.append([Button.inline(f"🚪 {name}", f"leave_{gid}")])
     await event.reply("**اختر المجموعة التي تريد الخروج منها:**", buttons=buttons)
 
-@client.on(events.CallbackQuery(func=lambda e: e.data.startswith(b'leave_')))
-async def leave_group_handler(event):
-    if event.sender_id != DEVELOPER_ID:
-        return await event.answer("❌ هذا الأمر للمطور فقط.", alert=True)
-    gid = int(event.data.decode('utf-8').split('_')[1])
-    farewell_msg = (
-        f"🚨 **BAAY** 🚨\n\n"
-        f"🛑 أنا طالع من المجموعة بأمر من المطور.\n"
-        f"🔒 تم إلغاء الحماية من هذه المجموعة.\n"
-        f"👑 **المطور:** @{DEVELOPER_USERNAME}\n"
-        f"🛡️ PIPO BOT"
-    )
-    try: await client.send_message(gid, farewell_msg)
-    except: pass
-    try:
-        await client(LeaveChannelRequest(gid))
-        active_groups.discard(gid)
-        save_groups()
-        await event.edit(f"✅ تم الخروج من المجموعة `{gid}` وإلغاء الحماية.")
-    except Exception as e:
-        await event.answer(f"❌ فشل الخروج: {e}", alert=True)
+# ================= CHANNEL PROTECTION =================
+@client.on(events.NewMessage(pattern='^/تفعيل_حماية_القنوات$'))
+async def enable_channel_protection(event):
+    if not is_admin(await event.get_sender()): return
+    channel_limits[event.chat_id] = {"max_msgs": 3, "window": 300}
+    save_json(CHANNEL_LIMITS_FILE, channel_limits)
+    await event.reply("🛡️ **تم تفعيل حماية القناة**\n📨 3 رسائل فقط كل 5 دقائق لكل عضو.\n👑 المطور: @" + DEVELOPER_USERNAME)
 
-# ---------- معاينة الترحيب ----------
+@client.on(events.NewMessage(pattern='^/تعطيل_حماية_القنوات$'))
+async def disable_channel_protection(event):
+    if not is_admin(await event.get_sender()): return
+    channel_limits.pop(event.chat_id, None)
+    save_json(CHANNEL_LIMITS_FILE, channel_limits)
+    await event.reply("❌ تم تعطيل حماية القناة.")
+
+# ================= WELCOME =================
 @client.on(events.NewMessage(pattern='^/معاينة_ترحيب$'))
 async def preview_welcome(event):
     if not is_admin(await event.get_sender()): return
@@ -537,7 +537,6 @@ async def preview_welcome(event):
         except: pass
     await client.send_message(event.chat_id, welcome_text, buttons=buttons)
 
-# ---------- تعيين وسائط الترحيب ----------
 @client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
 async def set_welcome_media(event):
     sender = await event.get_sender()
@@ -562,7 +561,7 @@ async def set_welcome_media(event):
     except Exception as e:
         await event.reply(f"❌ خطأ: {str(e)}")
 
-# ---------- الأوامر العامة ----------
+# ================= GENERAL COMMANDS =================
 @client.on(events.NewMessage(pattern='/الاوامر|/الأوامر|/اوامر'))
 async def all_commands(event):
     txt = (
@@ -574,7 +573,8 @@ async def all_commands(event):
         "/تثبيت - /فك_كل_الكمات - /عرض_المكتومين\n"
         "/مدة_الكتم - /حالة_الحماية - /زيادة_المدة\n"
         "/تفعيل/تعطيل حماية الروابط والتوجيه\n"
-        "/تحقق_الصلاحيات - /طلب_صلاحية\n\n"
+        "/تحقق_الصلاحيات - /طلب_صلاحية\n"
+        "/تفعيل_حماية_القنوات - /تعطيل_حماية_القنوات\n\n"
         "**👤 الأعضاء:**\n"
         "/start - /ايدي - /حب - /سر\n"
         "/توب_المتفاعلين - /قوانين - /معلومات (بالرد)\n"
@@ -593,7 +593,7 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- الترحيب التلقائي ----------
+# ================= WELCOME & CALLBACKS =================
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     chat = event.chat_id
@@ -639,7 +639,6 @@ async def legendary_welcome(event):
         except: pass
     await client.send_message(chat, welcome_text, buttons=buttons)
 
-# ---------- أزرار الترحيب ----------
 @client.on(events.CallbackQuery)
 async def welcome_buttons(event):
     data = event.data.decode('utf-8')
@@ -664,6 +663,24 @@ async def welcome_buttons(event):
             items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
             txt = "\n".join(f"{i}. {name}" for i, (uid, _) in enumerate(items, 1) if (name := (await client.get_entity(uid)).first_name))
             await event.answer(txt, alert=True)
+    elif data.startswith("leave_"):
+        if event.sender_id != DEVELOPER_ID: return await event.answer("❌ هذا الأمر للمطور فقط.", alert=True)
+        gid = int(data.split('_')[1])
+        farewell_msg = (
+            f"🚨 **BAAY** 🚨\n\n"
+            f"🛑 أنا طالع من المجموعة بأمر من المطور.\n"
+            f"🔒 تم إلغاء الحماية من هذه المجموعة.\n"
+            f"👑 **المطور:** @{DEVELOPER_USERNAME}\n"
+            f"🛡️ PIPO BOT"
+        )
+        try: await client.send_message(gid, farewell_msg)
+        except: pass
+        try:
+            await client(LeaveChannelRequest(gid))
+            active_groups.discard(gid); save_groups()
+            await event.edit(f"✅ تم الخروج من المجموعة `{gid}` وإلغاء الحماية.")
+        except Exception as e:
+            await event.answer(f"❌ فشل الخروج: {e}", alert=True)
     else:
         if data == "mute_dur": await event.reply(f"⏰ {mute_duration//60} د")
         elif data == "bot_stat": await event.reply(f"📊 مكتوم: {len(mute_status)}")
@@ -680,19 +697,43 @@ async def welcome_buttons(event):
             mute_status[uid] = {'until': time.time()+mins*60}
             await event.edit(f"✅ +{mins} دقائق")
         elif data == "help_admin":
-            await event.edit("🛡️ أوامر المسؤول:\n/تفعيل /تعطيل /قفل /فك /كتم /حظر /فك_الحظر /تحذير /مسح /تثبيت /مدة_الكتم /فك_كل /حماية /عرض_المكتومين /تحقق_الصلاحيات /طلب_صلاحية /مساعدة")
+            await event.edit("🛡️ أوامر المسؤول:\n/تفعيل /تعطيل /قفل /فك /كتم /حظر /فك_الحظر /تحذير /مسح /تثبيت /مدة_الكتم /فك_كل /حماية /عرض_المكتومين /تحقق_الصلاحيات /طلب_صلاحية /تفعيل_حماية_القنوات /تعطيل_حماية_القنوات /مساعدة")
         elif data == "help_member":
             await event.edit("👤 أوامر الأعضاء:\n/start /حب /سر /توب_المتفاعلين /قوانين /معلومات /تقرير /الاوامر /مساعدة")
 
-# ---------- الحماية التلقائية ----------
+# ================= GLOBAL PROTECTION =================
 @client.on(events.NewMessage())
 async def global_handler(event):
     global link_protection, forward_protection, mute_duration
-    if not event.is_group or not event.raw_text or event.out: return
+    if not event.raw_text or event.out: return
     chat = event.chat_id
-    if chat not in active_groups: return
     sender = await event.get_sender()
     if not sender or sender.id == (await client.get_me()).id: return
+
+    # --- channel rate limiting ---
+    if chat in channel_limits:
+        if not is_admin(sender):
+            limit = channel_limits[chat]
+            now_ts = time.time()
+            user_msgs = user_channel_msgs[chat][sender.id]
+            user_msgs[:] = [t for t in user_msgs if now_ts - t < limit["window"]]
+            user_msgs.append(now_ts)
+            if len(user_msgs) > limit["max_msgs"]:
+                await event.delete()
+                mute_dur = limit["window"]
+                await mute_user(chat, sender.id, mute_dur)
+                mute_status[sender.id] = {'until': now_ts + mute_dur, 'name': sender.first_name}
+                warning_msg = (
+                    f"🚫 **انتهت فرصك يا {sender.first_name}!**\n"
+                    f"📨 لقد أرسلت {limit['max_msgs']} رسائل في آخر {limit['window']//60} دقائق.\n"
+                    f"⏳ يمكنك إرسال رسائل جديدة بعد {limit['window']//60} دقائق من الآن.\n"
+                    f"👑 المطور: @{DEVELOPER_USERNAME}"
+                )
+                await client.send_message(chat, warning_msg)
+                return
+
+    if not event.is_group: return
+    if chat not in active_groups: return
     if sender.username == DEVELOPER_USERNAME: return
     message_count[sender.id] += 1
     text = event.raw_text.strip()
@@ -706,7 +747,7 @@ async def global_handler(event):
         mute_status[uid] = {'until': now + mute_duration, 'name': name}
         await event.respond(f"🚫 {name} كتم {mute_duration//60} د")
 
-# ---------- القفل والفتح التلقائي بتوقيت الجزائر ----------
+# ================= AUTO LOCK/UNLOCK (Algeria Time) =================
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
@@ -745,6 +786,7 @@ async def auto_unmute():
                 del mute_status[uid]
         await asyncio.sleep(30)
 
+# ================= MAIN =================
 async def main():
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
@@ -759,4 +801,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-ENDOFFILE
