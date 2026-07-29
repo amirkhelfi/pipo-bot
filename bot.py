@@ -45,7 +45,7 @@ def save_welcome_media(): save_json(WELCOME_FILE, welcome_media)
 
 channel_limits = load_json(CHANNEL_LIMITS_FILE, {})
 user_channel_msgs = defaultdict(lambda: defaultdict(list))
-user_mute_warnings = defaultdict(lambda: defaultdict(float))  # {chat_id: {user_id: last_warning_time}}
+user_mute_warnings = defaultdict(lambda: defaultdict(float))
 
 mute_status = {}
 message_count = defaultdict(int)
@@ -63,14 +63,6 @@ def save_settings(): save_json(AUTO_SETTINGS_FILE, bot_settings)
 # ---------- Health check ----------
 async def handle_health(request):
     return web.Response(text="OK")
-
-async def run_health_server():
-    app = web.Application()
-    app.router.add_get('/', handle_health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 10000)
-    await site.start()
 
 # ---------- كشف السب ----------
 BAD_WORDS = [
@@ -122,7 +114,77 @@ async def unban_user(chat, user):
     try: await client(EditBannedRequest(chat, user, ChatBannedRights(until_date=None, view_messages=False))); return True
     except: return False
 
-# ---------- الأوامر الإدارية ----------
+# ---------- API للوحة التحكم ----------
+API_TOKEN = "pipomaster2026"
+
+async def handle_api(request):
+    token = request.headers.get('X-Bot-Token', '')
+    if token != API_TOKEN:
+        return web.json_response({'error': 'Unauthorized'}, status=403)
+    
+    path = request.path
+    data = await request.json() if request.method == 'POST' else {}
+    
+    if path == '/api/stats':
+        return web.json_response({
+            'totalGroups': len(active_groups),
+            'totalMuted': len([u for u in mute_status if mute_status[u]['until'] > time.time()]),
+            'totalBanned': 0,
+            'totalWarnings': sum(len(v) for v in warnings_data.values())
+        })
+    
+    if path == '/api/groups':
+        groups = []
+        for gid in active_groups:
+            try:
+                entity = await client.get_entity(gid)
+                groups.append({'id': gid, 'name': entity.title})
+            except:
+                groups.append({'id': gid, 'name': str(gid)})
+        return web.json_response({'groups': groups})
+    
+    if path == '/api/broadcast':
+        msg = data.get('message', '')
+        if not msg:
+            return web.json_response({'error': 'No message'})
+        c = 0
+        for gid in active_groups:
+            try:
+                await client.send_message(gid, f"📢 **رسالة من المطور:**\n\n{msg}\n\n👑 @{DEVELOPER_USERNAME}")
+                c += 1
+            except: pass
+        return web.json_response({'success': True, 'count': c})
+    
+    if path == '/api/leave':
+        gid = data.get('group_id')
+        if gid:
+            try:
+                await client.send_message(gid, f"🚨 BAAY! أنا طالع من المجموعة بأمر من المطور.\n👑 @{DEVELOPER_USERNAME}")
+                await client(LeaveChannelRequest(gid))
+                active_groups.discard(gid); save_groups()
+                return web.json_response({'success': True})
+            except: pass
+        return web.json_response({'error': 'Failed'})
+    
+    if path == '/api/globalban':
+        uid = data.get('user_id')
+        remove = data.get('remove', False)
+        if uid:
+            if remove:
+                for gid in active_groups:
+                    try: await unban_user(gid, uid)
+                    except: pass
+                return web.json_response({'success': True})
+            else:
+                for gid in active_groups:
+                    try: await ban_user(gid, uid)
+                    except: pass
+                return web.json_response({'success': True})
+        return web.json_response({'error': 'No user_id'})
+    
+    return web.json_response({'error': 'Unknown endpoint'})
+
+# ---------- الأوامر ----------
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
@@ -349,7 +411,52 @@ async def disable_channel_protection(event):
     save_json(CHANNEL_LIMITS_FILE, channel_limits)
     await event.reply("❌ تم تعطيل حماية القناة.")
 
-# ================= القفل التلقائي =================
+# ---------- Global Protection ----------
+@client.on(events.NewMessage())
+async def global_handler(event):
+    global link_protection, forward_protection, mute_duration
+    if not event.raw_text or event.out: return
+    chat = event.chat_id
+    sender = await event.get_sender()
+    if not sender or sender.id == (await client.get_me()).id: return
+
+    if chat in channel_limits and not is_admin(sender):
+        limit = channel_limits[chat]
+        now_ts = time.time()
+        user_msgs = user_channel_msgs[chat][sender.id]
+        user_msgs[:] = [t for t in user_msgs if now_ts - t < limit["window"]]
+        user_msgs.append(now_ts)
+        if len(user_msgs) > limit["max_msgs"]:
+            if sender.id not in mute_status or mute_status[sender.id]['until'] < now_ts:
+                await mute_user(chat, sender.id, limit["window"])
+                mute_status[sender.id] = {'until': now_ts + limit["window"], 'name': sender.first_name}
+                last_warning = user_mute_warnings[chat][sender.id]
+                if now_ts - last_warning >= limit["window"]:
+                    user_mute_warnings[chat][sender.id] = now_ts
+                    await client.send_message(chat, (
+                        f"🚫 **انتهت فرصك يا {sender.first_name}!**\n"
+                        f"📨 لقد أرسلت {limit['max_msgs']} رسائل في آخر {limit['window']//60} دقائق.\n"
+                        f"⏳ يمكنك إرسال رسائل جديدة بعد {limit['window']//60} دقائق من الآن.\n"
+                        f"👑 المطور: @{DEVELOPER_USERNAME}"
+                    ))
+            return
+
+    if not event.is_group: return
+    if chat not in active_groups: return
+    if sender.username == DEVELOPER_USERNAME: return
+    message_count[sender.id] += 1
+    text = event.raw_text.strip()
+    if link_protection and contains_link(text): await event.delete(); return
+    if forward_protection and is_forward(event.message): await event.delete(); return
+    if contains_swear(text.lower()):
+        now = time.time(); uid = sender.id; name = sender.first_name or "مجهول"
+        if uid in mute_status and mute_status[uid]['until'] > now: return
+        await event.delete()
+        await mute_user(chat, uid, mute_duration)
+        mute_status[uid] = {'until': now + mute_duration, 'name': name}
+        await event.respond(f"🚫 {name} كتم {mute_duration//60} د")
+
+# ---------- القفل التلقائي ----------
 async def auto_lock_unlock():
     global chat_locked, reminder_sent
     while True:
@@ -391,58 +498,19 @@ async def auto_unmute():
                 del mute_status[uid]
         await asyncio.sleep(30)
 
-# ---------- Global Protection ----------
-@client.on(events.NewMessage())
-async def global_handler(event):
-    global link_protection, forward_protection, mute_duration
-    if not event.raw_text or event.out: return
-    chat = event.chat_id
-    sender = await event.get_sender()
-    if not sender or sender.id == (await client.get_me()).id: return
+async def run_health_server():
+    app = web.Application()
+    app.router.add_get('/', handle_health)
+    app.router.add_get('/api/stats', handle_api)
+    app.router.add_get('/api/groups', handle_api)
+    app.router.add_post('/api/broadcast', handle_api)
+    app.router.add_post('/api/leave', handle_api)
+    app.router.add_post('/api/globalban', handle_api)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 10000)
+    await site.start()
 
-    # --- channel rate limit (معدل) ---
-    if chat in channel_limits and not is_admin(sender):
-        limit = channel_limits[chat]
-        now_ts = time.time()
-        user_msgs = user_channel_msgs[chat][sender.id]
-        user_msgs[:] = [t for t in user_msgs if now_ts - t < limit["window"]]
-        user_msgs.append(now_ts)
-
-        if len(user_msgs) > limit["max_msgs"]:
-            # كتم العضو فوراً إذا لم يكن مكتوماً
-            if sender.id not in mute_status or mute_status[sender.id]['until'] < now_ts:
-                await mute_user(chat, sender.id, limit["window"])
-                mute_status[sender.id] = {'until': now_ts + limit["window"], 'name': sender.first_name}
-                
-                # إرسال رسالة تنبيه مرة واحدة فقط كل 5 دقائق
-                last_warning = user_mute_warnings[chat][sender.id]
-                if now_ts - last_warning >= limit["window"]:
-                    user_mute_warnings[chat][sender.id] = now_ts
-                    warning_msg = (
-                        f"🚫 **انتهت فرصك يا {sender.first_name}!**\n"
-                        f"📨 لقد أرسلت {limit['max_msgs']} رسائل في آخر {limit['window']//60} دقائق.\n"
-                        f"⏳ يمكنك إرسال رسائل جديدة بعد {limit['window']//60} دقائق من الآن.\n"
-                        f"👑 المطور: @{DEVELOPER_USERNAME}"
-                    )
-                    await client.send_message(chat, warning_msg)
-            return
-
-    if not event.is_group: return
-    if chat not in active_groups: return
-    if sender.username == DEVELOPER_USERNAME: return
-    message_count[sender.id] += 1
-    text = event.raw_text.strip()
-    if link_protection and contains_link(text): await event.delete(); return
-    if forward_protection and is_forward(event.message): await event.delete(); return
-    if contains_swear(text.lower()):
-        now = time.time(); uid = sender.id; name = sender.first_name or "مجهول"
-        if uid in mute_status and mute_status[uid]['until'] > now: return
-        await event.delete()
-        await mute_user(chat, uid, mute_duration)
-        mute_status[uid] = {'until': now + mute_duration, 'name': name}
-        await event.respond(f"🚫 {name} كتم {mute_duration//60} د")
-
-# ================= MAIN =================
 async def main():
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
