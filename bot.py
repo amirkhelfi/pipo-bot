@@ -45,6 +45,7 @@ def save_welcome_media(): save_json(WELCOME_FILE, welcome_media)
 
 channel_limits = load_json(CHANNEL_LIMITS_FILE, {})
 user_channel_msgs = defaultdict(lambda: defaultdict(list))
+user_mute_warnings = defaultdict(lambda: defaultdict(float))  # {chat_id: {user_id: last_warning_time}}
 
 mute_status = {}
 message_count = defaultdict(int)
@@ -56,7 +57,6 @@ reminder_sent = False
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 
-# إعدادات إضافية (القفل التلقائي)
 bot_settings = load_json(AUTO_SETTINGS_FILE, {"auto_lock_enabled": False})
 def save_settings(): save_json(AUTO_SETTINGS_FILE, bot_settings)
 
@@ -160,7 +160,6 @@ async def unlock_chat(event):
     await client.edit_permissions(event.chat_id, send_messages=True)
     await event.reply("🔓 تم فتح المجموعة")
 
-# ================= تفعيل/تعطيل القفل التلقائي =================
 @client.on(events.NewMessage(pattern='^/تفعيل_القفل_التلقائي$'))
 async def enable_auto_lock(event):
     if not is_admin(await event.get_sender()): return
@@ -175,7 +174,6 @@ async def disable_auto_lock(event):
     save_settings()
     await event.reply("❌ **تم تعطيل القفل التلقائي للمجموعة**")
 
-# ================= باقي الأوامر =================
 @client.on(events.NewMessage(pattern='^/حالة_الحماية$'))
 async def prot_stat(event):
     await event.reply(f"🛡️ الروابط: {'✅' if link_protection else '❌'} | التوجيه: {'✅' if forward_protection else '❌'} | السب: ✅ | القفل التلقائي: {'✅' if bot_settings.get('auto_lock_enabled', False) else '❌'} | القفل اليدوي: {'🔒' if chat_locked else '🔓'}")
@@ -402,24 +400,31 @@ async def global_handler(event):
     sender = await event.get_sender()
     if not sender or sender.id == (await client.get_me()).id: return
 
-    # --- channel rate limit ---
+    # --- channel rate limit (معدل) ---
     if chat in channel_limits and not is_admin(sender):
         limit = channel_limits[chat]
         now_ts = time.time()
         user_msgs = user_channel_msgs[chat][sender.id]
         user_msgs[:] = [t for t in user_msgs if now_ts - t < limit["window"]]
         user_msgs.append(now_ts)
+
         if len(user_msgs) > limit["max_msgs"]:
-            await event.delete()
-            mute_dur = limit["window"]
-            await mute_user(chat, sender.id, mute_dur)
-            mute_status[sender.id] = {'until': now_ts + mute_dur, 'name': sender.first_name}
-            await client.send_message(chat, (
-                f"🚫 **انتهت فرصك يا {sender.first_name}!**\n"
-                f"📨 لقد أرسلت {limit['max_msgs']} رسائل في آخر {limit['window']//60} دقائق.\n"
-                f"⏳ يمكنك إرسال رسائل جديدة بعد {limit['window']//60} دقائق من الآن.\n"
-                f"👑 المطور: @{DEVELOPER_USERNAME}"
-            ))
+            # كتم العضو فوراً إذا لم يكن مكتوماً
+            if sender.id not in mute_status or mute_status[sender.id]['until'] < now_ts:
+                await mute_user(chat, sender.id, limit["window"])
+                mute_status[sender.id] = {'until': now_ts + limit["window"], 'name': sender.first_name}
+                
+                # إرسال رسالة تنبيه مرة واحدة فقط كل 5 دقائق
+                last_warning = user_mute_warnings[chat][sender.id]
+                if now_ts - last_warning >= limit["window"]:
+                    user_mute_warnings[chat][sender.id] = now_ts
+                    warning_msg = (
+                        f"🚫 **انتهت فرصك يا {sender.first_name}!**\n"
+                        f"📨 لقد أرسلت {limit['max_msgs']} رسائل في آخر {limit['window']//60} دقائق.\n"
+                        f"⏳ يمكنك إرسال رسائل جديدة بعد {limit['window']//60} دقائق من الآن.\n"
+                        f"👑 المطور: @{DEVELOPER_USERNAME}"
+                    )
+                    await client.send_message(chat, warning_msg)
             return
 
     if not event.is_group: return
