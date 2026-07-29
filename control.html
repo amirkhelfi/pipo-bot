@@ -57,7 +57,10 @@
         .panel.active {
             display: block;
         }
-        h3 { color: #ff8c00; margin-bottom: 20px; }
+        h3 {
+            color: #ff8c00;
+            margin-bottom: 20px;
+        }
         .card {
             background: #111920;
             border: 1px solid #1f2a33;
@@ -107,18 +110,52 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+            font-size: 1em;
+        }
+        button.action:hover {
+            background: #e67e00;
+        }
+        button.danger {
+            background: #c0392b;
+            color: #fff;
         }
         .group-list {
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
         }
         .group-item {
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid #1f2a33;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+        .group-item button {
+            background: transparent;
+            border: 1px solid #c0392b;
+            color: #c0392b;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .success-msg {
+            background: #27ae6011;
+            border: 1px solid #27ae60;
+            color: #27ae60;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .error-msg {
+            background: #c0392b11;
+            border: 1px solid #c0392b;
+            color: #c0392b;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -127,34 +164,66 @@
         <button onclick="showTab('dashboard')" class="active">🏠 الرئيسية</button>
         <button onclick="showTab('broadcast')">📢 الإذاعة</button>
         <button onclick="showTab('groups')">👥 المجموعات</button>
+        <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
     </div>
 
     <div class="main">
+        <!-- Dashboard -->
         <div id="dashboard" class="panel active">
             <h3>📊 لوحة التحكم</h3>
             <div class="stat-grid">
                 <div class="stat-box">
                     <div class="number" id="totalGroups">-</div>
-                    <div class="label">المجموعات</div>
+                    <div class="label">المجموعات المفعلة</div>
                 </div>
                 <div class="stat-box">
                     <div class="number" id="totalMuted">-</div>
-                    <div class="label">المكتومين</div>
+                    <div class="label">الأعضاء المكتومين</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" id="totalBanned">-</div>
+                    <div class="label">الأعضاء المحظورين</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" id="totalWarnings">-</div>
+                    <div class="label">التحذيرات اليوم</div>
+                </div>
+            </div>
+            <div class="card">
+                <p>🕒 آخر تحديث: <span id="lastUpdate">-</span></p>
+            </div>
+        </div>
+
+        <!-- Broadcast -->
+        <div id="broadcast" class="panel">
+            <h3>📢 إذاعة رسالة إلى جميع المجموعات</h3>
+            <div class="card">
+                <textarea id="broadcastMsg" placeholder="اكتب رسالتك هنا..." rows="5"></textarea>
+                <button class="action" onclick="sendBroadcast()">📨 إرسال الإذاعة</button>
+                <div id="broadcastResult" class="hidden"></div>
+            </div>
+        </div>
+
+        <!-- Groups -->
+        <div id="groups" class="panel">
+            <h3>👥 المجموعات المفعلة</h3>
+            <div class="card">
+                <button class="action" onclick="loadGroups()">🔄 تحديث القائمة</button>
+                <div class="group-list" id="groupsList">
+                    <p>اضغط تحديث لعرض المجموعات...</p>
                 </div>
             </div>
         </div>
 
-        <div id="broadcast" class="panel">
-            <h3>📢 إذاعة</h3>
+        <!-- Blacklist -->
+        <div id="blacklist" class="panel">
+            <h3>🚫 القائمة السوداء العالمية</h3>
             <div class="card">
-                <textarea id="broadcastMsg" placeholder="اكتب رسالتك..." rows="5"></textarea>
-                <button class="action" onclick="sendBroadcast()">إرسال</button>
+                <input type="text" id="banUserId" placeholder="أدخل آيدي المستخدم للحظر العالمي">
+                <button class="action danger" onclick="addGlobalBan()">حظر عالمي</button>
+                <button class="action" onclick="removeGlobalBan()">إلغاء الحظر العالمي</button>
+                <div id="blacklistResult" class="hidden"></div>
             </div>
-        </div>
-
-        <div id="groups" class="panel">
-            <h3>👥 المجموعات</h3>
-            <div class="card group-list" id="groupsList"></div>
         </div>
     </div>
 
@@ -174,15 +243,17 @@
                 const res = await fetch(`${BOT_URL}${path}`, opts);
                 return await res.json();
             } catch (e) {
-                return { error: "تعذر الاتصال" };
+                return { error: "تعذر الاتصال بالبوت" };
             }
         }
 
-        function showTab(id) {
+        function showTab(tabId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            if (id === 'dashboard') loadDashboard();
-            if (id === 'groups') loadGroups();
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if (tabId === 'groups') loadGroups();
+            if (tabId === 'dashboard') loadDashboard();
         }
 
         async function loadDashboard() {
@@ -190,23 +261,78 @@
             if (data) {
                 document.getElementById('totalGroups').innerText = data.totalGroups || 0;
                 document.getElementById('totalMuted').innerText = data.totalMuted || 0;
+                document.getElementById('totalBanned').innerText = data.totalBanned || 0;
+                document.getElementById('totalWarnings').innerText = data.totalWarnings || 0;
+                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString('ar-DZ');
             }
         }
 
         async function loadGroups() {
-            const data = await api('/api/groups');
             const container = document.getElementById('groupsList');
+            container.innerHTML = '<p>جاري التحميل...</p>';
+            const data = await api('/api/groups');
             if (data && data.groups) {
-                container.innerHTML = data.groups.map(g => `<div class="group-item">${g.name} (${g.id})</div>`).join('');
+                container.innerHTML = data.groups.map(g => `
+                    <div class="group-item">
+                        <span>${g.name} (${g.id})</span>
+                        <button onclick="leaveGroup(${g.id})">خروج</button>
+                    </div>
+                `).join('');
             }
         }
 
         async function sendBroadcast() {
             const msg = document.getElementById('broadcastMsg').value.trim();
-            if (!msg) return alert('اكتب رسالة');
+            if (!msg) return alert('الرجاء كتابة رسالة.');
             const data = await api('/api/broadcast', { message: msg });
-            if (data.success) alert(`تم الإذاعة إلى ${data.count} مجموعة`);
-            document.getElementById('broadcastMsg').value = '';
+            const result = document.getElementById('broadcastResult');
+            result.classList.remove('hidden');
+            if (data.success) {
+                result.className = 'success-msg';
+                result.innerText = `✅ تم إذاعة الرسالة إلى ${data.count} مجموعة.`;
+                document.getElementById('broadcastMsg').value = '';
+            } else {
+                result.className = 'error-msg';
+                result.innerText = '❌ فشل الإذاعة.';
+            }
+        }
+
+        async function leaveGroup(gid) {
+            if (!confirm('هل أنت متأكد من الخروج من هذه المجموعة؟')) return;
+            const data = await api('/api/leave', { group_id: gid });
+            if (data.success) {
+                loadGroups();
+            }
+        }
+
+        async function addGlobalBan() {
+            const uid = document.getElementById('banUserId').value.trim();
+            if (!uid) return alert('أدخل آيدي المستخدم.');
+            const data = await api('/api/globalban', { user_id: parseInt(uid) });
+            const result = document.getElementById('blacklistResult');
+            result.classList.remove('hidden');
+            if (data.success) {
+                result.className = 'success-msg';
+                result.innerText = '✅ تم الحظر العالمي.';
+            } else {
+                result.className = 'error-msg';
+                result.innerText = '❌ فشل الحظر.';
+            }
+        }
+
+        async function removeGlobalBan() {
+            const uid = document.getElementById('banUserId').value.trim();
+            if (!uid) return alert('أدخل آيدي المستخدم.');
+            const data = await api('/api/globalban', { user_id: parseInt(uid), remove: true });
+            const result = document.getElementById('blacklistResult');
+            result.classList.remove('hidden');
+            if (data.success) {
+                result.className = 'success-msg';
+                result.innerText = '✅ تم إلغاء الحظر العالمي.';
+            } else {
+                result.className = 'error-msg';
+                result.innerText = '❌ فشل إلغاء الحظر.';
+            }
         }
 
         loadDashboard();
