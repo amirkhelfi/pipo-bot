@@ -813,6 +813,22 @@ async def run_health_server():
     site = web.TCPSite(runner, '0.0.0.0', 10000)
     await site.start()
 
+
+async def run_health_server():
+    app = web.Application()
+    app.router.add_static("/control.html", path="control.html")
+    app.router.add_get("/", handle_health)
+    app.router.add_get("/api/stats", handle_api)
+    app.router.add_get("/api/groups", handle_api)
+    app.router.add_post("/api/broadcast", handle_api)
+    app.router.add_post("/api/leave", handle_api)
+    app.router.add_post("/api/globalban", handle_api)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 10000)
+    await site.start()
+
+
 async def main():
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
