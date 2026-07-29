@@ -803,7 +803,10 @@ async def global_handler(event):
 # ---------- تشغيل ----------
 async def run_health_server():
     app = web.Application()
-    app.router.add_static('/control.html', path='control.html')
+    async def control_handler(request):
+    return web.FileResponse('control.html')
+
+app.router.add_get('/control.html', control_handler)
     app.router.add_get('/', handle_health)
     app.router.add_get('/api/stats', handle_api)
     app.router.add_get('/api/groups', handle_api)
