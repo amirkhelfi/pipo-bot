@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIPO BOT – لوحة التحكم</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0a0f14;
+            color: #e0e0e0;
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 260px;
+            background: #0d131a;
+            border-right: 1px solid #1f2a33;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sidebar h2 {
+            color: #ff8c00;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 1px solid #1f2a33;
+            padding-bottom: 15px;
+        }
+        .sidebar button {
+            background: transparent;
+            border: 1px solid #1f2a33;
+            color: #aaa;
+            padding: 12px 15px;
+            text-align: right;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: 0.2s;
+        }
+        .sidebar button:hover, .sidebar button.active {
+            background: #1a2530;
+            color: #ff8c00;
+            border-color: #ff8c00;
+        }
+        .main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+        h3 {
+            color: #ff8c00;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #111920;
+            border: 1px solid #1f2a33;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            width: 100%;
+            background: #0a0f14;
+            border: 1px solid #1f2a33;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            margin: 10px 0;
+        }
+        button.action {
+            background: #ff8c00;
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .group-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .group-item {
+            padding: 10px;
+            border-bottom: 1px solid #1f2a33;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>⚡ PIPO BOT</h2>
+        <button onclick="showTab('dashboard')" class="active">🏠 الرئيسية</button>
+        <button onclick="showTab('broadcast')">📢 الإذاعة</button>
+        <button onclick="showTab('groups')">👥 المجموعات</button>
+        <button onclick="showTab('settings')">⚙️ الإعدادات</button>
+    </div>
+
+    <div class="main">
+        <!-- Dashboard -->
+        <div id="dashboard" class="panel active">
+            <h3>📊 لوحة التحكم</h3>
+            <div class="card">
+                <p>مرحباً بك في لوحة تحكم بوت PIPO. يمكنك إدارة البوت من هنا.</p>
+                <p>عدد المجموعات المفعلة: <strong id="groupsCount">-</strong></p>
+                <p>عدد المكتومين حالياً: <strong id="mutedCount">-</strong></p>
+            </div>
+        </div>
+
+        <!-- Broadcast -->
+        <div id="broadcast" class="panel">
+            <h3>📢 إذاعة رسالة</h3>
+            <div class="card">
+                <textarea id="broadcastMsg" placeholder="اكتب رسالتك هنا..." rows="5"></textarea>
+                <button class="action" onclick="sendBroadcast()">إرسال الإذاعة</button>
+            </div>
+        </div>
+
+        <!-- Groups -->
+        <div id="groups" class="panel">
+            <h3>👥 المجموعات المفعلة</h3>
+            <div class="card group-list" id="groupsList">
+                <p>جاري التحميل...</p>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="settings" class="panel">
+            <h3>⚙️ الإعدادات</h3>
+            <div class="card">
+                <p>الإعدادات قيد التطوير...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "https://pipo-bot.onrender.com"; // رابط البوت على Render
+
+        function showTab(tabId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if(tabId === 'groups') loadGroups();
+            if(tabId === 'dashboard') loadDashboard();
+        }
+
+        async function loadDashboard() {
+            // محاكاة (لاحقاً سنضيف API حقيقي)
+            document.getElementById('groupsCount').innerText = '-';
+            document.getElementById('mutedCount').innerText = '-';
+        }
+
+        async function loadGroups() {
+            const container = document.getElementById('groupsList');
+            container.innerHTML = '<p>جاري التحميل...</p>';
+            // محاكاة (ستُستبدل بـ API حقيقي لاحقاً)
+            container.innerHTML = '<p>قائمة المجموعات ستظهر هنا قريباً.</p>';
+        }
+
+        async function sendBroadcast() {
+            const msg = document.getElementById('broadcastMsg').value.trim();
+            if (!msg) return alert('الرجاء كتابة رسالة.');
+            // محاكاة (ستُستبدل بـ API حقيقي لاحقاً)
+            alert(`تم إذاعة الرسالة:\n${msg}`);
+            document.getElementById('broadcastMsg').value = '';
+        }
+    </script>
+</body>
+</html>
