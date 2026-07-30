@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIPO BOT – لوحة التحكم</title>
+    <title>PIPO BOT – لوحة التحكم المتطورة</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -51,16 +51,9 @@
             padding: 30px;
             overflow-y: auto;
         }
-        .panel {
-            display: none;
-        }
-        .panel.active {
-            display: block;
-        }
-        h3 {
-            color: #ff8c00;
-            margin-bottom: 20px;
-        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        h3 { color: #ff8c00; margin-bottom: 20px; }
         .card {
             background: #111920;
             border: 1px solid #1f2a33;
@@ -81,17 +74,9 @@
             padding: 20px;
             text-align: center;
         }
-        .stat-box .number {
-            font-size: 2em;
-            color: #ff8c00;
-            font-weight: bold;
-        }
-        .stat-box .label {
-            color: #777;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        input, textarea {
+        .stat-box .number { font-size: 2em; color: #ff8c00; font-weight: bold; }
+        .stat-box .label { color: #777; font-size: 0.9em; margin-top: 5px; }
+        input, textarea, select {
             width: 100%;
             background: #0a0f14;
             border: 1px solid #1f2a33;
@@ -110,58 +95,40 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
-            font-size: 1em;
         }
-        button.action:hover {
-            background: #e67e00;
-        }
-        button.danger {
-            background: #c0392b;
-            color: #fff;
-        }
-        .group-list {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        .group-item {
-            padding: 12px;
-            border-bottom: 1px solid #1f2a33;
+        button.danger { background: #c0392b; color: #fff; }
+        button.success { background: #27ae60; color: #fff; }
+        .mute-card {
+            background: #1a1520;
+            border: 1px solid #ff8c0055;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .group-item button {
-            background: transparent;
-            border: 1px solid #c0392b;
-            color: #c0392b;
-            padding: 6px 12px;
-            border-radius: 20px;
-            cursor: pointer;
+        .mute-info { flex: 1; }
+        .mute-name { color: #ff8c00; font-weight: bold; }
+        .mute-time { color: #aaa; font-size: 0.9em; }
+        .mute-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .notification-badge {
+            background: #c0392b;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 8px;
             font-size: 0.8em;
+            margin-right: 5px;
         }
-        .success-msg {
-            background: #27ae6011;
-            border: 1px solid #27ae60;
-            color: #27ae60;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        .error-msg {
-            background: #c0392b11;
-            border: 1px solid #c0392b;
-            color: #c0392b;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h2>⚡ PIPO BOT</h2>
         <button onclick="showTab('dashboard')" class="active">🏠 الرئيسية</button>
+        <button onclick="showTab('muted')" id="mutedTab">🔇 المكتومين <span class="notification-badge" id="mutedCount">0</span></button>
         <button onclick="showTab('broadcast')">📢 الإذاعة</button>
         <button onclick="showTab('groups')">👥 المجموعات</button>
         <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
@@ -170,59 +137,46 @@
     <div class="main">
         <!-- Dashboard -->
         <div id="dashboard" class="panel active">
-            <h3>📊 لوحة التحكم</h3>
+            <h3>📊 لوحة القيادة</h3>
             <div class="stat-grid">
-                <div class="stat-box">
-                    <div class="number" id="totalGroups">-</div>
-                    <div class="label">المجموعات المفعلة</div>
-                </div>
-                <div class="stat-box">
-                    <div class="number" id="totalMuted">-</div>
-                    <div class="label">الأعضاء المكتومين</div>
-                </div>
-                <div class="stat-box">
-                    <div class="number" id="totalBanned">-</div>
-                    <div class="label">الأعضاء المحظورين</div>
-                </div>
-                <div class="stat-box">
-                    <div class="number" id="totalWarnings">-</div>
-                    <div class="label">التحذيرات اليوم</div>
-                </div>
+                <div class="stat-box"><div class="number" id="totalGroups">-</div><div class="label">المجموعات</div></div>
+                <div class="stat-box"><div class="number" id="totalMuted">-</div><div class="label">المكتومين</div></div>
+                <div class="stat-box"><div class="number" id="totalBanned">-</div><div class="label">المحظورين</div></div>
+                <div class="stat-box"><div class="number" id="totalWarnings">-</div><div class="label">التحذيرات</div></div>
             </div>
-            <div class="card">
-                <p>🕒 آخر تحديث: <span id="lastUpdate">-</span></p>
-            </div>
+        </div>
+
+        <!-- Muted Members -->
+        <div id="muted" class="panel">
+            <h3>🔇 الأعضاء المكتومين</h3>
+            <button class="action" onclick="loadMuted()">🔄 تحديث</button>
+            <div id="mutedList"></div>
         </div>
 
         <!-- Broadcast -->
         <div id="broadcast" class="panel">
-            <h3>📢 إذاعة رسالة إلى جميع المجموعات</h3>
+            <h3>📢 إذاعة</h3>
             <div class="card">
-                <textarea id="broadcastMsg" placeholder="اكتب رسالتك هنا..." rows="5"></textarea>
-                <button class="action" onclick="sendBroadcast()">📨 إرسال الإذاعة</button>
-                <div id="broadcastResult" class="hidden"></div>
+                <textarea id="broadcastMsg" placeholder="اكتب رسالتك..." rows="5"></textarea>
+                <button class="action" onclick="sendBroadcast()">📨 إرسال</button>
+                <div id="broadcastResult"></div>
             </div>
         </div>
 
         <!-- Groups -->
         <div id="groups" class="panel">
-            <h3>👥 المجموعات المفعلة</h3>
-            <div class="card">
-                <button class="action" onclick="loadGroups()">🔄 تحديث القائمة</button>
-                <div class="group-list" id="groupsList">
-                    <p>اضغط تحديث لعرض المجموعات...</p>
-                </div>
-            </div>
+            <h3>👥 المجموعات</h3>
+            <button class="action" onclick="loadGroups()">🔄 تحديث</button>
+            <div id="groupsList"></div>
         </div>
 
         <!-- Blacklist -->
         <div id="blacklist" class="panel">
-            <h3>🚫 القائمة السوداء العالمية</h3>
+            <h3>🚫 القائمة السوداء</h3>
             <div class="card">
-                <input type="text" id="banUserId" placeholder="أدخل آيدي المستخدم للحظر العالمي">
+                <input type="text" id="banUserId" placeholder="آيدي المستخدم">
                 <button class="action danger" onclick="addGlobalBan()">حظر عالمي</button>
-                <button class="action" onclick="removeGlobalBan()">إلغاء الحظر العالمي</button>
-                <div id="blacklistResult" class="hidden"></div>
+                <button class="action success" onclick="removeGlobalBan()">فك حظر عالمي</button>
             </div>
         </div>
     </div>
@@ -235,16 +189,11 @@
             const opts = {
                 headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN }
             };
-            if (data) {
-                opts.method = "POST";
-                opts.body = JSON.stringify(data);
-            }
+            if (data) { opts.method = "POST"; opts.body = JSON.stringify(data); }
             try {
                 const res = await fetch(`${BOT_URL}${path}`, opts);
                 return await res.json();
-            } catch (e) {
-                return { error: "تعذر الاتصال بالبوت" };
-            }
+            } catch (e) { return { error: "تعذر الاتصال" }; }
         }
 
         function showTab(tabId) {
@@ -252,6 +201,7 @@
             document.getElementById(tabId).classList.add('active');
             document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
+            if (tabId === 'muted') loadMuted();
             if (tabId === 'groups') loadGroups();
             if (tabId === 'dashboard') loadDashboard();
         }
@@ -263,77 +213,76 @@
                 document.getElementById('totalMuted').innerText = data.totalMuted || 0;
                 document.getElementById('totalBanned').innerText = data.totalBanned || 0;
                 document.getElementById('totalWarnings').innerText = data.totalWarnings || 0;
-                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString('ar-DZ');
+                document.getElementById('mutedCount').innerText = data.totalMuted || 0;
             }
+        }
+
+        async function loadMuted() {
+            const container = document.getElementById('mutedList');
+            container.innerHTML = '<p>جاري التحميل...</p>';
+            const data = await api('/api/muted');
+            if (data && data.muted) {
+                container.innerHTML = data.muted.map(m => `
+                    <div class="mute-card">
+                        <div class="mute-info">
+                            <div class="mute-name">${m.name} (${m.uid})</div>
+                            <div class="mute-time">⏳ متبقي: ${m.remaining} دقيقة | المجموعة: ${m.group}</div>
+                        </div>
+                        <div class="mute-actions">
+                            <button class="action success" onclick="unmuteUser(${m.uid}, '${m.chat_id}')">🔓 فك الكتم</button>
+                            <button class="action" onclick="extendMute(${m.uid}, '${m.chat_id}')">⏰ زيادة 10 دقائق</button>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('mutedCount').innerText = data.muted.length;
+            }
+        }
+
+        async function unmuteUser(uid, chatId) {
+            await api('/api/unmute', { uid: uid, chat_id: chatId });
+            loadMuted();
+            loadDashboard();
+        }
+
+        async function extendMute(uid, chatId) {
+            await api('/api/extendmute', { uid: uid, chat_id: chatId, minutes: 10 });
+            loadMuted();
         }
 
         async function loadGroups() {
             const container = document.getElementById('groupsList');
-            container.innerHTML = '<p>جاري التحميل...</p>';
             const data = await api('/api/groups');
             if (data && data.groups) {
-                container.innerHTML = data.groups.map(g => `
-                    <div class="group-item">
-                        <span>${g.name} (${g.id})</span>
-                        <button onclick="leaveGroup(${g.id})">خروج</button>
-                    </div>
-                `).join('');
+                container.innerHTML = data.groups.map(g => `<div class="mute-card"><span>${g.name} (${g.id})</span></div>`).join('');
             }
         }
 
         async function sendBroadcast() {
             const msg = document.getElementById('broadcastMsg').value.trim();
-            if (!msg) return alert('الرجاء كتابة رسالة.');
+            if (!msg) return alert('اكتب رسالة');
             const data = await api('/api/broadcast', { message: msg });
-            const result = document.getElementById('broadcastResult');
-            result.classList.remove('hidden');
-            if (data.success) {
-                result.className = 'success-msg';
-                result.innerText = `✅ تم إذاعة الرسالة إلى ${data.count} مجموعة.`;
-                document.getElementById('broadcastMsg').value = '';
-            } else {
-                result.className = 'error-msg';
-                result.innerText = '❌ فشل الإذاعة.';
-            }
-        }
-
-        async function leaveGroup(gid) {
-            if (!confirm('هل أنت متأكد من الخروج من هذه المجموعة؟')) return;
-            const data = await api('/api/leave', { group_id: gid });
-            if (data.success) {
-                loadGroups();
-            }
+            document.getElementById('broadcastResult').innerText = data.success ? `✅ تم الإذاعة إلى ${data.count} مجموعة` : '❌ فشل';
         }
 
         async function addGlobalBan() {
             const uid = document.getElementById('banUserId').value.trim();
-            if (!uid) return alert('أدخل آيدي المستخدم.');
-            const data = await api('/api/globalban', { user_id: parseInt(uid) });
-            const result = document.getElementById('blacklistResult');
-            result.classList.remove('hidden');
-            if (data.success) {
-                result.className = 'success-msg';
-                result.innerText = '✅ تم الحظر العالمي.';
-            } else {
-                result.className = 'error-msg';
-                result.innerText = '❌ فشل الحظر.';
-            }
+            if (!uid) return alert('أدخل آيدي');
+            await api('/api/globalban', { user_id: parseInt(uid) });
+            alert('تم');
         }
 
         async function removeGlobalBan() {
             const uid = document.getElementById('banUserId').value.trim();
-            if (!uid) return alert('أدخل آيدي المستخدم.');
-            const data = await api('/api/globalban', { user_id: parseInt(uid), remove: true });
-            const result = document.getElementById('blacklistResult');
-            result.classList.remove('hidden');
-            if (data.success) {
-                result.className = 'success-msg';
-                result.innerText = '✅ تم إلغاء الحظر العالمي.';
-            } else {
-                result.className = 'error-msg';
-                result.innerText = '❌ فشل إلغاء الحظر.';
-            }
+            if (!uid) return alert('أدخل آيدي');
+            await api('/api/globalban', { user_id: parseInt(uid), remove: true });
+            alert('تم');
         }
+
+        // تحديث تلقائي كل 30 ثانية
+        setInterval(() => {
+            if (document.getElementById('muted').classList.contains('active')) loadMuted();
+            if (document.getElementById('dashboard').classList.contains('active')) loadDashboard();
+        }, 30000);
 
         loadDashboard();
     </script>

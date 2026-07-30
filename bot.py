@@ -80,6 +80,8 @@ async def handle_api(request):
         return web.json_response({
             'totalGroups': len(active_groups),
             'totalMuted': len([u for u in mute_status if mute_status[u]['until'] > time.time()]),
+            'totalBanned': 0,
+            'totalWarnings': sum(len(v) for v in warnings_data.values())
         })
     if path == '/api/groups':
         groups = []
@@ -100,6 +102,58 @@ async def handle_api(request):
                 c += 1
             except: pass
         return web.json_response({'success': True, 'count': c})
+    if path == '/api/globalban':
+        uid = data.get('user_id')
+        remove = data.get('remove', False)
+        if uid:
+            if remove:
+                for gid in active_groups:
+                    try: await unban_user(gid, uid)
+                    except: pass
+            else:
+                for gid in active_groups:
+                    try: await ban_user(gid, uid)
+                    except: pass
+            return web.json_response({'success': True})
+        return web.json_response({'error': 'No user_id'})
+    if path == '/api/muted':
+        muted_list = []
+        now = time.time()
+        for uid, d in list(mute_status.items()):
+            rem = int(d['until'] - now)
+            if rem > 0:
+                muted_list.append({
+                    'uid': uid,
+                    'name': d.get('name', 'مجهول'),
+                    'remaining': rem // 60,
+                    'group': 'المجموعة',
+                    'chat_id': 0
+                })
+        return web.json_response({'muted': muted_list})
+    if path == '/api/unmute':
+        uid = data.get('uid')
+        if uid:
+            try:
+                for gid in active_groups:
+                    await unmute_user(gid, uid)
+                if uid in mute_status: del mute_status[uid]
+                return web.json_response({'success': True})
+            except: pass
+        return web.json_response({'error': 'Failed'})
+    if path == '/api/extendmute':
+        uid = data.get('uid')
+        minutes = data.get('minutes', 10)
+        if uid:
+            try:
+                for gid in active_groups:
+                    await mute_user(gid, uid, minutes * 60)
+                if uid in mute_status:
+                    mute_status[uid]['until'] = time.time() + (minutes * 60)
+                else:
+                    mute_status[uid] = {'until': time.time() + (minutes * 60), 'name': str(uid)}
+                return web.json_response({'success': True})
+            except: pass
+        return web.json_response({'error': 'Failed'})
     return web.json_response({'error': 'Unknown'})
 
 # ---------- كشف السب المتطور ----------
@@ -771,7 +825,6 @@ async def global_handler(event):
     sender = await event.get_sender()
     if not sender or sender.id == (await client.get_me()).id: return
 
-    # حماية القنوات
     if chat in channel_limits and not is_admin(sender):
         limit = channel_limits[chat]
         now_ts = time.time()
@@ -814,19 +867,20 @@ async def main():
             BOT_PHOTO = InputPhoto(id=photos[0].id, access_hash=photos[0].access_hash, file_reference=photos[0].file_reference)
     except: pass
     print(f"✅ PIPO BOT: @{me.username}")
-    
-    # تشغيل خادم الويب
     app = web.Application()
     app.router.add_get('/', health)
     app.router.add_get('/control.html', control_panel)
     app.router.add_get('/api/stats', handle_api)
     app.router.add_get('/api/groups', handle_api)
     app.router.add_post('/api/broadcast', handle_api)
+    app.router.add_post('/api/globalban', handle_api)
+    app.router.add_get('/api/muted', handle_api)
+    app.router.add_post('/api/unmute', handle_api)
+    app.router.add_post('/api/extendmute', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)
     await site.start()
-    
     asyncio.create_task(auto_unmute())
     asyncio.create_task(auto_lock_unlock())
     await client.run_until_disconnected()
