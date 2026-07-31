@@ -181,6 +181,7 @@ BAD_WORDS = [
     r'\b(نعل[\s]*الدين|نعل[\s]*الوالدين|نعل[\s]*الرب)\b',
     r'\b(الله[\s]*ينعل|الله[\s]*يلعن|ينعل[\s]*دين|يلعن[\s]*دين)\b',
     r'ن\s*م\s*ي',
+    r'\b(قلاويا|قلاوية)\b',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[مm][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
     r'[ننـ][\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*m[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*e[\s\.\,\;\:\!\@\#\$\%\^\&\*\(\)\-\+\=\[\]\{\}\\\|\/\?\<\>\~]*[يىېۍ]',
 ]
@@ -816,7 +817,7 @@ async def help_cmd(event):
         [Button.inline("👤 الأعضاء", b"help_member")],
     ])
 
-# ---------- حماية ----------
+# ---------- حماية (للقنوات والمجموعات) ----------
 @client.on(events.NewMessage())
 async def global_handler(event):
     global link_protection, forward_protection, mute_duration
@@ -825,6 +826,7 @@ async def global_handler(event):
     sender = await event.get_sender()
     if not sender or sender.id == (await client.get_me()).id: return
 
+    # حماية القنوات
     if chat in channel_limits and not is_admin(sender):
         limit = channel_limits[chat]
         now_ts = time.time()
@@ -841,8 +843,9 @@ async def global_handler(event):
                     await client.send_message(chat, f"🚫 **انتهت فرصك يا {sender.first_name}!**\n⏳ يمكنك الإرسال بعد {limit['window']//60} دقائق\n👑 @{DEVELOPER_USERNAME}")
             return
 
-    if not event.is_group: return
-    if chat not in active_groups: return
+    # السماح بالقنوات والمجموعات
+    if not event.is_group and not event.is_channel: return
+    if event.is_group and chat not in active_groups: return
     if sender.username == DEVELOPER_USERNAME: return
     message_count[sender.id] += 1
     text = event.raw_text.strip()
