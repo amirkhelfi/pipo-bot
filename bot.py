@@ -852,12 +852,8 @@ async def global_handler(event):
     if link_protection and contains_link(text): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
     if contains_swear(text.lower()):
-        now = time.time(); uid = sender.id; name = sender.first_name or "مجهول"
-        if uid in mute_status and mute_status[uid]['until'] > now: return
         await event.delete()
-        await mute_user(chat, uid, mute_duration)
-        mute_status[uid] = {'until': now + mute_duration, 'name': name}
-        await event.respond(f"🚫 {name} كتم {mute_duration//60} د")
+        await event.respond(f"يا خو حبس من تطياح فالقنات ولا نعيط للمطور @{DEVELOPER_USERNAME} وهو يشوف كيف يتعامل معك")
 
 # ---------- تشغيل ----------
 async def main():
