@@ -132,6 +132,7 @@
         <button onclick="showTab('broadcast')">📢 الإذاعة</button>
         <button onclick="showTab('groups')">👥 المجموعات</button>
         <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
+        <button onclick="showTab('inactive')">📋 مجموعات غير مفعلة</button>
     </div>
 
     <div class="main">
@@ -179,6 +180,13 @@
                 <button class="action success" onclick="removeGlobalBan()">فك حظر عالمي</button>
             </div>
         </div>
+
+        <!-- Inactive Groups -->
+        <div id="inactive" class="panel">
+            <h3>📋 مجموعات غير مفعلة</h3>
+            <button class="action" onclick="loadInactiveGroups()">🔄 تحديث</button>
+            <div id="inactiveList"></div>
+        </div>
     </div>
 
     <script>
@@ -204,6 +212,7 @@
             if (tabId === 'muted') loadMuted();
             if (tabId === 'groups') loadGroups();
             if (tabId === 'dashboard') loadDashboard();
+            if (tabId === 'inactive') loadInactiveGroups();
         }
 
         async function loadDashboard() {
@@ -276,6 +285,27 @@
             if (!uid) return alert('أدخل آيدي');
             await api('/api/globalban', { user_id: parseInt(uid), remove: true });
             alert('تم');
+        }
+
+        async function loadInactiveGroups() {
+            const container = document.getElementById('inactiveList');
+            container.innerHTML = '<p>جاري التحميل...</p>';
+            const data = await api('/api/inactive');
+            if (data && data.groups) {
+                container.innerHTML = data.groups.map(g => `
+                    <div class="mute-card">
+                        <span>${g.name} (${g.id})</span>
+                        <button class="action success" onclick="activateGroup('${g.id}')">تفعيل</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p>لا توجد مجموعات غير مفعلة.</p>';
+            }
+        }
+
+        async function activateGroup(gid) {
+            await api('/api/activate', { chat_id: gid });
+            loadInactiveGroups();
         }
 
         // تحديث تلقائي كل 30 ثانية

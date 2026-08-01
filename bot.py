@@ -229,6 +229,34 @@ async def join_group(event):
     except Exception as e:
         await event.reply(f"❌ فشل الدخول: {str(e)}")
 
+# ---------- إعدادات فيديو المطور ----------
+DEV_VIDEO = {"media_id": None, "access_hash": None, "file_reference": b""}
+
+@client.on(events.NewMessage(pattern="/فيديو_المطور", from_users=DEVELOPER_ID, func=lambda e: e.is_private))
+async def set_dev_video(event):
+    if not event.media:
+        return await event.reply("❌ أرسل فيديو مع الأمر.")
+    media = event.message.media
+    if hasattr(media, "document") and "video" in media.document.mime_type.lower():
+        DEV_VIDEO["media_id"] = media.document.id
+        DEV_VIDEO["access_hash"] = media.document.access_hash
+        DEV_VIDEO["file_reference"] = media.document.file_reference or b""
+        await event.reply("✅ تم حفظ فيديو المطور.")
+    else:
+        await event.reply("❌ الرجاء إرسال فيديو فقط.")
+
+@client.on(events.NewMessage(pattern="^/المطور$"))
+async def show_dev(event):
+    if DEV_VIDEO.get("media_id"):
+        try:
+            from telethon.tl.types import InputDocument
+            m = InputDocument(id=DEV_VIDEO["media_id"], access_hash=DEV_VIDEO["access_hash"], file_reference=DEV_VIDEO["file_reference"])
+            await client.send_file(event.chat_id, m, caption=f"👑 AMIR PIPO\n🛡️ @{DEVELOPER_USERNAME}")
+        except:
+            await event.reply(f"👑 AMIR PIPO\n🛡️ @{DEVELOPER_USERNAME}")
+    else:
+        await event.reply(f"👑 AMIR PIPO\n🛡️ @{DEVELOPER_USERNAME}")
+
 # ---------- الأوامر الإدارية ----------
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -851,12 +879,20 @@ async def global_handler(event):
     text = event.raw_text.strip()
     if link_protection and contains_link(text): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
-    if contains_swear(text.lower()):
+if contains_swear(text.lower()):
+        now = time.time()
+        uid = sender.id
+        name = sender.first_name or "مجهول"
         await event.delete()
-        await event.respond(f"يا خو حبس من تطياح فالقنات ولا نعيط للمطور @{DEVELOPER_USERNAME} وهو يشوف كيف يتعامل معك")
+        await mute_user(chat, uid, 300)
+        mute_status[uid] = {"until": now + 300, "name": name}
+        await event.respond(f"🚫 {name} تم كتمك 5 دقائق بسبب السب. احترم القوانين!")
 
 # ---------- تشغيل ----------
 async def main():
+    @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == (await client.get_me()).id))
+    async def on_bot_added(event):
+        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
