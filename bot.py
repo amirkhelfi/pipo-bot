@@ -154,6 +154,18 @@ async def handle_api(request):
                 return web.json_response({'success': True})
             except: pass
         return web.json_response({'error': 'Failed'})
+    if path == '/api/inactive':
+        all_dialogs = []
+        async for dialog in client.iter_dialogs():
+            if dialog.is_group and dialog.id not in active_groups:
+                all_dialogs.append({'id': dialog.id, 'name': dialog.title})
+        return web.json_response({'groups': all_dialogs[:30]})
+    if path == '/api/activate':
+        chat_id = data.get('chat_id')
+        if chat_id:
+            active_groups.add(int(chat_id))
+            save_groups()
+            return web.json_response({'success': True})
     return web.json_response({'error': 'Unknown'})
 
 # ---------- كشف السب المتطور ----------
@@ -542,7 +554,7 @@ async def info(event):
     rank = "👤 عضو"
     if target.username == DEVELOPER_USERNAME: rank = "👑 مطور"
     elif uid in admins: rank = "🛡️ مسؤول"
-    info_text = f"📋 {target.first_name}\n🆔 {uid}\n⚠️ تحذيرات: {warns}/3\n🔇 {is_muted}\n⭐ {rank}"
+    info_text = f"📋 {target.first_name}\n🆔 {uid}\n⚠️ تحذيرات: {warns}/3\n🔇 {is_muted}\n ⭐ {rank}"
     await event.reply(info_text)
 
 @client.on(events.NewMessage(pattern='^/توب_المتفاعلين$'))
@@ -879,7 +891,7 @@ async def global_handler(event):
     text = event.raw_text.strip()
     if link_protection and contains_link(text): await event.delete(); return
     if forward_protection and is_forward(event.message): await event.delete(); return
-if contains_swear(text.lower()):
+    if contains_swear(text.lower()):
         now = time.time()
         uid = sender.id
         name = sender.first_name or "مجهول"
@@ -912,6 +924,8 @@ async def main():
     app.router.add_get('/api/muted', handle_api)
     app.router.add_post('/api/unmute', handle_api)
     app.router.add_post('/api/extendmute', handle_api)
+    app.router.add_get('/api/inactive', handle_api)
+    app.router.add_post('/api/activate', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)
