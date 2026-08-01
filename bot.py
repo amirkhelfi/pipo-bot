@@ -713,17 +713,36 @@ async def legendary_welcome(event):
         [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
         [Button.inline("🏆 توب المتفاعلين", "top_btn")]
     ]
-    if welcome_media.get('type'):
+    if welcome_media.get('type') and welcome_media['type'] == 'video':
         try:
             fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
-            if welcome_media['type'] == 'photo':
-                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
-            else:
-                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
             return
-        except: pass
+        except Exception as e:
+            print(f"خطأ في إرسال فيديو الترحيب: {e}")
     await client.send_message(chat, welcome_text, buttons=buttons)
+
+@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
+async def set_welcome_video(event):
+    sender = await event.get_sender()
+    if sender.username != DEVELOPER_USERNAME:
+        return await event.reply("❌ هذا الأمر للمطور فقط.")
+    if not event.media:
+        return await event.reply("❌ أرسل فيديو مع الأمر.
+استخدم: /تعيين_فيديو_ترحيب (مع إرفاق فيديو)")
+    media = event.message.media
+    if not hasattr(media, 'document') or 'video' not in media.document.mime_type.lower():
+        return await event.reply("❌ يجب أن يكون الملف فيديو فقط.")
+    try:
+        welcome_media['type'] = 'video'
+        welcome_media['media_id'] = str(media.document.id)
+        welcome_media['access_hash'] = str(media.document.access_hash)
+        welcome_media['file_reference'] = (media.document.file_reference or b'').hex()
+        save_welcome_media()
+        await event.reply("✅ **تم حفظ فيديو الترحيب بنجاح~/bot-repo*
+🎥 سيتم عرضه عند دخول أي عضو جديد.")    except Exception as e:
+        await event.reply(f"❌ فشل حفظ الفيديو: {str(e)}")
 
 @client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
 async def set_welcome_media(event):
@@ -934,6 +953,7 @@ async def main():
     app.router.add_get('/api/inactive', handle_api)
     app.router.add_post('/api/activate', handle_api)
     app.router.add_post('/api/deactivate', handle_api)
+    app.router.add_post('/api/toggle_group', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)
