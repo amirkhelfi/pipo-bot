@@ -725,6 +725,7 @@ async def legendary_welcome(event):
 
 @client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
 @client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
+@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
 async def set_welcome_video(event):
     sender = await event.get_sender()
     if sender.username != DEVELOPER_USERNAME:
