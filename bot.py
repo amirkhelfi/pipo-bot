@@ -157,13 +157,20 @@ async def handle_api(request):
     if path == '/api/inactive':
         all_dialogs = []
         async for dialog in client.iter_dialogs():
-            if dialog.is_group and dialog.id not in active_groups:
-                all_dialogs.append({'id': dialog.id, 'name': dialog.title})
-        return web.json_response({'groups': all_dialogs[:30]})
+            if dialog.is_group:
+                is_active = dialog.id in active_groups
+                all_dialogs.append({'id': dialog.id, 'name': dialog.title, 'active': is_active})
+        return web.json_response({'groups': all_dialogs[:50]})
     if path == '/api/activate':
         chat_id = data.get('chat_id')
         if chat_id:
             active_groups.add(int(chat_id))
+            save_groups()
+            return web.json_response({'success': True})
+    if path == '/api/deactivate':
+        chat_id = data.get('chat_id')
+        if chat_id:
+            active_groups.discard(int(chat_id))
             save_groups()
             return web.json_response({'success': True})
     return web.json_response({'error': 'Unknown'})
@@ -926,6 +933,7 @@ async def main():
     app.router.add_post('/api/extendmute', handle_api)
     app.router.add_get('/api/inactive', handle_api)
     app.router.add_post('/api/activate', handle_api)
+    app.router.add_post('/api/deactivate', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)

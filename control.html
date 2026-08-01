@@ -122,6 +122,8 @@
             font-size: 0.8em;
             margin-right: 5px;
         }
+        .status-active { color: #27ae60; font-weight: bold; }
+        .status-inactive { color: #c0392b; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -132,7 +134,7 @@
         <button onclick="showTab('broadcast')">📢 الإذاعة</button>
         <button onclick="showTab('groups')">👥 المجموعات</button>
         <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
-        <button onclick="showTab('inactive')">📋 مجموعات غير مفعلة</button>
+        <button onclick="showTab('inactive')">📋 إدارة المجموعات</button>
     </div>
 
     <div class="main">
@@ -166,7 +168,7 @@
 
         <!-- Groups -->
         <div id="groups" class="panel">
-            <h3>👥 المجموعات</h3>
+            <h3>👥 المجموعات المفعلة</h3>
             <button class="action" onclick="loadGroups()">🔄 تحديث</button>
             <div id="groupsList"></div>
         </div>
@@ -183,7 +185,7 @@
 
         <!-- Inactive Groups -->
         <div id="inactive" class="panel">
-            <h3>📋 مجموعات غير مفعلة</h3>
+            <h3>📋 إدارة جميع المجموعات</h3>
             <button class="action" onclick="loadInactiveGroups()">🔄 تحديث</button>
             <div id="inactiveList"></div>
         </div>
@@ -295,17 +297,30 @@
                 container.innerHTML = data.groups.map(g => `
                     <div class="mute-card">
                         <span>${g.name} (${g.id})</span>
-                        <button class="action success" onclick="activateGroup('${g.id}')">تفعيل</button>
+                        <span>
+                            الحالة: ${g.active ? '<span class="status-active">✅ مفعلة</span>' : '<span class="status-inactive">❌ غير مفعلة</span>'}
+                        </span>
+                        <button class="action ${g.active ? 'danger' : 'success'}" onclick="toggleGroup('${g.id}', ${g.active})">
+                            ${g.active ? '❌ تعطيل' : '✅ تفعيل'}
+                        </button>
                     </div>
                 `).join('');
             } else {
-                container.innerHTML = '<p>لا توجد مجموعات غير مفعلة.</p>';
+                container.innerHTML = '<p>لا توجد مجموعات.</p>';
             }
         }
 
-        async function activateGroup(gid) {
-            await api('/api/activate', { chat_id: gid });
+        async function toggleGroup(gid, isActive) {
+            if (isActive) {
+                // تعطيل
+                await api('/api/deactivate', { chat_id: gid });
+            } else {
+                // تفعيل
+                await api('/api/activate', { chat_id: gid });
+            }
             loadInactiveGroups();
+            loadDashboard();
+            loadGroups();
         }
 
         // تحديث تلقائي كل 30 ثانية
