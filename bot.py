@@ -239,7 +239,7 @@ async def start(event):
             [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("🔓 فك الكل", b"unmute_all_btn")]
         ])
     else:
-        await event.reply("أهلاً، أنا بوت الحماية. استخدم /الاوامر لرؤية كل الأوامر. 💋")
+        await event.reply("🚫 الخاص مغلوق. تواصل مع مطوري @amirx_xpipo ليعطيك الصلاحيات لإستعمالي.")
 
 @client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
