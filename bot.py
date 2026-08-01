@@ -254,7 +254,7 @@ DEV_VIDEO = {"media_id": None, "access_hash": None, "file_reference": b""}
 @client.on(events.NewMessage(pattern="/فيديو_المطور", from_users=DEVELOPER_ID, func=lambda e: e.is_private))
 async def set_dev_video(event):
     if not event.media:
-        return await event.reply("❌ أرسل فيديو مع الأمر.")")
+        return await event.reply("❌ أرسل فيديو مع الأمر.")
     media = event.message.media
     if hasattr(media, "document") and "video" in media.document.mime_type.lower():
         DEV_VIDEO["media_id"] = media.document.id
