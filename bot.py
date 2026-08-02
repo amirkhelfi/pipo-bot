@@ -157,20 +157,13 @@ async def handle_api(request):
     if path == '/api/inactive':
         all_dialogs = []
         async for dialog in client.iter_dialogs():
-            if dialog.is_group:
-                is_active = dialog.id in active_groups
-                all_dialogs.append({'id': dialog.id, 'name': dialog.title, 'active': is_active})
-        return web.json_response({'groups': all_dialogs[:50]})
+            if dialog.is_group and dialog.id not in active_groups:
+                all_dialogs.append({'id': dialog.id, 'name': dialog.title})
+        return web.json_response({'groups': all_dialogs[:30]})
     if path == '/api/activate':
         chat_id = data.get('chat_id')
         if chat_id:
             active_groups.add(int(chat_id))
-            save_groups()
-            return web.json_response({'success': True})
-    if path == '/api/deactivate':
-        chat_id = data.get('chat_id')
-        if chat_id:
-            active_groups.discard(int(chat_id))
             save_groups()
             return web.json_response({'success': True})
     return web.json_response({'error': 'Unknown'})
@@ -280,35 +273,13 @@ async def show_dev(event):
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
-    is_dev = s.username == DEVELOPER_USERNAME or s.id in admins
-    text = """🤖 **PIPO BOT** 🛡️
-━━━━━━━━━━━━━━━━━━━━━━
-بوت حماية متطور للمجموعات والقنوات
-يقدم لك حماية شاملة ضد:
-• السب والشتائم 🚫
-• الروابط والتوجيه 🔗
-• الرسائل المزعجة والمكررة ♻️
-• البوتات الضارة 🤖
-• المحتوى الإباحي ❌
-━━━━━━━━━━━━━━━━━━━━━━
-👑 **المطور:** @amirx_xpipo
-📢 **للاستفسار:** @amirx_xpipo
-━━━━━━━━━━━━━━━━━━━━━━"""
-    
-    buttons = [
-        [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
-        [Button.inline("📋 جميع الميزات", b"features"), Button.inline("📊 لوحة التحكم", b"dashboard_link")],
-        [Button.inline("❓ المساعدة", b"help"), Button.inline("📜 الأوامر", b"commands")]
-    ]
-    
-    # إرسال صورة البوت إذا كانت موجودة
-    if BOT_PHOTO:
-        try:
-            await client.send_file(event.chat_id, BOT_PHOTO, caption=text, buttons=buttons)
-            return
-        except:
-            pass
-    await event.reply(text, buttons=buttons)
+    if is_admin(s):
+        await event.reply("⚡ PIPO BOT ⚡ 👑 @amirx_xpipo", buttons=[
+            [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
+            [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("🔓 فك الكل", b"unmute_all_btn")]
+        ])
+    else:
+        await event.reply("🚫 الخاص مغلوق. تواصل مع مطوري @amirx_xpipo ليعطيك الصلاحيات لإستعمالي.")
 
 @client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
@@ -735,36 +706,17 @@ async def legendary_welcome(event):
         [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
         [Button.inline("🏆 توب المتفاعلين", "top_btn")]
     ]
-    if welcome_media.get('type') and welcome_media['type'] == 'video':
+    if welcome_media.get('type'):
         try:
             fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
-            media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            if welcome_media['type'] == 'photo':
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            else:
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
             return
-        except Exception as e:
-            print(f"خطأ في إرسال فيديو الترحيب: {e}")
+        except: pass
     await client.send_message(chat, welcome_text, buttons=buttons)
-
-@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
-@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
-@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
-async def set_welcome_video(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        return await event.reply("❌ هذا الأمر للمطور فقط.")
-    if not event.media:
-        return await event.reply("❌ أرسل فيديو مع الأمر.")
-    media = event.message.media
-    if not hasattr(media, "document") or "video" not in media.document.mime_type.lower():
-        return await event.reply("❌ يجب أن يكون الملف فيديو فقط.")
-    try:
-        welcome_media["type"] = "video"
-        welcome_media["media_id"] = str(media.document.id)
-        welcome_media["access_hash"] = str(media.document.access_hash)
-        welcome_media["file_reference"] = (media.document.file_reference or b"").hex()
-        save_welcome_media()
-    except Exception as e:
-        await event.reply(f"❌ فشل حفظ الفيديو: {str(e)}")
 
 @client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
 async def set_welcome_media(event):
@@ -949,9 +901,8 @@ async def global_handler(event):
         await event.respond(f"🚫 {name} تم كتمك 5 دقائق بسبب السب. احترم القوانين!")
 
 # ---------- تشغيل ----------
-
-
-    @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
+async def main():
+    @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == (await client.get_me()).id))
     async def on_bot_added(event):
         await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
     global BOT_PHOTO
@@ -975,8 +926,6 @@ async def global_handler(event):
     app.router.add_post('/api/extendmute', handle_api)
     app.router.add_get('/api/inactive', handle_api)
     app.router.add_post('/api/activate', handle_api)
-    app.router.add_post('/api/deactivate', handle_api)
-    app.router.add_post('/api/toggle_group', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)
@@ -987,132 +936,3 @@ async def global_handler(event):
 
 if __name__ == '__main__':
     asyncio.run(main())
-
-@client.on(events.ChatAction(func=lambda e: e.user_left))
-async def goodbye_message(event):
-    user = await event.get_user()
-    if user.bot: return
-    await asyncio.sleep(1)
-    name = user.first_name or "عضو"
-    await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
-user_last_msg = defaultdict(lambda: defaultdict(float))
-
-@client.on(events.NewMessage())
-async def anti_duplicate(event):
-    if not event.is_group or event.chat_id not in active_groups: return
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID or is_admin(sender): return
-    text = event.raw_text.strip()
-    if not text: return
-    now = time.time()
-    if sender.id in user_last_msg and text in user_last_msg[sender.id]:
-        if now - user_last_msg[sender.id][text] < 5:
-            await event.delete()
-            return
-    if sender.id not in user_last_msg:
-        user_last_msg[sender.id] = {}
-    user_last_msg[sender.id][text] = now
-
-
-@client.on(events.NewMessage())
-@client.on(events.ChatAction(func=lambda e: e.user_joined))
-async def bot_hunter(event):
-    chat = event.chat_id
-    if chat not in active_groups: return
-    user = await event.get_user()
-    if user.bot and user.id != (await client.get_me()).id:
-        await client.kick_participant(chat, user.id)
-        await event.reply(f"🚫 **بوت ممنوع!**
-🤖 {user.first_name} تم طرده.")
-🤖 {user.first_name} تم طرده.")
-@client.on(events.NewMessage(pattern='^/القيود$'))
-async def show_restrictions(event):
-    if not is_admin(await event.get_sender()): return
-    text = """⚙️ **القيود والإعدادات** ⚙️
-━━━━━━━━━━━━━━━━━━━━━━
-🔇 **مدة الكتم:** {} دقيقة
-⚠️ **التحذيرات:** 3 تحذيرات = كتم
-🔗 **حماية الروابط:** {}
-📨 **حماية التوجيه:** {}
-🔞 **حماية الإباحية:** {}
-🤖 **البوت الحارس:** {}
-🔄 **مانع المكرر:** {}
-━━━━━━━━━━━━━━━━━━━━━━""".format(
-    mute_duration // 60,
-    "✅" if link_protection else "❌",
-    "✅" if forward_protection else "❌",
-    "✅", "✅", "✅"
-    )
-    await event.reply(text)
-@client.on(events.CallbackQuery)
-async def extra_buttons(event):
-    data = event.data
-    if data == b'features':
-        text = """📋 **جميع ميزات PIPO BOT**
-━━━━━━━━━━━━━━━━━━━━━━
-🛡️ **الحماية:**
-• حماية السب 🚫
-• حماية الروابط 🔗
-• حماية التوجيه 📨
-• منع الإباحية 🔞
-• البوت الحارس 🤖
-• مانع المكرر ♻️
-• مانع المزعجة 📢
-
-👑 **الإدارة:**
-• نظام الكتم 🔇
-• نظام الحظر 🚫
-• نظام التحذيرات ⚠️
-• نظام التقارير 📊
-• القيود المتقدمة ⚙️
-
-🎨 **الترحيب:**
-• ترحيب فيديو 🎥
-• ترحيب صورة 📸
-• ترحيب نص 📝
-• وداعاً 👋
-
-📊 **لوحة التحكم:**
-• إحصائيات 📈
-• إدارة المجموعات 👥
-• الإذاعة 📢
-• القائمة السوداء 🚫
-━━━━━━━━━━━━━━━━━━━━━━
-👑 @amirx_xpipo"""
-        await event.edit(text)
-
-    elif data == b'dashboard_link':
-        await event.edit("📊 **لوحة التحكم:**
-
-🔗 https://pipo-bot.onrender.com/control.html
-
-🔑 التوكن: pipomaster2026")
-
-    elif data == b'help':
-        await event.edit("❓ **المساعدة:**
-
-📌 **للحصول على المساعدة:**
-• تواصل مع المطور @amirx_xpipo
-• قم بزيارة لوحة التحكم
-• اكتب /الاوامر لعرض جميع الأوامر")
-
-    elif data == b'commands':
-        await event.edit("📜 **الأوامر:**
-
-🛡️ **المسؤول:**
-/تفعيل - /تعطيل
-/قفل_المجموعة - /فك_القفل
-/كتم - /حظر - /فك_الحظر
-/تحذير - /عرض_التحذيرات
-/مسح عدد - /تثبيت
-/القيود
-
-👤 **الأعضاء:**
-/ايدي - /قوانين - /معلومات
-/توب_المتفاعلين - /تقرير
-/الاوامر - /مساعدة
-
-👑 **المطور:**
-/المجموعات - /رفع_مسؤول
-/تعيين_ترحيب - /تعيين_فيديو_ترحيب
-/الخروج_من_المجموعة")
