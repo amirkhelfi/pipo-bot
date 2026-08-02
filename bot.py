@@ -254,7 +254,7 @@ async def set_dev_video(event):
         DEV_VIDEO["access_hash"] = media.document.access_hash
         DEV_VIDEO["file_reference"] = media.document.file_reference or b""
         await event.reply("✅ تم حفظ فيديو المطور.")
-        return await event.reply("❌ أرسل فيديو مع الأمر.")
+    else:
         await event.reply("❌ الرجاء إرسال فيديو فقط.")
 
 @client.on(events.NewMessage(pattern="^/المطور$"))
@@ -898,12 +898,24 @@ async def global_handler(event):
         await event.delete()
         await mute_user(chat, uid, 300)
         mute_status[uid] = {"until": now + 300, "name": name}
-        await event.respond(f"🚫 {name} تم كتمك 5 دقائق بسبب السب. احترم القوانين!")
+        await event.reply(f"🚫 {name} تم كتمك 5 دقائق بسبب السب. احترم القوانين!")
 
 # ---------- تشغيل ----------
-@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
-async def on_bot_added(event):
+
+@client.on(events.ChatAction(func=lambda e: e.user_left))
+async def goodbye_message(event):
+    user = await event.get_user()
+    if user.bot: return
+    await asyncio.sleep(1)
+    name = user.first_name or "عضو"
+    await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
+
+async def main():
+    # حدث إضافة البوت للمجموعة
+    @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
+    async def on_bot_added(event):
         await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
+
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
     me = await client.get_me()
