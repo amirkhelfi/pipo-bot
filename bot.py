@@ -1023,7 +1023,8 @@ async def anti_porn(event):
     for word in PORN_KEYWORDS:
         if word in text:
             await event.delete()
-            await event.reply(f"🚫 **ممنوع المحتوى الإباحي~/bot-repo*
+            await event.reply(f"🚫 **ممنوع المحتوى الإباحي!**
+👤 {sender.first_name} تم حذف رسالتك.")
 👤 {sender.first_name} تم حذف رسالتك.")            await mute_user(event.chat_id, sender.id, 3600)
             mute_status[sender.id] = {'until': time.time() + 3600, 'name': sender.first_name}
             return
