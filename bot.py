@@ -920,6 +920,46 @@ async def goodbye_message(event):
     name = user.first_name or "عضو"
     await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
 
+
+# نظام التحقق (كابتشا)
+pending_users = {}
+
+@client.on(events.ChatAction(func=lambda e: e.user_joined))
+async def captcha_verification(event):
+    chat = event.chat_id
+    if chat not in active_groups: return
+    user = await event.get_user()
+    if user.bot or user.id == DEVELOPER_ID: return
+    uid = user.id
+    num1 = random.randint(1, 10)
+    num2 = random.randint(1, 10)
+    answer = num1 + num2
+    pending_users[uid] = {'answer': answer, 'chat': chat, 'attempts': 0}
+        [Button.inline("❌ أنا بوت", f"captcha_fail_{uid}")]
+    ])
+    await asyncio.sleep(60)
+    if uid in pending_users:
+        del pending_users[uid]
+
+@client.on(events.NewMessage())
+async def check_captcha(event):
+    if event.is_private: return
+    uid = event.sender_id
+    if uid not in pending_users: return
+    data = pending_users[uid]
+    if event.raw_text.strip().isdigit() and int(event.raw_text.strip()) == data['answer']:
+        del pending_users[uid]
+        await event.reply("✅ **تم التحقق بنجاح~/bot-repo*
+🎉 أهلاً وسهلاً بك في المجموعة.")    else:
+        data['attempts'] += 1
+        if data['attempts'] >= 3:
+            try:
+                await client.kick_participant(data['chat'], uid)
+            except:
+                pass
+            del pending_users[uid]
+            await event.reply("❌ **فشل التحقق~/bot-repo*
+🚫 تم طردك من المجموعة.")
 async def main():
     # حدث إضافة البوت للمجموعة
     @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
