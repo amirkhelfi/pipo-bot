@@ -902,10 +902,20 @@ async def global_handler(event):
 
 # ---------- تشغيل ----------
 
+
+# قاموس لمنع تكرار رسالة وداعاً
+_last_goodbye = {}
+
 @client.on(events.ChatAction(func=lambda e: e.user_left))
 async def goodbye_message(event):
     user = await event.get_user()
     if user.bot: return
+    user_id = user.id
+    now = time.time()
+    # منع التكرار خلال 5 ثواني
+    if user_id in _last_goodbye and now - _last_goodbye[user_id] < 5:
+        return
+    _last_goodbye[user_id] = now
     await asyncio.sleep(1)
     name = user.first_name or "عضو"
     await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
