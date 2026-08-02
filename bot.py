@@ -902,7 +902,7 @@ async def global_handler(event):
 
 # ---------- تشغيل ----------
 @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
-    async def on_bot_added(event):
+async def on_bot_added(event):
         await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
     global BOT_PHOTO
     await client.start(bot_token=BOT_TOKEN)
