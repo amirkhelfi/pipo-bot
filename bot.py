@@ -1022,7 +1022,8 @@ async def bot_hunter(event):
     user = await event.get_user()
     if user.bot and user.id != (await client.get_me()).id:
         await client.kick_participant(chat, user.id)
-        await event.reply(f"🚫 **بوت ممنوع~/bot-repo*
+        await event.reply(f"🚫 **بوت ممنوع!**
+🤖 {user.first_name} تم طرده.")
 🤖 {user.first_name} تم طرده.")
 @client.on(events.NewMessage(pattern='^/القيود$'))
 async def show_restrictions(event):
