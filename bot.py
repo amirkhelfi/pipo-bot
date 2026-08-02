@@ -921,15 +921,18 @@ async def goodbye_message(event):
     await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
 
 
-# نظام التحقق (كابتشا)
+
+# نظام التحقق (كابتشا) - النسخة المستقرة
 pending_users = {}
 
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def captcha_verification(event):
     chat = event.chat_id
-    if chat not in active_groups: return
+    if chat not in active_groups:
+        return
     user = await event.get_user()
-    if user.bot or user.id == DEVELOPER_ID: return
+    if user.bot or user.id == DEVELOPER_ID:
+        return
     uid = user.id
     num1 = random.randint(1, 10)
     num2 = random.randint(1, 10)
@@ -943,9 +946,11 @@ async def captcha_verification(event):
 
 @client.on(events.NewMessage())
 async def check_captcha(event):
-    if event.is_private: return
+    if event.is_private:
+        return
     uid = event.sender_id
-    if uid not in pending_users: return
+    if uid not in pending_users:
+        return
     data = pending_users[uid]
     if event.raw_text.strip().isdigit() and int(event.raw_text.strip()) == data['answer']:
         del pending_users[uid]
