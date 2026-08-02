@@ -157,20 +157,13 @@ async def handle_api(request):
     if path == '/api/inactive':
         all_dialogs = []
         async for dialog in client.iter_dialogs():
-            if dialog.is_group:
-                is_active = dialog.id in active_groups
-                all_dialogs.append({'id': dialog.id, 'name': dialog.title, 'active': is_active})
-        return web.json_response({'groups': all_dialogs[:50]})
+            if dialog.is_group and dialog.id not in active_groups:
+                all_dialogs.append({'id': dialog.id, 'name': dialog.title})
+        return web.json_response({'groups': all_dialogs[:30]})
     if path == '/api/activate':
         chat_id = data.get('chat_id')
         if chat_id:
             active_groups.add(int(chat_id))
-            save_groups()
-            return web.json_response({'success': True})
-    if path == '/api/deactivate':
-        chat_id = data.get('chat_id')
-        if chat_id:
-            active_groups.discard(int(chat_id))
             save_groups()
             return web.json_response({'success': True})
     return web.json_response({'error': 'Unknown'})
@@ -261,7 +254,7 @@ async def set_dev_video(event):
         DEV_VIDEO["access_hash"] = media.document.access_hash
         DEV_VIDEO["file_reference"] = media.document.file_reference or b""
         await event.reply("✅ تم حفظ فيديو المطور.")
-    else:
+        return await event.reply("❌ أرسل فيديو مع الأمر.")
         await event.reply("❌ الرجاء إرسال فيديو فقط.")
 
 @client.on(events.NewMessage(pattern="^/المطور$"))
@@ -713,37 +706,17 @@ async def legendary_welcome(event):
         [Button.inline("📜 القوانين", "rules_btn"), Button.inline("👤 معلوماتي", f"myinfo_{uid}")],
         [Button.inline("🏆 توب المتفاعلين", "top_btn")]
     ]
-    if welcome_media.get('type') and welcome_media['type'] == 'video':
+    if welcome_media.get('type'):
         try:
             fr_bytes = bytes.fromhex(welcome_media.get('file_reference', '')) if welcome_media.get('file_reference') else b''
-            media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            if welcome_media['type'] == 'photo':
+                media = InputPhoto(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
+            else:
+                media = InputDocument(id=int(welcome_media['media_id']), access_hash=int(welcome_media['access_hash']), file_reference=fr_bytes)
             await client.send_file(chat, media, caption=welcome_text, buttons=buttons)
             return
-        except Exception as e:
-            print(f"خطأ في إرسال فيديو الترحيب: {e}")
+        except: pass
     await client.send_message(chat, welcome_text, buttons=buttons)
-
-@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
-@client.on(events.NewMessage(pattern='/تعيين_فيديو_ترحيب', func=lambda e: e.is_private))
-async def set_welcome_video(event):
-    sender = await event.get_sender()
-    if sender.username != DEVELOPER_USERNAME:
-        return await event.reply("❌ هذا الأمر للمطور فقط.")
-    if not event.media:
-        return await event.reply("❌ أرسل فيديو مع الأمر.
-استخدم: /تعيين_فيديو_ترحيب (مع إرفاق فيديو)")
-    media = event.message.media
-    if not hasattr(media, 'document') or 'video' not in media.document.mime_type.lower():
-        return await event.reply("❌ يجب أن يكون الملف فيديو فقط.")
-    try:
-        welcome_media['type'] = 'video'
-        welcome_media['media_id'] = str(media.document.id)
-        welcome_media['access_hash'] = str(media.document.access_hash)
-        welcome_media['file_reference'] = (media.document.file_reference or b'').hex()
-        save_welcome_media()
-        await event.reply("✅ **تم حفظ فيديو الترحيب بنجاح~/bot-repo*
-🎥 سيتم عرضه عند دخول أي عضو جديد.")    except Exception as e:
-        await event.reply(f"❌ فشل حفظ الفيديو: {str(e)}")
 
 @client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
 async def set_welcome_media(event):
@@ -929,7 +902,7 @@ async def global_handler(event):
 
 # ---------- تشغيل ----------
 async def main():
-    @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
+@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
     async def on_bot_added(event):
         await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
     global BOT_PHOTO
@@ -953,8 +926,6 @@ async def main():
     app.router.add_post('/api/extendmute', handle_api)
     app.router.add_get('/api/inactive', handle_api)
     app.router.add_post('/api/activate', handle_api)
-    app.router.add_post('/api/deactivate', handle_api)
-    app.router.add_post('/api/toggle_group', handle_api)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 10000)
