@@ -280,13 +280,35 @@ async def show_dev(event):
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     s = await event.get_sender()
-    if is_admin(s):
-        await event.reply("⚡ PIPO BOT ⚡ 👑 @amirx_xpipo", buttons=[
-            [Button.inline("🔇 مدة الكتم", b"mute_dur"), Button.inline("📊 حالة", b"bot_stat")],
-            [Button.inline("🆔 الآيدي", b"get_id"), Button.inline("🔓 فك الكل", b"unmute_all_btn")]
-        ])
-    else:
-        await event.reply("🚫 الخاص مغلوق. تواصل مع مطوري @amirx_xpipo ليعطيك الصلاحيات لإستعمالي.")
+    is_dev = s.username == DEVELOPER_USERNAME or s.id in admins
+    text = """🤖 **PIPO BOT** 🛡️
+━━━━━━━━━━━━━━━━━━━━━━
+بوت حماية متطور للمجموعات والقنوات
+يقدم لك حماية شاملة ضد:
+• السب والشتائم 🚫
+• الروابط والتوجيه 🔗
+• الرسائل المزعجة والمكررة ♻️
+• البوتات الضارة 🤖
+• المحتوى الإباحي ❌
+━━━━━━━━━━━━━━━━━━━━━━
+👑 **المطور:** @amirx_xpipo
+📢 **للاستفسار:** @amirx_xpipo
+━━━━━━━━━━━━━━━━━━━━━━"""
+    
+    buttons = [
+        [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
+        [Button.inline("📋 جميع الميزات", b"features"), Button.inline("📊 لوحة التحكم", b"dashboard_link")],
+        [Button.inline("❓ المساعدة", b"help"), Button.inline("📜 الأوامر", b"commands")]
+    ]
+    
+    # إرسال صورة البوت إذا كانت موجودة
+    if BOT_PHOTO:
+        try:
+            await client.send_file(event.chat_id, BOT_PHOTO, caption=text, buttons=buttons)
+            return
+        except:
+            pass
+    await event.reply(text, buttons=buttons)
 
 @client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
@@ -964,3 +986,177 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+@client.on(events.ChatAction(func=lambda e: e.user_left))
+async def goodbye_message(event):
+    user = await event.get_user()
+    if user.bot: return
+    await asyncio.sleep(1)
+    name = user.first_name or "عضو"
+    await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
+user_last_msg = defaultdict(lambda: defaultdict(float))
+
+@client.on(events.NewMessage())
+async def anti_duplicate(event):
+    if not event.is_group or event.chat_id not in active_groups: return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender): return
+    text = event.raw_text.strip()
+    if not text: return
+    now = time.time()
+    if sender.id in user_last_msg and text in user_last_msg[sender.id]:
+        if now - user_last_msg[sender.id][text] < 5:
+            await event.delete()
+            return
+    if sender.id not in user_last_msg:
+        user_last_msg[sender.id] = {}
+    user_last_msg[sender.id][text] = now
+pending_users = {}
+
+@client.on(events.ChatAction(func=lambda e: e.user_joined))
+async def captcha_verification(event):
+    chat = event.chat_id
+    if chat not in active_groups: return
+    user = await event.get_user()
+    if user.bot or user.id == DEVELOPER_ID: return
+    uid = user.id
+    num1 = random.randint(1, 10)
+    num2 = random.randint(1, 10)
+    answer = num1 + num2
+    pending_users[uid] = {'answer': answer, 'chat': chat, 'attempts': 0}
+        [Button.inline("❌ أنا بوت", f"captcha_fail_{uid}")]
+    ])
+    await asyncio.sleep(60)
+    if uid in pending_users:
+        del pending_users[uid]
+
+@client.on(events.NewMessage())
+async def check_captcha(event):
+    if event.is_private: return
+    uid = event.sender_id
+    if uid not in pending_users: return
+    data = pending_users[uid]
+    if event.raw_text.strip().isdigit() and int(event.raw_text.strip()) == data['answer']:
+        del pending_users[uid]
+        await event.reply("✅ **تم التحقق بنجاح~/bot-repo*
+🎉 أهلاً وسهلاً بك في المجموعة.")    else:
+        data['attempts'] += 1
+        if data['attempts'] >= 3:
+            await client.kick_participant(data['chat'], uid)
+            del pending_users[uid]
+            await event.reply("❌ **فشل التحقق~/bot-repo*
+🚫 تم طردك من المجموعة.")
+PORN_KEYWORDS = ['sex', 'porn', 'xxx', 'nsfw', 'سكس', 'اباحية', 'جنس', 'porno', 'anal', 'بورن', 'shemale', 'trans', 'gay', 'lesbian', 'cum', 'orgasm', 'clit', 'dick', 'vagina', 'penis', 'breast', 'nude', 'naked', 'fuck', 'motherfucker', 'bitch', 'slut', 'whore']
+@client.on(events.NewMessage())
+async def anti_porn(event):
+    if not event.is_group or event.chat_id not in active_groups: return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender): return
+    text = event.raw_text.lower()
+    for word in PORN_KEYWORDS:
+        if word in text:
+            await event.delete()
+            await event.reply(f"🚫 **ممنوع المحتوى الإباحي~/bot-repo*
+👤 {sender.first_name} تم حذف رسالتك.")            await mute_user(event.chat_id, sender.id, 3600)
+            mute_status[sender.id] = {'until': time.time() + 3600, 'name': sender.first_name}
+            return
+@client.on(events.ChatAction(func=lambda e: e.user_joined))
+async def bot_hunter(event):
+    chat = event.chat_id
+    if chat not in active_groups: return
+    user = await event.get_user()
+    if user.bot and user.id != (await client.get_me()).id:
+        await client.kick_participant(chat, user.id)
+        await event.reply(f"🚫 **بوت ممنوع~/bot-repo*
+🤖 {user.first_name} تم طرده.")
+@client.on(events.NewMessage(pattern='^/القيود$'))
+async def show_restrictions(event):
+    if not is_admin(await event.get_sender()): return
+    text = """⚙️ **القيود والإعدادات** ⚙️
+━━━━━━━━━━━━━━━━━━━━━━
+🔇 **مدة الكتم:** {} دقيقة
+⚠️ **التحذيرات:** 3 تحذيرات = كتم
+🔗 **حماية الروابط:** {}
+📨 **حماية التوجيه:** {}
+🔞 **حماية الإباحية:** {}
+🤖 **البوت الحارس:** {}
+🔄 **مانع المكرر:** {}
+━━━━━━━━━━━━━━━━━━━━━━""".format(
+    mute_duration // 60,
+    "✅" if link_protection else "❌",
+    "✅" if forward_protection else "❌",
+    "✅", "✅", "✅"
+    )
+    await event.reply(text)
+@client.on(events.CallbackQuery)
+async def extra_buttons(event):
+    data = event.data
+    if data == b'features':
+        text = """📋 **جميع ميزات PIPO BOT**
+━━━━━━━━━━━━━━━━━━━━━━
+🛡️ **الحماية:**
+• حماية السب 🚫
+• حماية الروابط 🔗
+• حماية التوجيه 📨
+• منع الإباحية 🔞
+• البوت الحارس 🤖
+• مانع المكرر ♻️
+• مانع المزعجة 📢
+
+👑 **الإدارة:**
+• نظام الكتم 🔇
+• نظام الحظر 🚫
+• نظام التحذيرات ⚠️
+• نظام التقارير 📊
+• القيود المتقدمة ⚙️
+
+🎨 **الترحيب:**
+• ترحيب فيديو 🎥
+• ترحيب صورة 📸
+• ترحيب نص 📝
+• وداعاً 👋
+
+📊 **لوحة التحكم:**
+• إحصائيات 📈
+• إدارة المجموعات 👥
+• الإذاعة 📢
+• القائمة السوداء 🚫
+━━━━━━━━━━━━━━━━━━━━━━
+👑 @amirx_xpipo"""
+        await event.edit(text)
+
+    elif data == b'dashboard_link':
+        await event.edit("📊 **لوحة التحكم:**
+
+🔗 https://pipo-bot.onrender.com/control.html
+
+🔑 التوكن: pipomaster2026")
+
+    elif data == b'help':
+        await event.edit("❓ **المساعدة:**
+
+📌 **للحصول على المساعدة:**
+• تواصل مع المطور @amirx_xpipo
+• قم بزيارة لوحة التحكم
+• اكتب /الاوامر لعرض جميع الأوامر")
+
+    elif data == b'commands':
+        await event.edit("📜 **الأوامر:**
+
+🛡️ **المسؤول:**
+/تفعيل - /تعطيل
+/قفل_المجموعة - /فك_القفل
+/كتم - /حظر - /فك_الحظر
+/تحذير - /عرض_التحذيرات
+/مسح عدد - /تثبيت
+/القيود
+
+👤 **الأعضاء:**
+/ايدي - /قوانين - /معلومات
+/توب_المتفاعلين - /تقرير
+/الاوامر - /مساعدة
+
+👑 **المطور:**
+/المجموعات - /رفع_مسؤول
+/تعيين_ترحيب - /تعيين_فيديو_ترحيب
+/الخروج_من_المجموعة")
