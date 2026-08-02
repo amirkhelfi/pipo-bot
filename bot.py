@@ -1015,19 +1015,6 @@ async def anti_duplicate(event):
 
 
 @client.on(events.NewMessage())
-async def anti_porn(event):
-    if not event.is_group or event.chat_id not in active_groups: return
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID or is_admin(sender): return
-    text = event.raw_text.lower()
-    for word in PORN_KEYWORDS:
-        if word in text:
-            await event.delete()
-            await event.reply(f"🚫 **ممنوع المحتوى الإباحي!**
-👤 {sender.first_name} تم حذف رسالتك.")
-👤 {sender.first_name} تم حذف رسالتك.")            await mute_user(event.chat_id, sender.id, 3600)
-            mute_status[sender.id] = {'until': time.time() + 3600, 'name': sender.first_name}
-            return
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def bot_hunter(event):
     chat = event.chat_id
