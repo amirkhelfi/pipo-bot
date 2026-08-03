@@ -168,7 +168,6 @@
     <div class="container">
         <h1>⚡ PIPO BOT – لوحة التحكم</h1>
 
-        <!-- شريط التبويبات -->
         <div class="tab-bar">
             <button class="tab-btn active" onclick="showTab('dashboard')">📊 الرئيسية</button>
             <button class="tab-btn" onclick="showTab('muted')">🔇 المكتومين</button>
@@ -178,7 +177,6 @@
             <button class="tab-btn" onclick="toggleBotLock()" id="lockBtn">🔒 قفل البوت</button>
         </div>
 
-        <!-- تبويب الرئيسية -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="stats-grid" id="statsGrid">
                 <div class="stat-card"><div class="number" id="totalGroups">-</div><div class="label">المجموعات</div></div>
@@ -194,14 +192,12 @@
             </div>
         </div>
 
-        <!-- تبويب المكتومين -->
         <div id="tab-muted" class="tab-content">
             <h3>🔇 الأعضاء المكتومين</h3>
             <button onclick="loadMuted()">🔄 تحديث</button>
             <div id="mutedList" class="mt-10"></div>
         </div>
 
-        <!-- تبويب الإذاعة -->
         <div id="tab-broadcast" class="tab-content">
             <h3>📢 إذاعة</h3>
             <div class="card">
@@ -211,14 +207,12 @@
             </div>
         </div>
 
-        <!-- تبويب المجموعات -->
         <div id="tab-groups" class="tab-content">
             <h3>👥 المجموعات المفعلة</h3>
             <button onclick="loadGroups()">🔄 تحديث</button>
             <div id="groupsList" class="mt-10"></div>
         </div>
 
-        <!-- تبويب إدارة المجموعات -->
         <div id="tab-inactive" class="tab-content">
             <h3>📋 جميع المجموعات</h3>
             <button onclick="loadInactiveGroups()">🔄 تحديث</button>
@@ -231,7 +225,9 @@
         const TOKEN = "pipomaster2026";
 
         async function api(path, data = null) {
-            const opts = { headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN } };
+            const opts = {
+                headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN }
+            };
             if (data) { opts.method = "POST"; opts.body = JSON.stringify(data); }
             try {
                 const res = await fetch(BOT_URL + path, opts);
@@ -363,7 +359,6 @@
             loadDashboard();
         }
 
-        // تحديث كل 30 ثانية
         setInterval(() => {
             if (document.getElementById('tab-dashboard').classList.contains('active')) loadDashboard();
             if (document.getElementById('tab-muted').classList.contains('active')) loadMuted();
