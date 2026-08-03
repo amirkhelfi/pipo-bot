@@ -1011,9 +1011,7 @@ async def main():
         app.router.add_get('/', lambda r: web.Response(text="OK"))
         app.router.add_get('/control.html', lambda r: web.FileResponse('control.html'))
         
-        async def api_handler(request):
-            return web.json_response({"status": "ok", "groups": len(active_groups)})
-        app.router.add_get('/api/stats', api_handler)
+        
         
         runner = web.AppRunner(app)
         await runner.setup()
