@@ -355,6 +355,21 @@ async def reply_to_bot(event):
 # ============================================================
 #  منع الإباحية
 # ============================================================
+
+@client.on(events.NewMessage())
+async def swear_handler(event):
+    if not event.is_group or event.chat_id not in active_groups:
+        return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender):
+        return
+    text = event.raw_text
+    if text and contains_swear(text):
+        await event.delete()
+        await mute_user(event.chat_id, sender.id, 300)
+        mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
+        await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
+
 @client.on(events.NewMessage())
 async def anti_porn(event):
     try:
@@ -400,6 +415,21 @@ async def bot_hunter(event):
 # ============================================================
 #  مانع المكرر
 # ============================================================
+
+@client.on(events.NewMessage())
+async def swear_handler(event):
+    if not event.is_group or event.chat_id not in active_groups:
+        return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender):
+        return
+    text = event.raw_text
+    if text and contains_swear(text):
+        await event.delete()
+        await mute_user(event.chat_id, sender.id, 300)
+        mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
+        await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
+
 @client.on(events.NewMessage())
 async def anti_duplicate(event):
     try:
@@ -451,6 +481,21 @@ async def captcha_verification(event):
             del pending_users[uid]
     except Exception as e:
         logger.error(f"خطأ في الكابتشا: {e}")
+
+
+@client.on(events.NewMessage())
+async def swear_handler(event):
+    if not event.is_group or event.chat_id not in active_groups:
+        return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender):
+        return
+    text = event.raw_text
+    if text and contains_swear(text):
+        await event.delete()
+        await mute_user(event.chat_id, sender.id, 300)
+        mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
+        await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
 
 @client.on(events.NewMessage())
 async def check_captcha(event):
