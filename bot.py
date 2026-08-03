@@ -984,7 +984,6 @@ async def handle_api(request):
         return web.json_response({'locked': private_locked})
     if path == '/api/toggle_private':
         action = data.get('action', '')
-        global private_locked
         if action == 'lock':
             private_locked = True
         elif action == 'unlock':
