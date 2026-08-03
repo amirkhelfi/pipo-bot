@@ -948,7 +948,6 @@ async def handle_api(request):
         return web.json_response({'locked': bot_locked})
     if path == '/api/toggle_lock':
         action = data.get('action', '')
-        global bot_locked
         if action == 'lock':
             bot_locked = True
         elif action == 'unlock':
