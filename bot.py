@@ -86,7 +86,6 @@ def is_admin(sender):
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 API_TOKEN = "pipomaster2026"
-# التوكن الثابت
 mute_status = {}
 bot_locked = False
 message_count = defaultdict(int)
@@ -720,6 +719,28 @@ async def generate_group_controls(chat_id):
     return text, buttons
 
 # ============================================================
+#  إغلاق الخاص + الرد على كلمة "بوت" في المجموعات
+# ============================================================
+
+# 1. إغلاق الخاص: أي رسالة خاصة ترد بـ "🔒 الخاص مقفل"
+@client.on(events.NewMessage(func=lambda e: e.is_private))
+async def private_handler(event):
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID:
+        return  # المطور يستثنى
+    await event.reply("🔒 الخاص مقفل. تواصل مع المطور @amirx_xpipo.")
+
+# 2. الرد على كلمة "بوت" أو "bot" في المجموعات
+@client.on(events.NewMessage(func=lambda e: e.is_group and e.raw_text and ('بوت' in e.raw_text or 'bot' in e.raw_text.lower())))
+async def reply_to_bot(event):
+    if event.chat_id not in active_groups:
+        return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender):
+        return
+    await event.reply("👌🏻 امشي تعطي مادصرنيش")
+
+# ============================================================
 #  أمر /start
 # ============================================================
 @client.on(events.NewMessage(pattern='/start'))
@@ -854,7 +875,7 @@ async def handle_api(request):
         return web.json_response({'error': 'Unauthorized'}, status=403)
     path = request.path
     data = await request.json() if request.method == 'POST' else {}
-    
+
     if path == '/api/stats':
         return web.json_response({
             'totalGroups': len(active_groups),
@@ -954,7 +975,7 @@ async def handle_api(request):
         elif action == 'unlock':
             bot_locked = False
         return web.json_response({'success': True, 'locked': bot_locked})
-    
+
     return web.json_response({'error': 'Unknown'})
 
 # ============================================================
