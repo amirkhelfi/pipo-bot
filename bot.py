@@ -5,18 +5,22 @@ from telethon.tl.functions.channels import EditBannedRequest, JoinChannelRequest
 from telethon.tl.types import ChatBannedRights, InputPhoto, InputDocument
 from aiohttp import web
 
-# إعداد التسجيل للأخطاء
+# إعداد التسجيل
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ========== البيانات الأساسية ==========
+# ============================================================
+#  البيانات الأساسية
+# ============================================================
 API_ID = 33938821
 API_HASH = '24a5e855b4cf3ce48e054c32ea725aa4'
 BOT_TOKEN = '8957362371:AAF_e-BbKcvFBw1cjzILba7bR2Sh8jS81fQ'
 DEVELOPER_USERNAME = 'amirx_xpipo'
 DEVELOPER_ID = 8050958688
 
-# ========== دوال مساعدة للجسون ==========
+# ============================================================
+#  دوال مساعدة للجسون
+# ============================================================
 def load_json(path, default):
     try:
         if os.path.exists(path):
@@ -33,26 +37,9 @@ def save_json(path, data):
     except Exception as e:
         logger.error(f"خطأ في حفظ {path}: {e}")
 
-# ========== بيانات المستخدمين والمجموعات ==========
-GROUPS_FILE = "groups.json"
-ADMINS_FILE = "admins.json"
-USER_GROUPS_FILE = "user_groups.json"  # ملف لتخزين المجموعات التي أضافها كل مستخدم
-
-DEFAULT_ADMINS = [6941580330]
-
-active_groups = set(load_json(GROUPS_FILE, []))
-def save_groups():
-    save_json(GROUPS_FILE, list(active_groups))
-
-user_groups = load_json(USER_GROUPS_FILE, {})  # {user_id: [chat_id, chat_id, ...]}
-def save_user_groups():
-    save_json(USER_GROUPS_FILE, user_groups)
-
-admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
-def is_admin(sender):
-    return sender.username == DEVELOPER_USERNAME or sender.id in admins
-
-# ========== إعدادات المجموعات (كل مجموعة لها ملف خاص) ==========
+# ============================================================
+#  إعدادات المجموعات (كل مجموعة لها ملف خاص)
+# ============================================================
 def get_group_settings(chat_id):
     path = f"group_settings_{chat_id}.json"
     default = {
@@ -73,7 +60,29 @@ def save_group_settings(chat_id, data):
     path = f"group_settings_{chat_id}.json"
     save_json(path, data)
 
-# ========== المتغيرات العامة ==========
+# ============================================================
+#  بيانات المجموعات النشطة والمسؤولين
+# ============================================================
+GROUPS_FILE = "groups.json"
+ADMINS_FILE = "admins.json"
+USER_GROUPS_FILE = "user_groups.json"
+DEFAULT_ADMINS = [6941580330]
+
+active_groups = set(load_json(GROUPS_FILE, []))
+def save_groups():
+    save_json(GROUPS_FILE, list(active_groups))
+
+user_groups = load_json(USER_GROUPS_FILE, {})
+def save_user_groups():
+    save_json(USER_GROUPS_FILE, user_groups)
+
+admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
+def is_admin(sender):
+    return sender.username == DEVELOPER_USERNAME or sender.id in admins
+
+# ============================================================
+#  المتغيرات العامة
+# ============================================================
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 API_TOKEN = "pipomaster2026"
@@ -85,7 +94,9 @@ user_last_msg = defaultdict(lambda: defaultdict(float))
 _last_goodbye = {}
 warnings_data = defaultdict(list)
 
-# ========== دوال إعدادات المجموعة ==========
+# ============================================================
+#  دوال إعدادات المجموعة
+# ============================================================
 async def get_welcome_media(chat_id):
     return get_group_settings(chat_id).get("welcome_media", {})
 
@@ -105,7 +116,9 @@ async def set_rules(chat_id, rules_text):
 async def get_mute_duration(chat_id):
     return get_group_settings(chat_id).get("mute_duration", 300)
 
-# ========== دوال الحماية ==========
+# ============================================================
+#  دوال الحماية
+# ============================================================
 async def mute_user(chat, user, dur):
     try:
         await client(EditBannedRequest(chat, user, ChatBannedRights(
@@ -150,7 +163,9 @@ async def unban_user(chat, user):
         logger.error(f"خطأ في فك الحظر: {e}")
         return False
 
-# ========== كشف السب والروابط ==========
+# ============================================================
+#  كشف السب والروابط والإباحية
+# ============================================================
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
     r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
@@ -176,7 +191,9 @@ def contains_link(t):
 def is_forward(m):
     return bool(m.forward)
 
-# ========== المهام الخلفية ==========
+# ============================================================
+#  المهام الخلفية
+# ============================================================
 async def auto_unmute():
     while True:
         try:
@@ -226,7 +243,9 @@ async def auto_lock_unlock():
             logger.error(f"خطأ في auto_lock_unlock: {e}")
         await asyncio.sleep(30)
 
-# ========== حدث الترحيب ==========
+# ============================================================
+#  حدث الترحيب
+# ============================================================
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def legendary_welcome(event):
     try:
@@ -285,7 +304,9 @@ async def legendary_welcome(event):
     except Exception as e:
         logger.error(f"خطأ في حدث الترحيب: {e}")
 
-# ========== ميزة وداعاً ==========
+# ============================================================
+#  وداعاً
+# ============================================================
 @client.on(events.ChatAction(func=lambda e: e.user_left))
 async def goodbye_message(event):
     try:
@@ -303,7 +324,9 @@ async def goodbye_message(event):
     except Exception as e:
         logger.error(f"خطأ في وداعاً: {e}")
 
-# ========== ميزة منع الإباحية ==========
+# ============================================================
+#  منع الإباحية
+# ============================================================
 @client.on(events.NewMessage())
 async def anti_porn(event):
     try:
@@ -326,7 +349,9 @@ async def anti_porn(event):
     except Exception as e:
         logger.error(f"خطأ في منع الإباحية: {e}")
 
-# ========== ميزة البوت الحارس ==========
+# ============================================================
+#  البوت الحارس
+# ============================================================
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def bot_hunter(event):
     try:
@@ -344,7 +369,9 @@ async def bot_hunter(event):
     except Exception as e:
         logger.error(f"خطأ في البوت الحارس: {e}")
 
-# ========== ميزة مانع المكرر ==========
+# ============================================================
+#  مانع المكرر
+# ============================================================
 @client.on(events.NewMessage())
 async def anti_duplicate(event):
     try:
@@ -368,7 +395,9 @@ async def anti_duplicate(event):
     except Exception as e:
         logger.error(f"خطأ في مانع المكرر: {e}")
 
-# ========== نظام الكابتشا ==========
+# ============================================================
+#  الكابتشا
+# ============================================================
 @client.on(events.ChatAction(func=lambda e: e.user_joined))
 async def captcha_verification(event):
     try:
@@ -419,10 +448,10 @@ async def check_captcha(event):
     except Exception as e:
         logger.error(f"خطأ في التحقق من الكابتشا: {e}")
 
-# ========== الأزرار والتفاعلات (المعالج الرئيسي) ==========
-
-# ========== نظام لوحة التحكم بالنجوم ==========
-STARS_FILE = stars.json
+# ============================================================
+#  نظام لوحة التحكم بالنجوم
+# ============================================================
+STARS_FILE = "stars.json"
 
 def load_stars():
     return load_json(STARS_FILE, {})
@@ -435,51 +464,36 @@ stars_data = load_stars()
 def add_stars(user_id, count):
     user_id = str(user_id)
     if user_id not in stars_data:
-        stars_data[user_id] = {stars: 0, phase: start}
-    stars_data[user_id][stars] += count
+        stars_data[user_id] = {"stars": 0, "phase": "start"}
+    stars_data[user_id]["stars"] += count
     save_stars(stars_data)
-    return stars_data[user_id][stars]
+    return stars_data[user_id]["stars"]
 
 # معالج زر "لوحة التحكم"
-
+@client.on(events.CallbackQuery(func=lambda e: e.data == b"dashboard"))
 async def dashboard_start(event):
     user_id = str(event.sender_id)
     user_data = stars_data.get(user_id, {"stars": 0, "phase": "start"})
     
     if user_data.get("phase") == "done":
         await event.edit(
-            "📊 **لوحة التحكم:**
-
-"
-            "🔗 https://pipo-bot.onrender.com/control.html
-
-"
+            "📊 **لوحة التحكم:**\n\n"
+            "🔗 https://pipo-bot.onrender.com/control.html\n\n"
             "🔑 التوكن: pipomaster2026"
         )
         return
     
     hint = (
-        "📋 **لوحة التحكم PIPO BOT**
-"
-        "━━━━━━━━━━━━━━━━━━━━━━
-"
-        "🔹 **ماذا توفر لك لوحة التحكم؟**
-
-"
-        "• 📊 إحصائيات المجموعات
-"
-        "• 🔇 إدارة المكتومين
-"
-        "• 📢 الإذاعة للمجموعات
-"
-        "• 🚫 القائمة السوداء
-"
-        "• ⚙️ تفعيل/تعطيل الميزات
-"
-        "━━━━━━━━━━━━━━━━━━━━━━
-"
-        "🔐 **للحصول على الرابط، أرسل 10 نجوم.**
-"
+        "📋 **لوحة التحكم PIPO BOT**\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔹 **ماذا توفر لك لوحة التحكم؟**\n\n"
+        "• 📊 إحصائيات المجموعات\n"
+        "• 🔇 إدارة المكتومين\n"
+        "• 📢 الإذاعة للمجموعات\n"
+        "• 🚫 القائمة السوداء\n"
+        "• ⚙️ تفعيل/تعطيل الميزات\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔐 **للحصول على الرابط، أرسل 10 نجوم.**\n"
         "(اضغط الزر أدناه لإرسال نجماتك)"
     )
     
@@ -502,28 +516,27 @@ async def send_stars(event):
         user_data["phase"] = "done"
         save_stars(stars_data)
         await event.edit(
-            "🎉 **تهانيناpush*
-"            "📊 **رابط لوحة التحكم:**
-
-"
-            "🔗 https://pipo-bot.onrender.com/control.html
-
-"
-            "🔑 التوكن: pipomaster2026
-"
-            "━━━━━━━━━━━━━━━━━━━━━━
-"
+            "🎉 **تهانينا!**\n"
+            "📊 **رابط لوحة التحكم:**\n\n"
+            "🔗 https://pipo-bot.onrender.com/control.html\n\n"
+            "🔑 التوكن: pipomaster2026\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "يمكنك الآن إدارة مجموعتك بكل سهولة!",
             buttons=[[Button.inline("🔙 العودة", "back_to_start")]]
         )
         return
     
+    await event.answer("⚠️ تم إرسال 10 نجوم بنجاح!", alert=True)
 
+# ============================================================
+#  الأزرار والتفاعلات العامة
+# ============================================================
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
     try:
         data = event.data.decode('utf-8')
         
-        # أزرار الترحيب الأساسية
+        # أزرار الترحيب
         if data.startswith("welcomesp_"):
             _, uid = data.split("_")
             await client.send_message(int(uid), "🎉 أهلاً وسهلاً! نتمنى لك أجمل الأوقات. 👋")
@@ -554,7 +567,7 @@ async def callback_handler(event):
                     txt += f"{i}. {name}\n"
                 await event.answer(txt, alert=True)
         
-        # أزرار /start العامة
+        # أزرار /start الرئيسية
         elif data == "features":
             text = """📋 **جميع ميزات PIPO BOT**
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -588,31 +601,59 @@ async def callback_handler(event):
 ━━━━━━━━━━━━━━━━━━━━━━
 👑 @amirx_xpipo"""
             await event.edit(text)
-        elif data == "dashboard_link":
-            await event.edit("📊 **لوحة التحكم:**\n\n🔗 https://pipo-bot.onrender.com/control.html\n\n🔑 التوكن: pipomaster2026")
         elif data == "help":
             await event.edit("❓ **المساعدة:**\n\n📌 **للحصول على المساعدة:**\n• تواصل مع المطور @amirx_xpipo\n• قم بزيارة لوحة التحكم\n• اكتب /الاوامر لعرض جميع الأوامر")
         elif data == "commands":
-            await event.edit("📜 **الأوامر:**\n\n🛡️ **المسؤول:**\n/تفعيل - /تعطيل\n/قفل_المجموعة - /فك_القفل\n/كتم - /حظر - /فك_الحظر\n/تحذير - /عرض_التحذيرات\n/مسح عدد - /تثبيت\n/القيود\n\n👤 **الأعضاء:**\n/ايدي - /قوانين - /معلومات\n/توب_المتفاعلين - /تقرير\n/الاوامر - /مساعدة\n\n👑 **المطور:**\n/المجموعات - /رفع_مسؤول\n/تعيين_ترحيب - /تعيين_فيديو_ترحيب\n/الخروج_من_المجموعة")
+            await event.edit("📜 **الأوامر:**\n\n🛡️ **المسؤول:**\n/تفعيل - /تعطيل\n/قفل_المجموعة - /فك_القفل\n/كتم - /حظر - /فك_الحظر\n/تحذير - /عرض_التحذيرات\n/مسح عدد - /تثبيت\n\n👤 **الأعضاء:**\n/ايدي - /قوانين - /معلومات\n/توب_المتفاعلين - /تقرير\n/الاوامر - /مساعدة\n\n👑 **المطور:**\n/المجموعات - /رفع_مسؤول\n/تعيين_ترحيب - /تعيين_فيديو_ترحيب\n/الخروج_من_المجموعة")
         
-        # أزرار تفعيل الميزات من الخاص (الجزء الجديد)
-        elif data.startswith("toggle_swear_"):
-            chat_id = int(data.split("_")[2])
-            settings = get_group_settings(chat_id)
-            settings["swear_protection"] = not settings.get("swear_protection", True)
-            save_group_settings(chat_id, settings)
-            await event.answer(f"✅ تم {'تفعيل' if settings['swear_protection'] else 'تعطيل'} حماية السب")
-            await refresh_group_controls(event)
-        elif data.startswith("toggle_links_"):
-            chat_id = int(data.split("_")[2])
-            settings = get_group_settings(chat_id)
-            settings["link_protection"] = not settings.get("link_protection", True)
-            save_group_settings(chat_id, settings)
-            await event.answer(f"✅ تم {'تفعيل' if settings['link_protection'] else 'تعطيل'} حماية الروابط")
-            await refresh_group_controls(event)
-        # ... يمكن إضافة باقي الميزات بنفس الطريقة (forward, captcha, etc.)
+        # العودة للقائمة الرئيسية
+        elif data == "back_to_start":
+            await start(event)
         
-        # أزرار إدارة الكتم من لوحة التحكم القديمة
+        # أزرار إعدادات المجموعة
+        elif data.startswith("config_"):
+            chat_id = int(data.split("_")[1])
+            text, buttons = await generate_group_controls(chat_id)
+            await event.edit(text, buttons=buttons)
+        
+        # أزرار تبديل الميزات
+        elif data.startswith("toggle_"):
+            parts = data.split("_")
+            chat_id = int(parts[2])
+            feature = parts[1]
+            settings = get_group_settings(chat_id)
+            
+            if feature == "swear":
+                settings["swear_protection"] = not settings.get("swear_protection", True)
+                label = "حماية السب"
+            elif feature == "links":
+                settings["link_protection"] = not settings.get("link_protection", True)
+                label = "حماية الروابط"
+            elif feature == "forward":
+                settings["forward_protection"] = not settings.get("forward_protection", True)
+                label = "حماية التوجيه"
+            elif feature == "captcha":
+                settings["captcha_enabled"] = not settings.get("captcha_enabled", True)
+                label = "التحقق (كابتشا)"
+            elif feature == "porn":
+                settings["anti_porn_enabled"] = not settings.get("anti_porn_enabled", True)
+                label = "منع الإباحية"
+            elif feature == "hunter":
+                settings["bot_hunter_enabled"] = not settings.get("bot_hunter_enabled", True)
+                label = "البوت الحارس"
+            elif feature == "duplicate":
+                settings["anti_duplicate_enabled"] = not settings.get("anti_duplicate_enabled", True)
+                label = "مانع المكرر"
+            else:
+                await event.answer("ميزة غير معروفة.", alert=True)
+                return
+            
+            save_group_settings(chat_id, settings)
+            await event.answer(f"✅ تم {'تفعيل' if settings.get(feature + '_enabled' if feature not in ['swear','links','forward'] else feature + '_protection', True) else 'تعطيل'} {label}")
+            text, buttons = await generate_group_controls(chat_id)
+            await event.edit(text, buttons=buttons)
+        
+        # أزرار إدارة الكتم القديمة
         elif data == "mute_dur":
             await event.reply(f"⏰ {mute_duration//60} د")
         elif data == "bot_stat":
@@ -641,11 +682,9 @@ async def callback_handler(event):
         logger.error(f"خطأ في الأزرار: {e}")
         await event.answer("حدث خطأ، حاول مرة أخرى.", alert=True)
 
-# دالة مساعدة لتحديث أزرار التحكم في المجموعة
-async def refresh_group_controls(event):
-    # تستخدم لتحديث الرسالة بعد تغيير إعداد
-    await event.edit(await generate_group_controls(event.chat_id))
-
+# ============================================================
+#  دالة إنشاء أزرار التحكم في المجموعة
+# ============================================================
 async def generate_group_controls(chat_id):
     settings = get_group_settings(chat_id)
     try:
@@ -662,8 +701,8 @@ async def generate_group_controls(chat_id):
     status_links = "✅" if settings.get("link_protection", True) else "❌"
     status_forward = "✅" if settings.get("forward_protection", True) else "❌"
     status_captcha = "✅" if settings.get("captcha_enabled", True) else "❌"
-    status_antiporn = "✅" if settings.get("anti_porn_enabled", True) else "❌"
-    status_bothunter = "✅" if settings.get("bot_hunter_enabled", True) else "❌"
+    status_porn = "✅" if settings.get("anti_porn_enabled", True) else "❌"
+    status_hunter = "✅" if settings.get("bot_hunter_enabled", True) else "❌"
     status_duplicate = "✅" if settings.get("anti_duplicate_enabled", True) else "❌"
     
     buttons = [
@@ -671,36 +710,34 @@ async def generate_group_controls(chat_id):
         [Button.inline(f"{status_links} حماية الروابط", f"toggle_links_{chat_id}")],
         [Button.inline(f"{status_forward} حماية التوجيه", f"toggle_forward_{chat_id}")],
         [Button.inline(f"{status_captcha} التحقق (كابتشا)", f"toggle_captcha_{chat_id}")],
-        [Button.inline(f"{status_antiporn} منع الإباحية", f"toggle_porn_{chat_id}")],
-        [Button.inline(f"{status_bothunter} البوت الحارس", f"toggle_hunter_{chat_id}")],
+        [Button.inline(f"{status_porn} منع الإباحية", f"toggle_porn_{chat_id}")],
+        [Button.inline(f"{status_hunter} البوت الحارس", f"toggle_hunter_{chat_id}")],
         [Button.inline(f"{status_duplicate} مانع المكرر", f"toggle_duplicate_{chat_id}")],
         [Button.inline("🔙 العودة للقائمة الرئيسية", "back_to_start")]
     ]
     return text, buttons
 
-# ========== الأوامر الأساسية ==========
+# ============================================================
+#  أمر /start
+# ============================================================
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     try:
         sender = await event.get_sender()
         user_id = str(sender.id)
         
-        # إذا كانت الرسالة في مجموعة
         if event.is_group:
-            # رسالة ترحيب بسيطة للمجموعة
             await event.reply("🤖 PIPO BOT يعمل في هذه المجموعة!\nاستخدم الأوامر للتحكم.")
             return
         
-        # إذا كانت في الخاص
-        text = "🤖 **PIPO BOT** 🛡️\n━━━━━━━━━━━━━━━━━━━━━━\nبوت حماية متطور للمجوعات\n━━━━━━━━━━━━━━━━━━━━━━\n👑 **المطور:** @amirx_xpipo\n━━━━━━━━━━━━━━━━━━━━━━"
+        text = "🤖 **PIPO BOT** 🛡️\n━━━━━━━━━━━━━━━━━━━━━━\nبوت حماية متطور للمجموعات\n━━━━━━━━━━━━━━━━━━━━━━\n👑 **المطور:** @amirx_xpipo\n━━━━━━━━━━━━━━━━━━━━━━"
         
         buttons = [
             [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
-            [Button.inline("📋 جميع الميزات", "features"), Button.inline("📊 لوحة التحكم", "dashboard_link")],
+            [Button.inline("📋 جميع الميزات", "features"), Button.inline("📊 لوحة التحكم", "dashboard")],
             [Button.inline("❓ المساعدة", "help"), Button.inline("📜 الأوامر", "commands")]
         ]
         
-        # عرض المجموعات التي أضافها هذا المستخدم
         if user_id in user_groups and user_groups[user_id]:
             text += "\n\n📌 **مجموعاتك:**"
             for chat_id in user_groups[user_id]:
@@ -711,7 +748,6 @@ async def start(event):
                 except:
                     pass
             text += "\n\n🔽 **لضبط إعدادات مجموعة، اضغط على اسمها:**"
-            # أزرار للدخول لإعدادات كل مجموعة
             group_buttons = []
             for chat_id in user_groups[user_id]:
                 try:
@@ -733,40 +769,26 @@ async def start(event):
     except Exception as e:
         logger.error(f"خطأ في /start: {e}")
 
-# معالج زر الدخول لإعدادات مجموعة معينة
-@client.on(events.CallbackQuery(func=lambda e: e.data.decode('utf-8').startswith("config_")))
-async def config_group_callback(event):
-    chat_id = int(event.data.decode('utf-8').split("_")[1])
-    text, buttons = await generate_group_controls(chat_id)
-    await event.edit(text, buttons=buttons)
-
-# معالج زر العودة للقائمة الرئيسية
-@client.on(events.CallbackQuery(func=lambda e: e.data == "back_to_start"))
-async def back_to_start_callback(event):
-    await start(event)  # إعادة تشغيل أمر /start
-
-# ========== حدث إضافة البوت للمجموعة (التفعيل التلقائي) ==========
+# ============================================================
+#  التفعيل التلقائي عند إضافة البوت
+# ============================================================
 @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
 async def on_bot_added(event):
     try:
         chat = event.chat_id
         adder_id = str(event.action_message.from_id.user_id)
         
-        # 1. تفعيل المجموعة تلقائياً
         active_groups.add(chat)
         save_groups()
         
-        # 2. تسجيل المجموعة في قائمة المستخدم
         if adder_id not in user_groups:
             user_groups[adder_id] = []
         if chat not in user_groups[adder_id]:
             user_groups[adder_id].append(chat)
         save_user_groups()
         
-        # 3. إرسال رسالة ترحيب للمجموعة
-        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\n✅ تم تفعيل الحماية تلقائياً في هذه المجموعة.\n👑 يمكنك ضبط الإعدادات من الخاص عبر /start")
+        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\n✅ تم تفعيل الحماية تلقائياً.\n👑 يمكنك ضبط الإعدادات من الخاص عبر /start")
         
-        # 4. إرسال رسالة خاصة للمستخدم الذي أضاف البوت
         try:
             await client.send_message(int(adder_id), f"✅ تم إضافة البوت إلى مجموعة `{chat}` بنجاح!\n📋 لضبط الإعدادات، اذهب للخاص واكتب /start")
         except:
@@ -775,9 +797,9 @@ async def on_bot_added(event):
     except Exception as e:
         logger.error(f"خطأ في حدث إضافة البوت: {e}")
 
-# ========== الأوامر الإدارية الأخرى (مختصرة) ==========
-# ... (جميع الأوامر الأخرى مثل /تفعيل, /تعطيل, /قوانين موجودة ولكن تم تعديلها لاستخدام إعدادات المجموعة)
-
+# ============================================================
+#  الأوامر الإدارية
+# ============================================================
 @client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
     if not is_admin(await event.get_sender()): return
@@ -809,7 +831,167 @@ async def set_rules_cmd(event):
     await set_rules(chat, rules_text)
     await event.reply("✅ تم تعيين القوانين بنجاح!")
 
-# ========== التشغيل الرئيسي ==========
+@client.on(events.NewMessage(pattern='^/المجموعات$'))
+async def list_groups(event):
+    if not is_admin(await event.get_sender()): return
+    if not active_groups:
+        await event.reply("لا توجد مجموعات مفعلة.")
+        return
+    txt = "📋 **المجموعات المفعلة:**\n"
+    for gid in active_groups:
+        try:
+            txt += f"• {(await client.get_entity(gid)).title} ({gid})\n"
+        except:
+            txt += f"• {gid}\n"
+    await event.reply(txt)
+
+@client.on(events.NewMessage(pattern='^/قفل_المجموعة$'))
+async def lock_chat(event):
+    if not is_admin(await event.get_sender()): return
+    global chat_locked
+    chat_locked = True
+    await client.edit_permissions(event.chat_id, send_messages=False)
+    await event.reply("🔒 تم قفل المجموعة")
+
+@client.on(events.NewMessage(pattern='^/فك_القفل$'))
+async def unlock_chat(event):
+    if not is_admin(await event.get_sender()): return
+    global chat_locked
+    chat_locked = False
+    await client.edit_permissions(event.chat_id, send_messages=True)
+    await event.reply("🔓 تم فتح المجموعة")
+
+@client.on(events.NewMessage(pattern='^/ايدي$'))
+async def get_id(event):
+    await event.reply(f"`{event.chat_id}`")
+
+@client.on(events.NewMessage(pattern='^/حالة_الحماية$'))
+async def prot_stat(event):
+    settings = get_group_settings(event.chat_id)
+    await event.reply(f"🛡️ الروابط: {'✅' if settings.get('link_protection', True) else '❌'} | التوجيه: {'✅' if settings.get('forward_protection', True) else '❌'} | السب: ✅ | الكابتشا: {'✅' if settings.get('captcha_enabled', True) else '❌'}")
+
+@client.on(events.NewMessage(pattern=r'^/مدة_الكتم (\d+)$'))
+async def set_md(event):
+    if not is_admin(await event.get_sender()): return
+    global mute_duration
+    mute_duration = int(event.pattern_match.group(1)) * 60
+    await event.reply(f"⏰ {mute_duration // 60} دقائق")
+
+@client.on(events.NewMessage(pattern='^/مدة_الكتم$'))
+async def sh_md(event):
+    await event.reply(f"⏰ {mute_duration // 60} دقائق")
+
+@client.on(events.NewMessage(pattern='^/فك_كل_الكمات$'))
+async def unm_all(event):
+    if not is_admin(await event.get_sender()): return
+    c = 0
+    for u in list(mute_status.keys()):
+        try:
+            await unmute_user(event.chat_id, u)
+            del mute_status[u]
+            c += 1
+        except:
+            pass
+    await event.reply(f"✅ فك {c} كتم")
+
+@client.on(events.NewMessage(pattern='/كتم', func=lambda e: e.is_reply))
+async def perm_mute(event):
+    if not is_admin(await event.get_sender()): return
+    target = await (await event.get_reply_message()).get_sender()
+    if not target:
+        return await event.reply("❌ العضو غير موجود")
+    ten_years = 10*365*24*3600
+    await mute_user(event.chat_id, target.id, ten_years)
+    mute_status[target.id] = {'until': time.time()+ten_years, 'name': target.first_name}
+    await event.reply(f"🚫 هاك الكتمة يا {target.first_name} 😂")
+
+@client.on(events.NewMessage(pattern='^/(حظر|حضر)$', func=lambda e: e.is_reply))
+async def ban_handler(event):
+    if not is_admin(await event.get_sender()): return
+    target = await (await event.get_reply_message()).get_sender()
+    if not target:
+        return await event.reply("❌ العضو غير موجود")
+    if target.username == DEVELOPER_USERNAME or target.id in admins:
+        return await event.reply("❌ لا يمكن حظر مسؤول")
+    if await ban_user(event.chat_id, target.id):
+        await event.reply(f"🚫 {target.first_name} تم حظره")
+    else:
+        await event.reply("❌ فشل الحظر")
+
+@client.on(events.NewMessage(pattern='^/فك_الحظر$', func=lambda e: e.is_reply))
+async def unban_handler(event):
+    if not is_admin(await event.get_sender()): return
+    target = await (await event.get_reply_message()).get_sender()
+    if not target:
+        return await event.reply("❌ العضو غير موجود")
+    if await unban_user(event.chat_id, target.id):
+        await event.reply(f"🔓 {target.first_name} تم فك حظره")
+    else:
+        await event.reply("❌ فشل فك الحظر")
+
+@client.on(events.NewMessage(pattern='^/تحذير$'))
+async def warn(event):
+    if not is_admin(await event.get_sender()): return
+    if not event.is_reply:
+        return await event.reply("❌ يجب الرد على الشخص")
+    target = await (await event.get_reply_message()).get_sender()
+    if not target:
+        return
+    uid = target.id
+    name = target.first_name or "لا اسم"
+    warnings_data[uid].append(time.time())
+    save_warnings()
+    cur = len(warnings_data[uid])
+    await event.reply(f"⚠️ {name} تحذير {cur}/3")
+    if cur >= 3:
+        if await mute_user(event.chat_id, uid, mute_duration):
+            mute_status[uid] = {'until': time.time()+mute_duration, 'name': name}
+            await event.reply(f"🚫 {name} كتم {mute_duration//60} د")
+            del warnings_data[uid]
+            save_warnings()
+
+@client.on(events.NewMessage(pattern='^/عرض_التحذيرات$'))
+async def show_warn(event):
+    target_id = None
+    target_name = ""
+    if event.is_reply:
+        u = await (await event.get_reply_message()).get_sender()
+        if u:
+            target_id = u.id
+            target_name = u.first_name
+    else:
+        args = event.raw_text.split()
+        if len(args) >= 2:
+            try:
+                target_id = int(args[1])
+            except:
+                pass
+    if not target_id:
+        return await event.reply("❌ استخدم الأمر مع معرف أو رد")
+    c = len(warnings_data.get(target_id, []))
+    await event.reply(f"📊 {target_name or target_id} لديه {c}/3 تحذيرات")
+
+@client.on(events.NewMessage(pattern=r'^/مسح\s+(\d+)$'))
+async def purge(event):
+    if not is_admin(await event.get_sender()): return
+    count = int(event.pattern_match.group(1))
+    if count <= 0:
+        return await event.reply("❌ الرجاء إدخال عدد صحيح موجب.")
+    if count > 100:
+        return await event.reply("❌ الحد الأقصى هو 100 رسالة.")
+    await event.delete()
+    msgs = await client.get_messages(event.chat_id, limit=count)
+    ids = [m.id for m in msgs if m]
+    if not ids:
+        return
+    await client.delete_messages(event.chat_id, ids)
+    confirm = await event.respond(f"🧹 تم مسح {len(ids)} رسالة.")
+    await asyncio.sleep(2)
+    await confirm.delete()
+
+# ============================================================
+#  التشغيل الرئيسي
+# ============================================================
 async def main():
     global BOT_PHOTO
     try:
