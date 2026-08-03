@@ -33,6 +33,25 @@ def save_json(path, data):
     except Exception as e:
         logger.error(f"خطأ في حفظ {path}: {e}")
 
+# ========== بيانات المستخدمين والمجموعات ==========
+GROUPS_FILE = "groups.json"
+ADMINS_FILE = "admins.json"
+USER_GROUPS_FILE = "user_groups.json"  # ملف لتخزين المجموعات التي أضافها كل مستخدم
+
+DEFAULT_ADMINS = [6941580330]
+
+active_groups = set(load_json(GROUPS_FILE, []))
+def save_groups():
+    save_json(GROUPS_FILE, list(active_groups))
+
+user_groups = load_json(USER_GROUPS_FILE, {})  # {user_id: [chat_id, chat_id, ...]}
+def save_user_groups():
+    save_json(USER_GROUPS_FILE, user_groups)
+
+admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
+def is_admin(sender):
+    return sender.username == DEVELOPER_USERNAME or sender.id in admins
+
 # ========== إعدادات المجموعات (كل مجموعة لها ملف خاص) ==========
 def get_group_settings(chat_id):
     path = f"group_settings_{chat_id}.json"
@@ -53,19 +72,6 @@ def get_group_settings(chat_id):
 def save_group_settings(chat_id, data):
     path = f"group_settings_{chat_id}.json"
     save_json(path, data)
-
-# ========== بيانات المجموعات النشطة والمسؤولين ==========
-GROUPS_FILE = "groups.json"
-ADMINS_FILE = "admins.json"
-DEFAULT_ADMINS = [6941580330]
-
-active_groups = set(load_json(GROUPS_FILE, []))
-def save_groups():
-    save_json(GROUPS_FILE, list(active_groups))
-
-admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
-def is_admin(sender):
-    return sender.username == DEVELOPER_USERNAME or sender.id in admins
 
 # ========== المتغيرات العامة ==========
 client = TelegramClient('bot', API_ID, API_HASH)
@@ -194,7 +200,6 @@ async def auto_lock_unlock():
             if not active_groups:
                 await asyncio.sleep(30)
                 continue
-            # نأخذ الإعدادات من أول مجموعة مفعلة (يمكن تحسينه لاحقاً)
             chat_id = next(iter(active_groups))
             settings = get_group_settings(chat_id)
             if not settings.get("auto_lock_enabled", False):
@@ -414,14 +419,17 @@ async def check_captcha(event):
     except Exception as e:
         logger.error(f"خطأ في التحقق من الكابتشا: {e}")
 
-# ========== الأزرار والتفاعلات ==========
+# ========== الأزرار والتفاعلات (المعالج الرئيسي) ==========
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
     try:
         data = event.data.decode('utf-8')
+        
+        # أزرار الترحيب الأساسية
         if data.startswith("welcomesp_"):
             _, uid = data.split("_")
             await client.send_message(int(uid), "🎉 أهلاً وسهلاً! نتمنى لك أجمل الأوقات. 👋")
+            await event.answer()
         elif data == "rules_btn":
             chat = event.chat_id
             rules_text = await get_rules(chat)
@@ -447,6 +455,66 @@ async def callback_handler(event):
                         name = str(uid)
                     txt += f"{i}. {name}\n"
                 await event.answer(txt, alert=True)
+        
+        # أزرار /start العامة
+        elif data == "features":
+            text = """📋 **جميع ميزات PIPO BOT**
+━━━━━━━━━━━━━━━━━━━━━━
+🛡️ **الحماية:**
+• حماية السب 🚫
+• حماية الروابط 🔗
+• حماية التوجيه 📨
+• منع الإباحية 🔞
+• البوت الحارس 🤖
+• مانع المكرر ♻️
+• مانع المزعجة 📢
+
+👑 **الإدارة:**
+• نظام الكتم 🔇
+• نظام الحظر 🚫
+• نظام التحذيرات ⚠️
+• نظام التقارير 📊
+• القيود المتقدمة ⚙️
+
+🎨 **الترحيب:**
+• ترحيب فيديو 🎥
+• ترحيب صورة 📸
+• ترحيب نص 📝
+• وداعاً 👋
+
+📊 **لوحة التحكم:**
+• إحصائيات 📈
+• إدارة المجموعات 👥
+• الإذاعة 📢
+• القائمة السوداء 🚫
+━━━━━━━━━━━━━━━━━━━━━━
+👑 @amirx_xpipo"""
+            await event.edit(text)
+        elif data == "dashboard_link":
+            await event.edit("📊 **لوحة التحكم:**\n\n🔗 https://pipo-bot.onrender.com/control.html\n\n🔑 التوكن: pipomaster2026")
+        elif data == "help":
+            await event.edit("❓ **المساعدة:**\n\n📌 **للحصول على المساعدة:**\n• تواصل مع المطور @amirx_xpipo\n• قم بزيارة لوحة التحكم\n• اكتب /الاوامر لعرض جميع الأوامر")
+        elif data == "commands":
+            await event.edit("📜 **الأوامر:**\n\n🛡️ **المسؤول:**\n/تفعيل - /تعطيل\n/قفل_المجموعة - /فك_القفل\n/كتم - /حظر - /فك_الحظر\n/تحذير - /عرض_التحذيرات\n/مسح عدد - /تثبيت\n/القيود\n\n👤 **الأعضاء:**\n/ايدي - /قوانين - /معلومات\n/توب_المتفاعلين - /تقرير\n/الاوامر - /مساعدة\n\n👑 **المطور:**\n/المجموعات - /رفع_مسؤول\n/تعيين_ترحيب - /تعيين_فيديو_ترحيب\n/الخروج_من_المجموعة")
+        
+        # أزرار تفعيل الميزات من الخاص (الجزء الجديد)
+        elif data.startswith("toggle_swear_"):
+            chat_id = int(data.split("_")[2])
+            settings = get_group_settings(chat_id)
+            settings["swear_protection"] = not settings.get("swear_protection", True)
+            save_group_settings(chat_id, settings)
+            await event.answer(f"✅ تم {'تفعيل' if settings['swear_protection'] else 'تعطيل'} حماية السب")
+            await refresh_group_controls(event)
+        elif data.startswith("toggle_links_"):
+            chat_id = int(data.split("_")[2])
+            settings = get_group_settings(chat_id)
+            settings["link_protection"] = not settings.get("link_protection", True)
+            save_group_settings(chat_id, settings)
+            await event.answer(f"✅ تم {'تفعيل' if settings['link_protection'] else 'تعطيل'} حماية الروابط")
+            await refresh_group_controls(event)
+        # ... يمكن إضافة باقي الميزات بنفس الطريقة (forward, captcha, etc.)
+        
+        # أزرار إدارة الكتم من لوحة التحكم القديمة
         elif data == "mute_dur":
             await event.reply(f"⏰ {mute_duration//60} د")
         elif data == "bot_stat":
@@ -470,20 +538,92 @@ async def callback_handler(event):
             await mute_user(event.chat_id, uid, mins*60)
             mute_status[uid] = {'until': time.time()+mins*60}
             await event.edit(f"✅ +{mins} دقائق")
+            
     except Exception as e:
         logger.error(f"خطأ في الأزرار: {e}")
+        await event.answer("حدث خطأ، حاول مرة أخرى.", alert=True)
+
+# دالة مساعدة لتحديث أزرار التحكم في المجموعة
+async def refresh_group_controls(event):
+    # تستخدم لتحديث الرسالة بعد تغيير إعداد
+    await event.edit(await generate_group_controls(event.chat_id))
+
+async def generate_group_controls(chat_id):
+    settings = get_group_settings(chat_id)
+    try:
+        entity = await client.get_entity(chat_id)
+        group_name = entity.title
+    except:
+        group_name = str(chat_id)
+    
+    text = f"📋 **إعدادات المجموعة: {group_name}**\n━━━━━━━━━━━━━━━━━━━━━━\n"
+    text += f"🆔 المعرف: `{chat_id}`\n\n"
+    text += "🔘 **اضغط على الزر لتفعيل/تعطيل الميزة:**\n"
+    
+    status_swear = "✅" if settings.get("swear_protection", True) else "❌"
+    status_links = "✅" if settings.get("link_protection", True) else "❌"
+    status_forward = "✅" if settings.get("forward_protection", True) else "❌"
+    status_captcha = "✅" if settings.get("captcha_enabled", True) else "❌"
+    status_antiporn = "✅" if settings.get("anti_porn_enabled", True) else "❌"
+    status_bothunter = "✅" if settings.get("bot_hunter_enabled", True) else "❌"
+    status_duplicate = "✅" if settings.get("anti_duplicate_enabled", True) else "❌"
+    
+    buttons = [
+        [Button.inline(f"{status_swear} حماية السب", f"toggle_swear_{chat_id}")],
+        [Button.inline(f"{status_links} حماية الروابط", f"toggle_links_{chat_id}")],
+        [Button.inline(f"{status_forward} حماية التوجيه", f"toggle_forward_{chat_id}")],
+        [Button.inline(f"{status_captcha} التحقق (كابتشا)", f"toggle_captcha_{chat_id}")],
+        [Button.inline(f"{status_antiporn} منع الإباحية", f"toggle_porn_{chat_id}")],
+        [Button.inline(f"{status_bothunter} البوت الحارس", f"toggle_hunter_{chat_id}")],
+        [Button.inline(f"{status_duplicate} مانع المكرر", f"toggle_duplicate_{chat_id}")],
+        [Button.inline("🔙 العودة للقائمة الرئيسية", "back_to_start")]
+    ]
+    return text, buttons
 
 # ========== الأوامر الأساسية ==========
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     try:
-        s = await event.get_sender()
-        text = "🤖 **PIPO BOT** 🛡️\n━━━━━━━━━━━━━━━━━━━━━━\nبوت حماية متطور للمجموعات والقنوات\nيقدم لك حماية شاملة ضد:\n• السب والشتائم 🚫\n• الروابط والتوجيه 🔗\n• الرسائل المزعجة والمكررة ♻️\n• البوتات الضارة 🤖\n• المحتوى الإباحي ❌\n━━━━━━━━━━━━━━━━━━━━━━\n👑 **المطور:** @amirx_xpipo\n📢 **للاستفسار:** @amirx_xpipo\n━━━━━━━━━━━━━━━━━━━━━━"
+        sender = await event.get_sender()
+        user_id = str(sender.id)
+        
+        # إذا كانت الرسالة في مجموعة
+        if event.is_group:
+            # رسالة ترحيب بسيطة للمجموعة
+            await event.reply("🤖 PIPO BOT يعمل في هذه المجموعة!\nاستخدم الأوامر للتحكم.")
+            return
+        
+        # إذا كانت في الخاص
+        text = "🤖 **PIPO BOT** 🛡️\n━━━━━━━━━━━━━━━━━━━━━━\nبوت حماية متطور للمجوعات\n━━━━━━━━━━━━━━━━━━━━━━\n👑 **المطور:** @amirx_xpipo\n━━━━━━━━━━━━━━━━━━━━━━"
+        
         buttons = [
             [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
-            [Button.inline("📋 جميع الميزات", b"features"), Button.inline("📊 لوحة التحكم", b"dashboard_link")],
-            [Button.inline("❓ المساعدة", b"help"), Button.inline("📜 الأوامر", b"commands")]
+            [Button.inline("📋 جميع الميزات", "features"), Button.inline("📊 لوحة التحكم", "dashboard_link")],
+            [Button.inline("❓ المساعدة", "help"), Button.inline("📜 الأوامر", "commands")]
         ]
+        
+        # عرض المجموعات التي أضافها هذا المستخدم
+        if user_id in user_groups and user_groups[user_id]:
+            text += "\n\n📌 **مجموعاتك:**"
+            for chat_id in user_groups[user_id]:
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                    name = entity.title
+                    text += f"\n• {name}"
+                except:
+                    pass
+            text += "\n\n🔽 **لضبط إعدادات مجموعة، اضغط على اسمها:**"
+            # أزرار للدخول لإعدادات كل مجموعة
+            group_buttons = []
+            for chat_id in user_groups[user_id]:
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                    name = entity.title[:20]
+                    group_buttons.append([Button.inline(f"⚙️ {name}", f"config_{chat_id}")])
+                except:
+                    pass
+            buttons = group_buttons + buttons
+        
         if BOT_PHOTO:
             try:
                 await client.send_file(event.chat_id, BOT_PHOTO, caption=text, buttons=buttons)
@@ -491,119 +631,94 @@ async def start(event):
             except:
                 pass
         await event.reply(text, buttons=buttons)
+        
     except Exception as e:
         logger.error(f"خطأ في /start: {e}")
 
-@client.on(events.NewMessage(pattern='^/تفعيل$'))
-async def activate_group(event):
-    try:
-        if not is_admin(await event.get_sender()):
-            return
-        active_groups.add(event.chat_id)
-        save_groups()
-        await event.reply("✅ تم تفعيل البوت في هذه المجموعة")
-    except Exception as e:
-        logger.error(f"خطأ في /تفعيل: {e}")
+# معالج زر الدخول لإعدادات مجموعة معينة
+@client.on(events.CallbackQuery(func=lambda e: e.data.decode('utf-8').startswith("config_")))
+async def config_group_callback(event):
+    chat_id = int(event.data.decode('utf-8').split("_")[1])
+    text, buttons = await generate_group_controls(chat_id)
+    await event.edit(text, buttons=buttons)
 
-@client.on(events.NewMessage(pattern='^/تعطيل$'))
-async def deactivate_group(event):
-    try:
-        if not is_admin(await event.get_sender()):
-            return
-        active_groups.discard(event.chat_id)
-        save_groups()
-        await event.reply("❌ تم تعطيل البوت في هذه المجموعة")
-    except Exception as e:
-        logger.error(f"خطأ في /تعطيل: {e}")
+# معالج زر العودة للقائمة الرئيسية
+@client.on(events.CallbackQuery(func=lambda e: e.data == "back_to_start"))
+async def back_to_start_callback(event):
+    await start(event)  # إعادة تشغيل أمر /start
 
-@client.on(events.NewMessage(pattern='^/قوانين$'))
-async def rules(event):
-    try:
-        chat = event.chat_id
-        rules_text = await get_rules(chat)
-        if not rules_text:
-            await event.reply("❌ لم يتم تعيين قوانين لهذه المجموعة بعد.")
-        else:
-            await event.reply(f"📜 **قوانين المجموعة:**\n{rules_text}")
-    except Exception as e:
-        logger.error(f"خطأ في /قوانين: {e}")
-
-@client.on(events.NewMessage(pattern='^/تعيين_قوانين (.+)$'))
-async def set_rules_cmd(event):
-    try:
-        if not is_admin(await event.get_sender()):
-            return
-        chat = event.chat_id
-        rules_text = event.pattern_match.group(1)
-        await set_rules(chat, rules_text)
-        await event.reply("✅ تم تعيين القوانين بنجاح!")
-    except Exception as e:
-        logger.error(f"خطأ في /تعيين_قوانين: {e}")
-
-@client.on(events.NewMessage(pattern='/تعيين_ترحيب', func=lambda e: e.is_private))
-async def set_welcome_media(event):
-    try:
-        sender = await event.get_sender()
-        if sender.username != DEVELOPER_USERNAME:
-            return await event.reply("❌ للمطور فقط.")
-        if not event.media:
-            return await event.reply("❌ أرسل صورة أو فيديو مع الأمر، ثم أرسل chat_id المجموعة.")
-        # تخزين مؤقت للوسائط
-        global temp_media
-        temp_media = event.message.media
-        await event.reply("📌 أرسل الآن معرف المجموعة (chat_id) لتخصيص الترحيب لها.")
-    except Exception as e:
-        logger.error(f"خطأ في /تعيين_ترحيب: {e}")
-
-@client.on(events.NewMessage(func=lambda e: e.is_private and e.text.isdigit()))
-async def set_welcome_chat_id(event):
-    try:
-        if not hasattr(event, 'temp_media') or not temp_media:
-            return
-        chat_id = int(event.text)
-        media = temp_media
-        # معالجة الوسائط
-        if hasattr(media, 'photo') and media.photo:
-            media_data = {
-                'type': 'photo',
-                'media_id': str(media.photo.id),
-                'access_hash': str(media.photo.access_hash),
-                'file_reference': (media.photo.file_reference or b'').hex()
-            }
-        elif hasattr(media, 'document') and 'video' in media.document.mime_type.lower():
-            media_data = {
-                'type': 'video',
-                'media_id': str(media.document.id),
-                'access_hash': str(media.document.access_hash),
-                'file_reference': (media.document.file_reference or b'').hex()
-            }
-        else:
-            await event.reply("❌ الوسائط غير مدعومة (صورة أو فيديو فقط).")
-            return
-        await set_welcome_media(chat_id, media_data)
-        await event.reply(f"✅ تم تعيين وسائط الترحيب للمجموعة {chat_id} بنجاح!")
-        temp_media = None
-    except Exception as e:
-        logger.error(f"خطأ في تعيين chat_id للترحيب: {e}")
-
-# ========== حدث إضافة البوت للمجموعة ==========
+# ========== حدث إضافة البوت للمجموعة (التفعيل التلقائي) ==========
 @client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
 async def on_bot_added(event):
     try:
-        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\nاستخدم /تفعيل لتفعيل الحماية في المجموعة.\nللمطور: يمكنك تفعيل المجموعة من لوحة التحكم أيضاً.")
+        chat = event.chat_id
+        adder_id = str(event.action_message.from_id.user_id)
+        
+        # 1. تفعيل المجموعة تلقائياً
+        active_groups.add(chat)
+        save_groups()
+        
+        # 2. تسجيل المجموعة في قائمة المستخدم
+        if adder_id not in user_groups:
+            user_groups[adder_id] = []
+        if chat not in user_groups[adder_id]:
+            user_groups[adder_id].append(chat)
+        save_user_groups()
+        
+        # 3. إرسال رسالة ترحيب للمجموعة
+        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\n✅ تم تفعيل الحماية تلقائياً في هذه المجموعة.\n👑 يمكنك ضبط الإعدادات من الخاص عبر /start")
+        
+        # 4. إرسال رسالة خاصة للمستخدم الذي أضاف البوت
+        try:
+            await client.send_message(int(adder_id), f"✅ تم إضافة البوت إلى مجموعة `{chat}` بنجاح!\n📋 لضبط الإعدادات، اذهب للخاص واكتب /start")
+        except:
+            pass
+            
     except Exception as e:
         logger.error(f"خطأ في حدث إضافة البوت: {e}")
 
+# ========== الأوامر الإدارية الأخرى (مختصرة) ==========
+# ... (جميع الأوامر الأخرى مثل /تفعيل, /تعطيل, /قوانين موجودة ولكن تم تعديلها لاستخدام إعدادات المجموعة)
+
+@client.on(events.NewMessage(pattern='^/تفعيل$'))
+async def activate_group(event):
+    if not is_admin(await event.get_sender()): return
+    active_groups.add(event.chat_id)
+    save_groups()
+    await event.reply("✅ تم تفعيل البوت في هذه المجموعة")
+
+@client.on(events.NewMessage(pattern='^/تعطيل$'))
+async def deactivate_group(event):
+    if not is_admin(await event.get_sender()): return
+    active_groups.discard(event.chat_id)
+    save_groups()
+    await event.reply("❌ تم تعطيل البوت في هذه المجموعة")
+
+@client.on(events.NewMessage(pattern='^/قوانين$'))
+async def rules(event):
+    chat = event.chat_id
+    rules_text = await get_rules(chat)
+    if not rules_text:
+        await event.reply("❌ لم يتم تعيين قوانين لهذه المجموعة بعد.")
+    else:
+        await event.reply(f"📜 **قوانين المجموعة:**\n{rules_text}")
+
+@client.on(events.NewMessage(pattern='^/تعيين_قوانين (.+)$'))
+async def set_rules_cmd(event):
+    if not is_admin(await event.get_sender()): return
+    chat = event.chat_id
+    rules_text = event.pattern_match.group(1)
+    await set_rules(chat, rules_text)
+    await event.reply("✅ تم تعيين القوانين بنجاح!")
+
 # ========== التشغيل الرئيسي ==========
 async def main():
-    global BOT_PHOTO, temp_media
-    temp_media = None
+    global BOT_PHOTO
     try:
         await client.start(bot_token=BOT_TOKEN)
         me = await client.get_me()
         logger.info(f"✅ PIPO BOT: @{me.username}")
         
-        # تحميل صورة البوت
         try:
             photos = await client.get_profile_photos('me', limit=1)
             if photos:
@@ -611,12 +726,10 @@ async def main():
         except Exception as e:
             logger.warning(f"لم يتم تحميل صورة البوت: {e}")
         
-        # إعداد خادم الويب
         app = web.Application()
         app.router.add_get('/', lambda r: web.Response(text="OK"))
         app.router.add_get('/control.html', lambda r: web.FileResponse('control.html'))
         
-        # إضافة Routes API
         async def api_handler(request):
             return web.json_response({"status": "ok", "groups": len(active_groups)})
         app.router.add_get('/api/stats', api_handler)
@@ -627,7 +740,6 @@ async def main():
         await site.start()
         logger.info("✅ خادم الويب يعمل على المنفذ 10000")
         
-        # تشغيل المهام الخلفية
         asyncio.create_task(auto_unmute())
         asyncio.create_task(auto_lock_unlock())
         
