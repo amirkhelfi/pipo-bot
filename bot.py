@@ -76,7 +76,8 @@ user_groups = load_json(USER_GROUPS_FILE, {})
 def save_user_groups():
     save_json(USER_GROUPS_FILE, user_groups)
 
-admins = load_json(ADMINS_FILE, DEFAULT_ADMINS)
+admins = []  # تم حذف المسؤولين (يبقى المطور فقط)
+
 def is_admin(sender):
     return sender.username == DEVELOPER_USERNAME or sender.id in admins
 
@@ -88,6 +89,7 @@ BOT_PHOTO = None
 API_TOKEN = "pipomaster2026"
 mute_status = {}
 bot_locked = False
+private_locked = False  # إغلاق الخاص
 message_count = defaultdict(int)
 chat_locked = False
 pending_users = {}
@@ -165,7 +167,7 @@ async def unban_user(chat, user):
         return False
 
 # ============================================================
-#  كشف السب والروابط والإباحية
+#  كشف السب المتطور (قائمة شاملة)
 # ============================================================
 BAD_WORDS = [
     r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
@@ -179,6 +181,11 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
+    # كلمات إضافية
+    r'\b(كسمك|كسكم|طيزك|طيزكم|زبك|زبكم|نيكك|نيككم|شرموطة|شراميط|قحبة|قحبات|منيوك|منيوكة|مصطي|مصاطي|قلب|قلبوز|قلبوزة)\b',
+    r'\b(يا[\s]*ابن[\s]*القحبة|يا[\s]*بنت[\s]*القحبة|يا[\s]*ولد[\s]*القحبة)\b',
+    r'\b(انعل[\s]*ابوك|انعل[\s]*امك|انعل[\s]*دينك|انعل[\s]*ربك)\b',
+    r'\b(يلعن[\s]*ابوك|يلعن[\s]*امك|يلعن[\s]*دينك|يلعن[\s]*ربك)\b',
 ]
 LINK_PATTERNS = [r'https?://\S+', r't\.me/\S+', r'www\.\S+']
 PORN_KEYWORDS = ['sex', 'porn', 'xxx', 'nsfw', 'سكس', 'اباحية', 'جنس', 'porno', 'anal', 'بورن', 'shemale', 'trans', 'gay', 'lesbian', 'cum', 'orgasm', 'clit', 'dick', 'vagina', 'penis', 'breast', 'nude', 'naked', 'fuck', 'motherfucker', 'bitch', 'slut', 'whore']
@@ -324,6 +331,26 @@ async def goodbye_message(event):
         await event.reply(f"👋 وداعاً يا {name}، نتمنى أن نراك قريباً! 🌟")
     except Exception as e:
         logger.error(f"خطأ في وداعاً: {e}")
+
+# ============================================================
+#  إغلاق الخاص
+# ============================================================
+@client.on(events.NewMessage(func=lambda e: e.is_private))
+async def private_handler(event):
+    if private_locked and event.sender_id != DEVELOPER_ID:
+        await event.reply("🔒 الخاص مقفل. تواصل مع المطور @amirx_xpipo.")
+
+# ============================================================
+#  الرد على كلمة "بوت" في المجموعات
+# ============================================================
+@client.on(events.NewMessage(func=lambda e: e.is_group and e.raw_text and ('بوت' in e.raw_text or 'bot' in e.raw_text.lower())))
+async def reply_to_bot(event):
+    if event.chat_id not in active_groups:
+        return
+    sender = await event.get_sender()
+    if sender.id == DEVELOPER_ID or is_admin(sender):
+        return
+    await event.reply("يا خو ما دصرنيش حبب")
 
 # ============================================================
 #  منع الإباحية
@@ -719,28 +746,6 @@ async def generate_group_controls(chat_id):
     return text, buttons
 
 # ============================================================
-#  إغلاق الخاص + الرد على كلمة "بوت" في المجموعات
-# ============================================================
-
-# 1. إغلاق الخاص: أي رسالة خاصة ترد بـ "🔒 الخاص مقفل"
-@client.on(events.NewMessage(func=lambda e: e.is_private))
-async def private_handler(event):
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID:
-        return  # المطور يستثنى
-    await event.reply("🔒 الخاص مقفل. تواصل مع المطور @amirx_xpipo.")
-
-# 2. الرد على كلمة "بوت" أو "bot" في المجموعات
-@client.on(events.NewMessage(func=lambda e: e.is_group and e.raw_text and ('بوت' in e.raw_text or 'bot' in e.raw_text.lower())))
-async def reply_to_bot(event):
-    if event.chat_id not in active_groups:
-        return
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID or is_admin(sender):
-        return
-    await event.reply("👌🏻 امشي تعطي مادصرنيش")
-
-# ============================================================
 #  أمر /start
 # ============================================================
 @client.on(events.NewMessage(pattern='/start'))
@@ -975,6 +980,16 @@ async def handle_api(request):
         elif action == 'unlock':
             bot_locked = False
         return web.json_response({'success': True, 'locked': bot_locked})
+    if path == '/api/private_status':
+        return web.json_response({'locked': private_locked})
+    if path == '/api/toggle_private':
+        action = data.get('action', '')
+        global private_locked
+        if action == 'lock':
+            private_locked = True
+        elif action == 'unlock':
+            private_locked = False
+        return web.json_response({'success': True, 'locked': private_locked})
 
     return web.json_response({'error': 'Unknown'})
 
@@ -1010,6 +1025,8 @@ async def main():
         app.router.add_post('/api/deactivate', handle_api)
         app.router.add_get('/api/lock_status', handle_api)
         app.router.add_post('/api/toggle_lock', handle_api)
+        app.router.add_get('/api/private_status', handle_api)
+        app.router.add_post('/api/toggle_private', handle_api)
 
         runner = web.AppRunner(app)
         await runner.setup()
