@@ -779,7 +779,7 @@ async def on_bot_added(event):
         chat = event.chat_id
         adder_id = str(event.action_message.from_id.user_id)
         
-        active_groups.add(chat)
+        active_groups.add(int(chat))
         save_groups()
         
         if adder_id not in user_groups:
@@ -804,7 +804,7 @@ async def on_bot_added(event):
 @client.on(events.NewMessage(pattern='^/تفعيل$'))
 async def activate_group(event):
     if not is_admin(await event.get_sender()): return
-    active_groups.add(event.chat_id)
+    active_groups.add(int(event.chat_id))
     save_groups()
     await event.reply("✅ تم تفعيل البوت في هذه المجموعة")
 
