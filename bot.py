@@ -85,7 +85,7 @@ def is_admin(sender):
 # ============================================================
 client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
-API_TOKEN = "التوكن-الجديد"
+API_TOKEN = "pipomaster2026"
 mute_status = {}
 bot_locked = False
 message_count = defaultdict(int)
@@ -480,7 +480,7 @@ async def dashboard_start(event):
         await event.edit(
             "📊 **لوحة التحكم:**\n\n"
             "🔗 https://pipo-bot.onrender.com/control.html\n\n"
-            "🔑 التوكن: التوكن-الجديد"
+            "🔑 التوكن: pipomaster2026"
         )
         return
 
@@ -520,7 +520,7 @@ async def send_stars(event):
             "🎉 **تهانينا!**\n"
             "📊 **رابط لوحة التحكم:**\n\n"
             "🔗 https://pipo-bot.onrender.com/control.html\n\n"
-            "🔑 التوكن: التوكن-الجديد\n"
+            "🔑 التوكن: pipomaster2026\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "يمكنك الآن إدارة مجموعتك بكل سهولة!",
             buttons=[[Button.inline("🔙 العودة", "back_to_start")]]
