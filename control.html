@@ -98,6 +98,8 @@
         }
         button.danger { background: #c0392b; color: #fff; }
         button.success { background: #27ae60; color: #fff; }
+        button.lock-btn { background: #e67e22; color: #fff; }
+        button.unlock-btn { background: #2ecc71; color: #fff; }
         .mute-card {
             background: #1a1520;
             border: 1px solid #ff8c0055;
@@ -124,6 +126,15 @@
         }
         .status-active { color: #27ae60; font-weight: bold; }
         .status-inactive { color: #c0392b; font-weight: bold; }
+        .lock-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .lock-status.locked { background: #c0392b; color: #fff; }
+        .lock-status.unlocked { background: #27ae60; color: #fff; }
     </style>
 </head>
 <body>
@@ -135,12 +146,16 @@
         <button onclick="showTab('groups')">👥 المجموعات</button>
         <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
         <button onclick="showTab('inactive')">📋 إدارة المجموعات</button>
+        <button onclick="toggleBotLock()" id="lockBtn" class="lock-btn">🔒 قفل البوت</button>
     </div>
 
     <div class="main">
         <!-- Dashboard -->
         <div id="dashboard" class="panel active">
             <h3>📊 لوحة القيادة</h3>
+            <div id="lockStatusContainer">
+                <span class="lock-status unlocked" id="lockStatusText">🔓 البوت مفتوح</span>
+            </div>
             <div class="stat-grid">
                 <div class="stat-box"><div class="number" id="totalGroups">-</div><div class="label">المجموعات</div></div>
                 <div class="stat-box"><div class="number" id="totalMuted">-</div><div class="label">المكتومين</div></div>
@@ -195,6 +210,7 @@
         const BOT_URL = "https://pipo-bot.onrender.com";
         const TOKEN = "pipomaster2026";
 
+        // ========== دوال API ==========
         async function api(path, data = null) {
             const opts = {
                 headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN }
@@ -206,6 +222,7 @@
             } catch (e) { return { error: "تعذر الاتصال" }; }
         }
 
+        // ========== تبديل علامات التبويب ==========
         function showTab(tabId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -217,6 +234,7 @@
             if (tabId === 'inactive') loadInactiveGroups();
         }
 
+        // ========== لوحة القيادة ==========
         async function loadDashboard() {
             const data = await api('/api/stats');
             if (data) {
@@ -226,8 +244,49 @@
                 document.getElementById('totalWarnings').innerText = data.totalWarnings || 0;
                 document.getElementById('mutedCount').innerText = data.totalMuted || 0;
             }
+            // جلب حالة القفل
+            updateLockStatus();
         }
 
+        // ========== تحديث حالة القفل ==========
+        async function updateLockStatus() {
+            try {
+                const data = await api('/api/lock_status');
+                if (data && data.locked !== undefined) {
+                    const statusText = document.getElementById('lockStatusText');
+                    const lockBtn = document.getElementById('lockBtn');
+                    if (data.locked) {
+                        statusText.textContent = '🔒 البوت مقفل';
+                        statusText.className = 'lock-status locked';
+                        lockBtn.textContent = '🔓 فتح البوت';
+                        lockBtn.className = 'unlock-btn';
+                    } else {
+                        statusText.textContent = '🔓 البوت مفتوح';
+                        statusText.className = 'lock-status unlocked';
+                        lockBtn.textContent = '🔒 قفل البوت';
+                        lockBtn.className = 'lock-btn';
+                    }
+                }
+            } catch (e) {
+                console.log('خطأ في جلب حالة القفل');
+            }
+        }
+
+        // ========== زر قفل/فتح البوت ==========
+        async function toggleBotLock() {
+            const btn = document.getElementById('lockBtn');
+            const isLocked = btn.textContent.includes('قفل');
+            const action = isLocked ? 'lock' : 'unlock';
+            const data = await api('/api/toggle_lock', { action: action });
+            if (data && data.success) {
+                updateLockStatus();
+                alert(data.locked ? '✅ تم قفل البوت' : '✅ تم فتح البوت');
+            } else {
+                alert('❌ فشل تغيير حالة القفل');
+            }
+        }
+
+        // ========== إدارة المكتومين ==========
         async function loadMuted() {
             const container = document.getElementById('mutedList');
             container.innerHTML = '<p>جاري التحميل...</p>';
@@ -260,6 +319,7 @@
             loadMuted();
         }
 
+        // ========== المجموعات ==========
         async function loadGroups() {
             const container = document.getElementById('groupsList');
             const data = await api('/api/groups');
@@ -268,6 +328,7 @@
             }
         }
 
+        // ========== الإذاعة ==========
         async function sendBroadcast() {
             const msg = document.getElementById('broadcastMsg').value.trim();
             if (!msg) return alert('اكتب رسالة');
@@ -275,6 +336,7 @@
             document.getElementById('broadcastResult').innerText = data.success ? `✅ تم الإذاعة إلى ${data.count} مجموعة` : '❌ فشل';
         }
 
+        // ========== القائمة السوداء ==========
         async function addGlobalBan() {
             const uid = document.getElementById('banUserId').value.trim();
             if (!uid) return alert('أدخل آيدي');
@@ -289,6 +351,7 @@
             alert('تم');
         }
 
+        // ========== المجموعات غير المفعلة ==========
         async function loadInactiveGroups() {
             const container = document.getElementById('inactiveList');
             container.innerHTML = '<p>جاري التحميل...</p>';
@@ -312,10 +375,8 @@
 
         async function toggleGroup(gid, isActive) {
             if (isActive) {
-                // تعطيل
                 await api('/api/deactivate', { chat_id: gid });
             } else {
-                // تفعيل
                 await api('/api/activate', { chat_id: gid });
             }
             loadInactiveGroups();
@@ -323,13 +384,15 @@
             loadGroups();
         }
 
-        // تحديث تلقائي كل 30 ثانية
+        // ========== تحديث تلقائي ==========
         setInterval(() => {
             if (document.getElementById('muted').classList.contains('active')) loadMuted();
             if (document.getElementById('dashboard').classList.contains('active')) loadDashboard();
         }, 30000);
 
+        // ========== بدء التشغيل ==========
         loadDashboard();
+        updateLockStatus();
     </script>
 </body>
 </html>

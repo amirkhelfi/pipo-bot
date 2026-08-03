@@ -87,6 +87,7 @@ client = TelegramClient('bot', API_ID, API_HASH)
 BOT_PHOTO = None
 API_TOKEN = "pipomaster2026"
 mute_status = {}
+bot_locked = False
 message_count = defaultdict(int)
 chat_locked = False
 pending_users = {}
@@ -734,8 +735,8 @@ async def start(event):
         
         buttons = [
             [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
-            [Button.inline("📋 جميع الميزات", "features"), Button.inline("📊 لوحة التحكم", "dashboard")],
-            [Button.inline("❓ المساعدة", "help"), Button.inline("📜 الأوامر", "commands")]
+            [Button.inline("📋 جميع الميزات", b"features"), Button.inline("📊 لوحة التحكم", b"dashboard")],
+            [Button.inline("❓ المساعدة", b"help"), Button.inline("📜 الأوامر", b"commands")]
         ]
         
         if user_id in user_groups and user_groups[user_id]:
