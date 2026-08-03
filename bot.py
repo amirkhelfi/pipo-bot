@@ -420,6 +420,104 @@ async def check_captcha(event):
         logger.error(f"خطأ في التحقق من الكابتشا: {e}")
 
 # ========== الأزرار والتفاعلات (المعالج الرئيسي) ==========
+
+# ========== نظام لوحة التحكم بالنجوم ==========
+STARS_FILE = stars.json
+
+def load_stars():
+    return load_json(STARS_FILE, {})
+
+def save_stars(stars_data):
+    save_json(STARS_FILE, stars_data)
+
+stars_data = load_stars()
+
+def add_stars(user_id, count):
+    user_id = str(user_id)
+    if user_id not in stars_data:
+        stars_data[user_id] = {stars: 0, phase: start}
+    stars_data[user_id][stars] += count
+    save_stars(stars_data)
+    return stars_data[user_id][stars]
+
+# معالج زر "لوحة التحكم"
+
+async def dashboard_start(event):
+    user_id = str(event.sender_id)
+    user_data = stars_data.get(user_id, {"stars": 0, "phase": "start"})
+    
+    if user_data.get("phase") == "done":
+        await event.edit(
+            "📊 **لوحة التحكم:**
+
+"
+            "🔗 https://pipo-bot.onrender.com/control.html
+
+"
+            "🔑 التوكن: pipomaster2026"
+        )
+        return
+    
+    hint = (
+        "📋 **لوحة التحكم PIPO BOT**
+"
+        "━━━━━━━━━━━━━━━━━━━━━━
+"
+        "🔹 **ماذا توفر لك لوحة التحكم؟**
+
+"
+        "• 📊 إحصائيات المجموعات
+"
+        "• 🔇 إدارة المكتومين
+"
+        "• 📢 الإذاعة للمجموعات
+"
+        "• 🚫 القائمة السوداء
+"
+        "• ⚙️ تفعيل/تعطيل الميزات
+"
+        "━━━━━━━━━━━━━━━━━━━━━━
+"
+        "🔐 **للحصول على الرابط، أرسل 10 نجوم.**
+"
+        "(اضغط الزر أدناه لإرسال نجماتك)"
+    )
+    
+    buttons = [
+        [Button.inline("⭐ أرسل 10 نجوم", "send_stars_10")],
+        [Button.inline("🔙 العودة", "back_to_start")]
+    ]
+    await event.edit(hint, buttons=buttons)
+
+# معالج إرسال النجوم
+@client.on(events.CallbackQuery(func=lambda e: e.data.startswith("send_stars_")))
+async def send_stars(event):
+    user_id = str(event.sender_id)
+    stars_to_send = int(event.data.decode().split("_")[2])
+    
+    total_stars = add_stars(user_id, stars_to_send)
+    user_data = stars_data.get(user_id, {"stars": 0, "phase": "start"})
+    
+    if total_stars >= 10 and user_data.get("phase") != "done":
+        user_data["phase"] = "done"
+        save_stars(stars_data)
+        await event.edit(
+            "🎉 **تهانيناpush*
+"            "📊 **رابط لوحة التحكم:**
+
+"
+            "🔗 https://pipo-bot.onrender.com/control.html
+
+"
+            "🔑 التوكن: pipomaster2026
+"
+            "━━━━━━━━━━━━━━━━━━━━━━
+"
+            buttons=[[Button.inline("🔙 العودة", "back_to_start")]]
+        )
+        return
+    
+
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
     try:
