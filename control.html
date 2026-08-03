@@ -6,34 +6,122 @@
     <title>PIPO BOT – لوحة التحكم</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0f14; color: #e0e0e0; display: flex; min-height: 100vh; }
-        .sidebar { width: 260px; background: #0d131a; border-right: 1px solid #1f2a33; padding: 25px 15px; display: flex; flex-direction: column; gap: 8px; }
-        .sidebar h2 { color: #ff8c00; font-size: 1.3em; margin-bottom: 20px; text-align: center; border-bottom: 1px solid #1f2a33; padding-bottom: 15px; }
-        .sidebar button { background: transparent; border: 1px solid #1f2a33; color: #aaa; padding: 12px 15px; text-align: right; border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: 0.2s; }
-        .sidebar button:hover, .sidebar button.active { background: #1a2530; color: #ff8c00; border-color: #ff8c00; }
-        .main { flex: 1; padding: 30px; overflow-y: auto; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0a0f14;
+            color: #e0e0e0;
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 260px;
+            background: #0d131a;
+            border-right: 1px solid #1f2a33;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sidebar h2 {
+            color: #ff8c00;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 1px solid #1f2a33;
+            padding-bottom: 15px;
+        }
+        .sidebar button {
+            background: transparent;
+            border: 1px solid #1f2a33;
+            color: #aaa;
+            padding: 12px 15px;
+            text-align: right;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: 0.2s;
+        }
+        .sidebar button:hover, .sidebar button.active {
+            background: #1a2530;
+            color: #ff8c00;
+            border-color: #ff8c00;
+        }
+        .main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
         .panel { display: none; }
         .panel.active { display: block; }
         h3 { color: #ff8c00; margin-bottom: 20px; }
-        .card { background: #111920; border: 1px solid #1f2a33; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-box { background: #0d131a; border: 1px solid #1f2a33; border-radius: 10px; padding: 20px; text-align: center; }
+        .card {
+            background: #111920;
+            border: 1px solid #1f2a33;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #0d131a;
+            border: 1px solid #1f2a33;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
         .stat-box .number { font-size: 2em; color: #ff8c00; font-weight: bold; }
         .stat-box .label { color: #777; font-size: 0.9em; margin-top: 5px; }
-        input, textarea { width: 100%; background: #0a0f14; border: 1px solid #1f2a33; color: #e0e0e0; padding: 12px; border-radius: 8px; font-size: 0.95em; margin: 10px 0; }
-        button.action { background: #ff8c00; color: #000; border: none; padding: 12px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input, textarea, select {
+            width: 100%;
+            background: #0a0f14;
+            border: 1px solid #1f2a33;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            margin: 10px 0;
+        }
+        button.action {
+            background: #ff8c00;
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
         button.danger { background: #c0392b; color: #fff; }
         button.success { background: #27ae60; color: #fff; }
-        button.lock-btn { background: #e67e22; color: #fff; }
-        button.unlock-btn { background: #2ecc71; color: #fff; }
-        .mute-card { background: #1a1520; border: 1px solid #ff8c0055; border-radius: 12px; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .mute-card {
+            background: #1a1520;
+            border: 1px solid #ff8c0055;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         .mute-info { flex: 1; }
         .mute-name { color: #ff8c00; font-weight: bold; }
         .mute-time { color: #aaa; font-size: 0.9em; }
         .mute-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .lock-status { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
-        .lock-status.locked { background: #c0392b; color: #fff; }
-        .lock-status.unlocked { background: #27ae60; color: #fff; }
+        .notification-badge {
+            background: #c0392b;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
         .status-active { color: #27ae60; font-weight: bold; }
         .status-inactive { color: #c0392b; font-weight: bold; }
     </style>
@@ -42,25 +130,25 @@
     <div class="sidebar">
         <h2>⚡ PIPO BOT</h2>
         <button onclick="showTab('dashboard')" class="active">🏠 الرئيسية</button>
-        <button onclick="showTab('muted')">🔇 المكتومين</button>
+        <button onclick="showTab('muted')" id="mutedTab">🔇 المكتومين <span class="notification-badge" id="mutedCount">0</span></button>
         <button onclick="showTab('broadcast')">📢 الإذاعة</button>
         <button onclick="showTab('groups')">👥 المجموعات</button>
         <button onclick="showTab('blacklist')">🚫 القائمة السوداء</button>
         <button onclick="showTab('inactive')">📋 إدارة المجموعات</button>
-        <button onclick="toggleBotLock()" id="lockBtn" class="lock-btn">🔒 قفل البوت</button>
+        <button onclick="toggleBotLock()" id="lockBtn">🔒 قفل البوت</button>
     </div>
 
     <div class="main">
         <div id="dashboard" class="panel active">
             <h3>📊 لوحة القيادة</h3>
-            <div id="lockStatusContainer">
-                <span class="lock-status unlocked" id="lockStatusText">🔓 البوت مفتوح</span>
-            </div>
             <div class="stat-grid">
                 <div class="stat-box"><div class="number" id="totalGroups">-</div><div class="label">المجموعات</div></div>
                 <div class="stat-box"><div class="number" id="totalMuted">-</div><div class="label">المكتومين</div></div>
                 <div class="stat-box"><div class="number" id="totalBanned">-</div><div class="label">المحظورين</div></div>
                 <div class="stat-box"><div class="number" id="totalWarnings">-</div><div class="label">التحذيرات</div></div>
+            </div>
+            <div id="lockStatusContainer">
+                <span class="lock-status unlocked" id="lockStatusText">🔓 البوت مفتوح</span>
             </div>
         </div>
 
@@ -80,7 +168,7 @@
         </div>
 
         <div id="groups" class="panel">
-            <h3>👥 المجموعات المفعلة</h3>
+            <h3>👥 المجموعات</h3>
             <button class="action" onclick="loadGroups()">🔄 تحديث</button>
             <div id="groupsList"></div>
         </div>
@@ -95,7 +183,7 @@
         </div>
 
         <div id="inactive" class="panel">
-            <h3>📋 إدارة جميع المجموعات</h3>
+            <h3>📋 مجموعات غير مفعلة</h3>
             <button class="action" onclick="loadInactiveGroups()">🔄 تحديث</button>
             <div id="inactiveList"></div>
         </div>
@@ -106,7 +194,9 @@
         const TOKEN = "pipomaster2026";
 
         async function api(path, data = null) {
-            const opts = { headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN } };
+            const opts = {
+                headers: { "Content-Type": "application/json", "X-Bot-Token": TOKEN }
+            };
             if (data) { opts.method = "POST"; opts.body = JSON.stringify(data); }
             try {
                 const res = await fetch(`${BOT_URL}${path}`, opts);
@@ -132,6 +222,7 @@
                 document.getElementById('totalMuted').innerText = data.totalMuted || 0;
                 document.getElementById('totalBanned').innerText = data.totalBanned || 0;
                 document.getElementById('totalWarnings').innerText = data.totalWarnings || 0;
+                document.getElementById('mutedCount').innerText = data.totalMuted || 0;
             }
             updateLockStatus();
         }
@@ -146,15 +237,15 @@
                         statusText.textContent = '🔒 البوت مقفل';
                         statusText.className = 'lock-status locked';
                         lockBtn.textContent = '🔓 فتح البوت';
-                        lockBtn.className = 'unlock-btn';
+                        lockBtn.className = 'action success';
                     } else {
                         statusText.textContent = '🔓 البوت مفتوح';
                         statusText.className = 'lock-status unlocked';
                         lockBtn.textContent = '🔒 قفل البوت';
-                        lockBtn.className = 'lock-btn';
+                        lockBtn.className = 'action danger';
                     }
                 }
-            } catch (e) { console.log('خطأ في جلب حالة القفل'); }
+            } catch (e) {}
         }
 
         async function toggleBotLock() {
@@ -179,24 +270,31 @@
                     <div class="mute-card">
                         <div class="mute-info">
                             <div class="mute-name">${m.name} (${m.uid})</div>
-                            <div class="mute-time">⏳ متبقي: ${m.remaining} دقيقة</div>
+                            <div class="mute-time">⏳ متبقي: ${m.remaining} دقيقة | المجموعة: ${m.group}</div>
                         </div>
                         <div class="mute-actions">
                             <button class="action success" onclick="unmuteUser(${m.uid}, '${m.chat_id}')">🔓 فك الكتم</button>
+                            <button class="action" onclick="extendMute(${m.uid}, '${m.chat_id}')">⏰ زيادة 10 دقائق</button>
                         </div>
                     </div>
                 `).join('');
+                document.getElementById('mutedCount').innerText = data.muted.length;
             }
         }
 
         async function unmuteUser(uid, chatId) {
             await api('/api/unmute', { uid: uid, chat_id: chatId });
             loadMuted();
+            loadDashboard();
+        }
+
+        async function extendMute(uid, chatId) {
+            await api('/api/extendmute', { uid: uid, chat_id: chatId, minutes: 10 });
+            loadMuted();
         }
 
         async function loadGroups() {
             const container = document.getElementById('groupsList');
-            container.innerHTML = '<p>جاري التحميل...</p>';
             const data = await api('/api/groups');
             if (data && data.groups) {
                 container.innerHTML = data.groups.map(g => `<div class="mute-card"><span>${g.name} (${g.id})</span></div>`).join('');
@@ -226,13 +324,12 @@
 
         async function loadInactiveGroups() {
             const container = document.getElementById('inactiveList');
-            container.innerHTML = '<p>جاري التحميل...</p>';
             const data = await api('/api/inactive');
             if (data && data.groups) {
                 container.innerHTML = data.groups.map(g => `
                     <div class="mute-card">
                         <span>${g.name} (${g.id})</span>
-                        <span>${g.active ? '<span class="status-active">✅ مفعلة</span>' : '<span class="status-inactive">❌ غير مفعلة</span>'}</span>
+                        <span>الحالة: ${g.active ? '<span class="status-active">✅ مفعلة</span>' : '<span class="status-inactive">❌ غير مفعلة</span>'}</span>
                         <button class="action ${g.active ? 'danger' : 'success'}" onclick="toggleGroup('${g.id}', ${g.active})">${g.active ? '❌ تعطيل' : '✅ تفعيل'}</button>
                     </div>
                 `).join('');
@@ -240,11 +337,14 @@
         }
 
         async function toggleGroup(gid, isActive) {
-            const endpoint = isActive ? '/api/deactivate' : '/api/activate';
-            await api(endpoint, { chat_id: gid });
+            if (isActive) {
+                await api('/api/deactivate', { chat_id: gid });
+            } else {
+                await api('/api/activate', { chat_id: gid });
+            }
             loadInactiveGroups();
-            loadGroups();
             loadDashboard();
+            loadGroups();
         }
 
         setInterval(() => {
