@@ -38,7 +38,7 @@ def save_json(path, data):
         logger.error(f"خطأ في حفظ {path}: {e}")
 
 # ============================================================
-#  إعدادات المجموعات
+#  إعدادات المجموعات (كل مجموعة لها ملف خاص)
 # ============================================================
 def get_group_settings(chat_id):
     path = f"group_settings_{chat_id}.json"
@@ -81,6 +81,13 @@ admins = []  # فقط المطور
 def is_admin(sender):
     return sender.username == DEVELOPER_USERNAME or sender.id in admins
 
+async def is_group_admin(chat_id, user_id):
+    try:
+        perms = await client.get_permissions(chat_id, user_id)
+        return perms.is_admin or perms.is_creator
+    except:
+        return False
+
 # ============================================================
 #  المتغيرات العامة
 # ============================================================
@@ -98,51 +105,30 @@ _last_goodbye = {}
 warnings_data = defaultdict(list)
 
 # ============================================================
-#  إدارة الكلمات الممنوعة (مخزنة في ملف JSON)
+#  دوال إعدادات المجموعة
 # ============================================================
-BAD_WORDS_FILE = "bad_words.json"
+async def get_welcome_media(chat_id):
+    return get_group_settings(chat_id).get("welcome_media", {})
 
-def load_bad_words():
-    default_bad_words = [
-        r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
-        r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
-        r'\b(قود|god|goud|gawd|gwd)\b',
-        r'\b(طحان|طيحان|tahhan|tihan|t7an|t7an|t7han|t7han)\b',
-        r'\b(9ahb|9hba|9ahba|9hab|9haba|9hba|9hb|9ahb)\b',
-        r'\b(zebi|zebbi|zeb|zbi|zbbi|zebby|zeby)\b',
-        r'\b(kess|kes|ks|kessou|kesou|ksou)\b',
-        r'\b(tiz|tizi|tizy|tezi|tezy)\b',
-        r'\b(3ass|3as|3asska|3aska|3assk)\b',
-        r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
-        r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-        r'\b(كسمك|كسكم|طيزك|طيزكم|زبك|زبكم|نيكك|نيككم|شرموطة|شراميط|قحبة|قحبات|منيوك|منيوكة|مصطي|مصاطي|قلب|قلبوز|قلبوزة)\b',
-        r'\b(يا[\s]*ابن[\s]*القحبة|يا[\s]*بنت[\s]*القحبة|يا[\s]*ولد[\s]*القحبة)\b',
-        r'\b(انعل[\s]*ابوك|انعل[\s]*امك|انعل[\s]*دينك|انعل[\s]*ربك)\b',
-        r'\b(يلعن[\s]*ابوك|يلعن[\s]*امك|يلعن[\s]*دينك|يلعن[\s]*ربك)\b',
-    ]
-    return load_json(BAD_WORDS_FILE, default_bad_words)
+async def set_welcome_media(chat_id, media_data):
+    settings = get_group_settings(chat_id)
+    settings["welcome_media"] = media_data
+    save_group_settings(chat_id, settings)
 
-def save_bad_words(words):
-    save_json(BAD_WORDS_FILE, words)
+async def get_rules(chat_id):
+    return get_group_settings(chat_id).get("rules", "")
 
-# تحميل الكلمات الممنوعة
-BAD_WORDS = load_bad_words()
+async def set_rules(chat_id, rules_text):
+    settings = get_group_settings(chat_id)
+    settings["rules"] = rules_text
+    save_group_settings(chat_id, settings)
 
-def contains_swear(t):
-    return any(re.search(p, t, re.I) for p in BAD_WORDS) if t else False
+async def get_mute_duration(chat_id):
+    return get_group_settings(chat_id).get("mute_duration", 300)
 
 # ============================================================
-#  باقي دوال الحماية
+#  دوال الحماية
 # ============================================================
-LINK_PATTERNS = [r'https?://\S+', r't\.me/\S+', r'www\.\S+']
-PORN_KEYWORDS = ['sex', 'porn', 'xxx', 'nsfw', 'سكس', 'اباحية', 'جنس', 'porno', 'anal', 'بورن', 'shemale', 'trans', 'gay', 'lesbian', 'cum', 'orgasm', 'clit', 'dick', 'vagina', 'penis', 'breast', 'nude', 'naked', 'fuck', 'motherfucker', 'bitch', 'slut', 'whore']
-
-def contains_link(t):
-    return any(re.search(p, t, re.I) for p in LINK_PATTERNS) if t else False
-
-def is_forward(m):
-    return bool(m.forward)
-
 async def mute_user(chat, user, dur):
     try:
         await client(EditBannedRequest(chat, user, ChatBannedRights(
@@ -186,6 +172,39 @@ async def unban_user(chat, user):
     except Exception as e:
         logger.error(f"خطأ في فك الحظر: {e}")
         return False
+
+# ============================================================
+#  إدارة الكلمات الممنوعة
+# ============================================================
+BAD_WORDS_FILE = "bad_words.json"
+
+def load_bad_words():
+    default = [
+        r'\b(كس|طيز|زب|نيك|شرموطة|قحبة|منيكة|منيوك|مسطي|مصطي|قلب|قلبوز)\b',
+        r'\b(zeb|zebi|zebbi|kahba|9ahba|9ahb|9hba|kess|kessou|tiz|tizi|3ass|3asska)\b',
+        r'\b(قود|god|goud|gawd|gwd)\b',
+        r'\b(طحان|طيحان|tahhan|tihan|t7an|t7an|t7han|t7han)\b',
+        r'\b(9ahb|9hba|9ahba|9hab|9haba|9hba|9hb|9ahb)\b',
+        r'\b(zebi|zebbi|zeb|zbi|zbbi|zebby|zeby)\b',
+        r'\b(kess|kes|ks|kessou|kesou|ksou)\b',
+        r'\b(tiz|tizi|tizy|tezi|tezy)\b',
+        r'\b(3ass|3as|3asska|3aska|3assk)\b',
+        r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
+        r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
+        r'\b(كسمك|كسكم|طيزك|طيزكم|زبك|زبكم|نيكك|نيككم|شرموطة|شراميط|قحبة|قحبات|منيوك|منيوكة|مصطي|مصاطي|قلب|قلبوز|قلبوزة)\b',
+        r'\b(يا[\s]*ابن[\s]*القحبة|يا[\s]*بنت[\s]*القحبة|يا[\s]*ولد[\s]*القحبة)\b',
+        r'\b(انعل[\s]*ابوك|انعل[\s]*امك|انعل[\s]*دينك|انعل[\s]*ربك)\b',
+        r'\b(يلعن[\s]*ابوك|يلعن[\s]*امك|يلعن[\s]*دينك|يلعن[\s]*ربك)\b',
+    ]
+    return load_json(BAD_WORDS_FILE, default)
+
+def save_bad_words(words):
+    save_json(BAD_WORDS_FILE, words)
+
+BAD_WORDS = load_bad_words()
+
+def contains_swear(t):
+    return any(re.search(p, t, re.I) for p in BAD_WORDS) if t else False
 
 # ============================================================
 #  المهام الخلفية
@@ -356,7 +375,7 @@ async def reply_to_bot(event):
     await event.reply("يا خو ما دصرنيش حبب")
 
 # ============================================================
-#  معالج السب (حذف الرسائل + كتم 5 دقائق)
+#  معالج السب
 # ============================================================
 @client.on(events.NewMessage())
 async def swear_handler(event):
@@ -375,32 +394,428 @@ async def swear_handler(event):
 # ============================================================
 #  باقي الميزات (منع الإباحية، البوت الحارس، مانع المكرر، الكابتشا)
 # ============================================================
-# ... (جميع الميزات السابقة كما هي، مع تعديل دوال get_welcome_media, set_welcome_media, get_rules, set_rules، إلخ)
+LINK_PATTERNS = [r'https?://\S+', r't\.me/\S+', r'www\.\S+']
+PORN_KEYWORDS = ['sex', 'porn', 'xxx', 'nsfw', 'سكس', 'اباحية', 'جنس', 'porno', 'anal', 'بورن', 'shemale', 'trans', 'gay', 'lesbian', 'cum', 'orgasm', 'clit', 'dick', 'vagina', 'penis', 'breast', 'nude', 'naked', 'fuck', 'motherfucker', 'bitch', 'slut', 'whore']
+
+def contains_link(t):
+    return any(re.search(p, t, re.I) for p in LINK_PATTERNS) if t else False
+
+def is_forward(m):
+    return bool(m.forward)
+
+@client.on(events.NewMessage())
+async def anti_porn(event):
+    try:
+        if not event.is_group or event.chat_id not in active_groups:
+            return
+        settings = get_group_settings(event.chat_id)
+        if not settings.get("anti_porn_enabled", True):
+            return
+        sender = await event.get_sender()
+        if sender.id == DEVELOPER_ID or is_admin(sender):
+            return
+        text = event.raw_text.lower()
+        for word in PORN_KEYWORDS:
+            if word in text:
+                await event.delete()
+                await event.reply(f"🚫 **ممنوع المحتوى الإباحي!**\n👤 {sender.first_name} تم حذف رسالتك.")
+                await mute_user(event.chat_id, sender.id, 3600)
+                mute_status[sender.id] = {'until': time.time() + 3600, 'name': sender.first_name}
+                return
+    except Exception as e:
+        logger.error(f"خطأ في منع الإباحية: {e}")
+
+@client.on(events.ChatAction(func=lambda e: e.user_joined))
+async def bot_hunter(event):
+    try:
+        chat = event.chat_id
+        if chat not in active_groups:
+            return
+        settings = get_group_settings(chat)
+        if not settings.get("bot_hunter_enabled", True):
+            return
+        user = await event.get_user()
+        me = await client.get_me()
+        if user.bot and user.id != me.id:
+            await client.kick_participant(chat, user.id)
+            await event.reply(f"🚫 **بوت ممنوع!**\n🤖 {user.first_name} تم طرده.")
+    except Exception as e:
+        logger.error(f"خطأ في البوت الحارس: {e}")
+
+@client.on(events.NewMessage())
+async def anti_duplicate(event):
+    try:
+        if not event.is_group or event.chat_id not in active_groups:
+            return
+        settings = get_group_settings(event.chat_id)
+        if not settings.get("anti_duplicate_enabled", True):
+            return
+        sender = await event.get_sender()
+        if sender.id == DEVELOPER_ID or is_admin(sender):
+            return
+        text = event.raw_text.strip()
+        if not text:
+            return
+        now = time.time()
+        if sender.id in user_last_msg and text in user_last_msg[sender.id]:
+            if now - user_last_msg[sender.id][text] < 5:
+                await event.delete()
+                return
+        user_last_msg[sender.id][text] = now
+    except Exception as e:
+        logger.error(f"خطأ في مانع المكرر: {e}")
+
+@client.on(events.ChatAction(func=lambda e: e.user_joined))
+async def captcha_verification(event):
+    try:
+        chat = event.chat_id
+        if chat not in active_groups:
+            return
+        settings = get_group_settings(chat)
+        if not settings.get("captcha_enabled", True):
+            return
+        user = await event.get_user()
+        if user.bot or user.id == DEVELOPER_ID:
+            return
+        uid = user.id
+        num1 = random.randint(1, 10)
+        num2 = random.randint(1, 10)
+        answer = num1 + num2
+        pending_users[uid] = {'answer': answer, 'chat': chat, 'attempts': 0}
+        await client.send_message(chat, f"🔐 **تحقق أمني**\n\n👋 مرحباً {user.first_name}!\nللتحقق من أنك لست بوت، أجب على السؤال التالي:\n\n❓ **{num1} + {num2} = ؟**\n\n⏳ لديك 60 ثانية للإجابة.", buttons=[
+            [Button.inline("❌ أنا بوت", f"captcha_fail_{uid}")]
+        ])
+        await asyncio.sleep(60)
+        if uid in pending_users:
+            del pending_users[uid]
+    except Exception as e:
+        logger.error(f"خطأ في الكابتشا: {e}")
+
+@client.on(events.NewMessage())
+async def check_captcha(event):
+    try:
+        if event.is_private:
+            return
+        uid = event.sender_id
+        if uid not in pending_users:
+            return
+        data = pending_users[uid]
+        if event.raw_text.strip().isdigit() and int(event.raw_text.strip()) == data['answer']:
+            del pending_users[uid]
+            await event.reply("✅ **تم التحقق بنجاح!**\n🎉 أهلاً وسهلاً بك في المجموعة.")
+        else:
+            data['attempts'] += 1
+            if data['attempts'] >= 3:
+                try:
+                    await client.kick_participant(data['chat'], uid)
+                except:
+                    pass
+                del pending_users[uid]
+                await event.reply("❌ **فشل التحقق!**\n🚫 تم طردك من المجموعة.")
+    except Exception as e:
+        logger.error(f"خطأ في التحقق من الكابتشا: {e}")
 
 # ============================================================
-#  دوال إعدادات المجموعة (مختصرة للاختصار، لكن موجودة في الكود الكامل)
+#  الأزرار والتفاعلات العامة
 # ============================================================
-async def get_welcome_media(chat_id):
-    return get_group_settings(chat_id).get("welcome_media", {})
+@client.on(events.CallbackQuery)
+async def callback_handler(event):
+    try:
+        data = event.data.decode('utf-8')
 
-async def set_welcome_media(chat_id, media_data):
+        if data.startswith("welcomesp_"):
+            _, uid = data.split("_")
+            await client.send_message(int(uid), "🎉 أهلاً وسهلاً! نتمنى لك أجمل الأوقات. 👋")
+            await event.answer()
+        elif data == "rules_btn":
+            chat = event.chat_id
+            rules_text = await get_rules(chat)
+            if rules_text:
+                await event.answer(rules_text[:200], alert=True)
+            else:
+                await event.answer("لا توجد قوانين بعد.", alert=True)
+        elif data.startswith("myinfo_"):
+            uid = int(data.split("_")[1])
+            warns = len(warnings_data.get(uid, []))
+            is_muted = "غير مكتوم" if uid not in mute_status or mute_status[uid]['until'] < time.time() else "مكتوم"
+            await event.answer(f"تحذيرات: {warns}/3\nكتم: {is_muted}", alert=True)
+        elif data == "top_btn":
+            if not message_count:
+                await event.answer("لا بيانات بعد.", alert=True)
+            else:
+                items = sorted(message_count.items(), key=lambda x: x[1], reverse=True)[:5]
+                txt = ""
+                for i, (uid, _) in enumerate(items, 1):
+                    try:
+                        name = (await client.get_entity(uid)).first_name
+                    except:
+                        name = str(uid)
+                    txt += f"{i}. {name}\n"
+                await event.answer(txt, alert=True)
+        elif data == "features":
+            text = """📋 **جميع ميزات PIPO BOT**
+━━━━━━━━━━━━━━━━━━━━━━
+🛡️ **الحماية:**
+• حماية السب 🚫
+• حماية الروابط 🔗
+• حماية التوجيه 📨
+• منع الإباحية 🔞
+• البوت الحارس 🤖
+• مانع المكرر ♻️
+• مانع المزعجة 📢
+
+👑 **الإدارة:**
+• نظام الكتم 🔇
+• نظام الحظر 🚫
+• نظام التحذيرات ⚠️
+• نظام التقارير 📊
+• القيود المتقدمة ⚙️
+
+🎨 **الترحيب:**
+• ترحيب فيديو 🎥
+• ترحيب صورة 📸
+• ترحيب نص 📝
+• وداعاً 👋
+
+📊 **لوحة التحكم:**
+• إحصائيات 📈
+• إدارة المجموعات 👥
+• الإذاعة 📢
+• القائمة السوداء 🚫
+━━━━━━━━━━━━━━━━━━━━━━
+👑 @amirx_xpipo"""
+            await event.edit(text)
+        elif data == "help":
+            await event.edit("❓ **المساعدة:**\n\n📌 **للحصول على المساعدة:**\n• تواصل مع المطور @amirx_xpipo\n• قم بزيارة لوحة التحكم\n• اكتب /الاوامر لعرض جميع الأوامر")
+        elif data == "commands":
+            await event.edit("📜 **الأوامر:**\n\n🛡️ **المسؤول:**\n/تفعيل - /تعطيل\n/قفل_المجموعة - /فك_القفل\n/كتم - /حظر - /فك_الحظر\n/تحذير - /عرض_التحذيرات\n/مسح عدد - /تثبيت\n\n👤 **الأعضاء:**\n/ايدي - /قوانين - /معلومات\n/توب_المتفاعلين - /تقرير\n/الاوامر - /مساعدة\n\n👑 **المطور:**\n/المجموعات - /رفع_مسؤول\n/تعيين_ترحيب - /تعيين_فيديو_ترحيب\n/الخروج_من_المجموعة")
+        elif data == "back_to_start":
+            await start(event)
+        elif data.startswith("config_"):
+            chat_id = int(data.split("_")[1])
+            text, buttons = await generate_group_controls(chat_id)
+            await event.edit(text, buttons=buttons)
+        elif data.startswith("toggle_"):
+            parts = data.split("_")
+            chat_id = int(parts[2])
+            feature = parts[1]
+            settings = get_group_settings(chat_id)
+            if feature == "swear":
+                settings["swear_protection"] = not settings.get("swear_protection", True)
+                label = "حماية السب"
+            elif feature == "links":
+                settings["link_protection"] = not settings.get("link_protection", True)
+                label = "حماية الروابط"
+            elif feature == "forward":
+                settings["forward_protection"] = not settings.get("forward_protection", True)
+                label = "حماية التوجيه"
+            elif feature == "captcha":
+                settings["captcha_enabled"] = not settings.get("captcha_enabled", True)
+                label = "التحقق (كابتشا)"
+            elif feature == "porn":
+                settings["anti_porn_enabled"] = not settings.get("anti_porn_enabled", True)
+                label = "منع الإباحية"
+            elif feature == "hunter":
+                settings["bot_hunter_enabled"] = not settings.get("bot_hunter_enabled", True)
+                label = "البوت الحارس"
+            elif feature == "duplicate":
+                settings["anti_duplicate_enabled"] = not settings.get("anti_duplicate_enabled", True)
+                label = "مانع المكرر"
+            else:
+                await event.answer("ميزة غير معروفة.", alert=True)
+                return
+            save_group_settings(chat_id, settings)
+            await event.answer(f"✅ تم {'تفعيل' if settings.get(feature + '_enabled' if feature not in ['swear','links','forward'] else feature + '_protection', True) else 'تعطيل'} {label}")
+            text, buttons = await generate_group_controls(chat_id)
+            await event.edit(text, buttons=buttons)
+        elif data == "mute_dur":
+            await event.reply(f"⏰ {mute_duration//60} د")
+        elif data == "bot_stat":
+            await event.reply(f"📊 مكتوم: {len(mute_status)}")
+        elif data == "get_id":
+            await event.reply(f"🆔 {event.chat_id}")
+        elif data == "unmute_all_btn":
+            for u in list(mute_status.keys()):
+                try:
+                    await unmute_user(event.chat_id, u)
+                    del mute_status[u]
+                except:
+                    pass
+            await event.reply("🔓 فك الكل")
+        elif data.startswith("add_"):
+            if not is_admin(await event.get_sender()):
+                return
+            _, uid, mins = data.split("_")
+            uid = int(uid)
+            mins = int(mins)
+            await mute_user(event.chat_id, uid, mins*60)
+            mute_status[uid] = {'until': time.time()+mins*60}
+            await event.edit(f"✅ +{mins} دقائق")
+    except Exception as e:
+        logger.error(f"خطأ في الأزرار: {e}")
+        await event.answer("حدث خطأ، حاول مرة أخرى.", alert=True)
+
+# ============================================================
+#  دالة إنشاء أزرار التحكم في المجموعة
+# ============================================================
+async def generate_group_controls(chat_id):
     settings = get_group_settings(chat_id)
-    settings["welcome_media"] = media_data
-    save_group_settings(chat_id, settings)
+    try:
+        entity = await client.get_entity(chat_id)
+        group_name = entity.title
+    except:
+        group_name = str(chat_id)
 
-async def get_rules(chat_id):
-    return get_group_settings(chat_id).get("rules", "")
+    text = f"📋 **إعدادات المجموعة: {group_name}**\n━━━━━━━━━━━━━━━━━━━━━━\n"
+    text += f"🆔 المعرف: `{chat_id}`\n\n"
+    text += "🔘 **اضغط على الزر لتفعيل/تعطيل الميزة:**\n"
 
-async def set_rules(chat_id, rules_text):
-    settings = get_group_settings(chat_id)
-    settings["rules"] = rules_text
-    save_group_settings(chat_id, settings)
+    status_swear = "✅" if settings.get("swear_protection", True) else "❌"
+    status_links = "✅" if settings.get("link_protection", True) else "❌"
+    status_forward = "✅" if settings.get("forward_protection", True) else "❌"
+    status_captcha = "✅" if settings.get("captcha_enabled", True) else "❌"
+    status_porn = "✅" if settings.get("anti_porn_enabled", True) else "❌"
+    status_hunter = "✅" if settings.get("bot_hunter_enabled", True) else "❌"
+    status_duplicate = "✅" if settings.get("anti_duplicate_enabled", True) else "❌"
 
-async def get_mute_duration(chat_id):
-    return get_group_settings(chat_id).get("mute_duration", 300)
+    buttons = [
+        [Button.inline(f"{status_swear} حماية السب", f"toggle_swear_{chat_id}")],
+        [Button.inline(f"{status_links} حماية الروابط", f"toggle_links_{chat_id}")],
+        [Button.inline(f"{status_forward} حماية التوجيه", f"toggle_forward_{chat_id}")],
+        [Button.inline(f"{status_captcha} التحقق (كابتشا)", f"toggle_captcha_{chat_id}")],
+        [Button.inline(f"{status_porn} منع الإباحية", f"toggle_porn_{chat_id}")],
+        [Button.inline(f"{status_hunter} البوت الحارس", f"toggle_hunter_{chat_id}")],
+        [Button.inline(f"{status_duplicate} مانع المكرر", f"toggle_duplicate_{chat_id}")],
+        [Button.inline("🔙 العودة للقائمة الرئيسية", "back_to_start")]
+    ]
+    return text, buttons
 
 # ============================================================
-#  API كاملة للوحة التحكم (مع إدارة الكلمات الممنوعة)
+#  أمر /start
+# ============================================================
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    try:
+        sender = await event.get_sender()
+        user_id = str(sender.id)
+
+        if event.is_group:
+            await event.reply("🤖 PIPO BOT يعمل في هذه المجموعة!\nاستخدم الأوامر للتحكم.")
+            return
+
+        text = "🤖 **PIPO BOT** 🛡️\n━━━━━━━━━━━━━━━━━━━━━━\nبوت حماية متطور للمجموعات\n━━━━━━━━━━━━━━━━━━━━━━\n👑 **المطور:** @amirx_xpipo\n━━━━━━━━━━━━━━━━━━━━━━"
+
+        buttons = [
+            [Button.url("➕ أضفني إلى مجموعتك", f"https://t.me/{(await client.get_me()).username}?startgroup=start")],
+            [Button.inline("📋 جميع الميزات", b"features"), Button.inline("📊 لوحة التحكم", b"dashboard")],
+            [Button.inline("❓ المساعدة", b"help"), Button.inline("📜 الأوامر", b"commands")]
+        ]
+
+        if user_id in user_groups and user_groups[user_id]:
+            text += "\n\n📌 **مجموعاتك:**"
+            for chat_id in user_groups[user_id]:
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                    name = entity.title
+                    text += f"\n• {name}"
+                except:
+                    pass
+            text += "\n\n🔽 **لضبط إعدادات مجموعة، اضغط على اسمها:**"
+            group_buttons = []
+            for chat_id in user_groups[user_id]:
+                try:
+                    entity = await client.get_entity(int(chat_id))
+                    name = entity.title[:20]
+                    group_buttons.append([Button.inline(f"⚙️ {name}", f"config_{chat_id}")])
+                except:
+                    pass
+            buttons = group_buttons + buttons
+
+        if BOT_PHOTO:
+            try:
+                await client.send_file(event.chat_id, BOT_PHOTO, caption=text, buttons=buttons)
+                return
+            except:
+                pass
+        await event.reply(text, buttons=buttons)
+
+    except Exception as e:
+        logger.error(f"خطأ في /start: {e}")
+
+# ============================================================
+#  التفعيل التلقائي عند إضافة البوت
+# ============================================================
+@client.on(events.ChatAction(func=lambda e: e.user_added and e.user_id == client.loop.run_until_complete(client.get_me()).id))
+async def on_bot_added(event):
+    try:
+        chat = event.chat_id
+        adder_id = str(event.action_message.from_id.user_id)
+
+        active_groups.add(int(chat))
+        save_groups()
+
+        if adder_id not in user_groups:
+            user_groups[adder_id] = []
+        if chat not in user_groups[adder_id]:
+            user_groups[adder_id].append(chat)
+        save_user_groups()
+
+        await event.reply("🤖 شكراً لإضافتي! أنا بوت PIPO للحماية.\n✅ تم تفعيل الحماية تلقائياً.\n👑 يمكنك ضبط الإعدادات من الخاص عبر /start")
+
+        try:
+            await client.send_message(int(adder_id), f"✅ تم إضافة البوت إلى مجموعة `{chat}` بنجاح!\n📋 لضبط الإعدادات، اذهب للخاص واكتب /start")
+        except:
+            pass
+
+    except Exception as e:
+        logger.error(f"خطأ في حدث إضافة البوت: {e}")
+
+# ============================================================
+#  الأوامر الإدارية
+# ============================================================
+@client.on(events.NewMessage(pattern='^/تفعيل$'))
+async def activate_group(event):
+    sender = await event.get_sender()
+    # السماح للمطور أو أي مشرف في المجموعة
+    if not is_admin(sender) and not await is_group_admin(event.chat_id, sender.id):
+        await event.reply("❌ هذا الأمر للمشرفين فقط.")
+        return
+    active_groups.add(int(event.chat_id))
+    save_groups()
+    await event.reply("✅ تم تفعيل البوت في هذه المجموعة.\n🔹 تأكد من رفع البوت كمشرف ليعمل بشكل كامل.")
+
+@client.on(events.NewMessage(pattern='^/تعطيل$'))
+async def deactivate_group(event):
+    sender = await event.get_sender()
+    if not is_admin(sender) and not await is_group_admin(event.chat_id, sender.id):
+        await event.reply("❌ هذا الأمر للمشرفين فقط.")
+        return
+    active_groups.discard(int(event.chat_id))
+    save_groups()
+    await event.reply("❌ تم تعطيل البوت في هذه المجموعة")
+
+@client.on(events.NewMessage(pattern='^/قوانين$'))
+async def rules(event):
+    chat = event.chat_id
+    rules_text = await get_rules(chat)
+    if not rules_text:
+        await event.reply("❌ لم يتم تعيين قوانين لهذه المجموعة بعد.")
+    else:
+        await event.reply(f"📜 **قوانين المجموعة:**\n{rules_text}")
+
+@client.on(events.NewMessage(pattern='^/تعيين_قوانين (.+)$'))
+async def set_rules_cmd(event):
+    sender = await event.get_sender()
+    if not is_admin(sender) and not await is_group_admin(event.chat_id, sender.id):
+        await event.reply("❌ هذا الأمر للمشرفين فقط.")
+        return
+    chat = event.chat_id
+    rules_text = event.pattern_match.group(1)
+    await set_rules(chat, rules_text)
+    await event.reply("✅ تم تعيين القوانين بنجاح!")
+
+# ============================================================
+#  API كاملة للوحة التحكم
 # ============================================================
 async def health(request):
     return web.Response(text="OK")
@@ -523,35 +938,27 @@ async def handle_api(request):
         elif action == 'unlock':
             private_locked = False
         return web.json_response({'success': True, 'locked': private_locked})
-    
-    # ============================================================
-    #  إدارة الكلمات الممنوعة (API)
-    # ============================================================
     if path == '/api/bad_words':
         return web.json_response({'words': BAD_WORDS})
     if path == '/api/add_bad_word':
         word = data.get('word', '').strip()
         if word:
-            # نضيف الكلمة بشكل صحيح مع حدود الكلمة
             new_word = r'\b(' + re.escape(word) + r')\b'
             if new_word not in BAD_WORDS:
                 BAD_WORDS.append(new_word)
                 save_bad_words(BAD_WORDS)
                 return web.json_response({'success': True})
-            else:
-                return web.json_response({'error': 'الكلمة موجودة مسبقاً'})
+            return web.json_response({'error': 'الكلمة موجودة مسبقاً'})
         return web.json_response({'error': 'كلمة فارغة'})
     if path == '/api/remove_bad_word':
         word = data.get('word', '').strip()
         if word:
-            # نحذف الكلمة إذا كانت موجودة
             to_remove = r'\b(' + re.escape(word) + r')\b'
             if to_remove in BAD_WORDS:
                 BAD_WORDS.remove(to_remove)
                 save_bad_words(BAD_WORDS)
                 return web.json_response({'success': True})
-            else:
-                return web.json_response({'error': 'الكلمة غير موجودة'})
+            return web.json_response({'error': 'الكلمة غير موجودة'})
         return web.json_response({'error': 'كلمة فارغة'})
 
     return web.json_response({'error': 'Unknown'})
@@ -590,7 +997,6 @@ async def main():
         app.router.add_post('/api/toggle_lock', handle_api)
         app.router.add_get('/api/private_status', handle_api)
         app.router.add_post('/api/toggle_private', handle_api)
-        # إدارة الكلمات الممنوعة
         app.router.add_get('/api/bad_words', handle_api)
         app.router.add_post('/api/add_bad_word', handle_api)
         app.router.add_post('/api/remove_bad_word', handle_api)
