@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ PIPO BOT – لوحة التحكم الاحترافية v3.5</title>
+    <title>⚡ PIPO BOT – لوحة التحكم الاحترافية v4.0</title>
 
     <!-- Google Fonts: Cairo & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,6 @@
             --primary-orange: #ff8c00;
             --primary-orange-glow: rgba(255, 140, 0, 0.25);
             --neon-cyan: #00d4ff;
-            --neon-cyan-glow: rgba(0, 212, 255, 0.2);
             --danger-red: #ff3860;
             --success-green: #2ecc71;
             --text-main: #f0f4f8;
@@ -57,7 +56,6 @@
             overflow: hidden;
         }
 
-        /* Header Styling */
         .header-brand {
             display: flex;
             justify-content: space-between;
@@ -115,14 +113,11 @@
             border: 1px solid #1f2a33;
             background: #111822;
         }
-
         .status-pill.connected { border-color: rgba(46, 204, 113, 0.4); color: #2ecc71; }
         .status-pill.disconnected { border-color: rgba(255, 56, 96, 0.4); color: #ff3860; }
         .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
-
         @keyframes pulse { 0% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.3; transform: scale(0.8); } }
 
-        /* Navigation Tabs */
         .tab-bar {
             display: flex;
             flex-wrap: wrap;
@@ -148,29 +143,24 @@
             align-items: center;
             gap: 8px;
         }
-
         .tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-
         .tab-btn.active {
             background: linear-gradient(135deg, var(--primary-orange), #ff6a00);
             color: #000;
             box-shadow: 0 4px 15px var(--primary-orange-glow);
         }
-
         .tab-btn.lock-btn {
             margin-right: auto;
             background: #1a232f;
             color: var(--primary-orange);
             border: 1px solid rgba(255, 140, 0, 0.3);
         }
-
         .tab-btn.lock-btn.locked {
             background: rgba(255, 56, 96, 0.2);
             color: #ff3860;
             border-color: rgba(255, 56, 96, 0.5);
         }
 
-        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -187,9 +177,7 @@
             overflow: hidden;
             transition: transform 0.3s ease, border-color 0.3s ease;
         }
-
         .stat-card:hover { transform: translateY(-3px); border-color: var(--primary-orange); }
-
         .stat-card .icon-box {
             position: absolute;
             top: 20px;
@@ -204,7 +192,6 @@
             justify-content: center;
             font-size: 18px;
         }
-
         .stat-card .number {
             font-size: 2.2em;
             color: #fff;
@@ -212,14 +199,12 @@
             font-family: 'JetBrains Mono', monospace;
             margin-top: 5px;
         }
-
         .stat-card .label {
             color: var(--text-muted);
             font-size: 0.88em;
             font-weight: 600;
         }
 
-        /* General Card & Forms */
         .card {
             background: #101721;
             border: 1px solid var(--card-border);
@@ -244,7 +229,6 @@
             align-items: center;
             gap: 8px;
         }
-
         button.btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
         button.btn-success { background: #2ecc71; color: #000; }
         button.btn-danger { background: #ff3860; color: #fff; }
@@ -261,10 +245,8 @@
             outline: none;
             transition: border-color 0.3s ease;
         }
-
         input:focus, textarea:focus { border-color: var(--primary-orange); box-shadow: 0 0 10px var(--primary-orange-glow); }
 
-        /* Muted & Group Items */
         .item-row {
             background: #141d2a;
             border: 1px solid var(--card-border);
@@ -278,7 +260,6 @@
             gap: 12px;
             transition: background 0.2s ease;
         }
-
         .item-row:hover { background: #182333; }
 
         .badge {
@@ -290,13 +271,11 @@
             font-size: 0.8em;
             font-weight: 700;
         }
-
         .badge.active { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
         .badge.inactive { background: rgba(255, 56, 96, 0.15); color: #ff3860; border: 1px solid rgba(255, 56, 96, 0.3); }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 768px) {
@@ -315,7 +294,7 @@
             <div class="brand-title">
                 <div class="brand-logo"><i class="fa-solid fa-bolt"></i></div>
                 <div>
-                    <h1><span>PIPO BOT</span> – لوحة التحكم v3.5</h1>
+                    <h1><span>PIPO BOT</span> – لوحة التحكم v4.0</h1>
                     <p style="color: var(--text-muted); font-size: 0.85em; margin-top: 2px;">نظام إدارة وتأمين مجموعات التليجرام الفائق</p>
                 </div>
             </div>
@@ -331,6 +310,7 @@
             <button class="tab-btn" onclick="showTab('muted')"><i class="fa-solid fa-volume-xmark"></i> المكتومين</button>
             <button class="tab-btn" onclick="showTab('broadcast')"><i class="fa-solid fa-bullhorn"></i> الإذاعة</button>
             <button class="tab-btn" onclick="showTab('groups')"><i class="fa-solid fa-users"></i> المجموعات</button>
+            <button class="tab-btn" onclick="showTab('badwords')"><i class="fa-solid fa-ban"></i> الكلمات الممنوعة</button>
             <button class="tab-btn" onclick="showTab('settings')"><i class="fa-solid fa-gears"></i> الإعدادات</button>
             <button class="tab-btn lock-btn" onclick="toggleBotLock()" id="lockBtn"><i class="fa-solid fa-lock"></i> قفل البوت</button>
         </div>
@@ -338,26 +318,10 @@
         <!-- TAB 1: DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="icon-box"><i class="fa-solid fa-users-viewfinder"></i></div>
-                    <div class="label">إجمالي المجموعات</div>
-                    <div class="number" id="totalGroups">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box"><i class="fa-solid fa-microphone-slash"></i></div>
-                    <div class="label">الأعضاء المكتومين</div>
-                    <div class="number" id="totalMuted" style="color: #ffb703;">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box"><i class="fa-solid fa-user-slash"></i></div>
-                    <div class="label">المحظورين (Banned)</div>
-                    <div class="number" id="totalBanned" style="color: var(--danger-red);">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <div class="label">التحذيرات المرسلة</div>
-                    <div class="number" id="totalWarnings" style="color: var(--neon-cyan);">0</div>
-                </div>
+                <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-users-viewfinder"></i></div><div class="label">إجمالي المجموعات</div><div class="number" id="totalGroups">0</div></div>
+                <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-microphone-slash"></i></div><div class="label">الأعضاء المكتومين</div><div class="number" id="totalMuted" style="color: #ffb703;">0</div></div>
+                <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-user-slash"></i></div><div class="label">المحظورين (Banned)</div><div class="number" id="totalBanned" style="color: var(--danger-red);">0</div></div>
+                <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="label">التحذيرات المرسلة</div><div class="number" id="totalWarnings" style="color: var(--neon-cyan);">0</div></div>
             </div>
 
             <div class="card flex-between">
@@ -399,7 +363,20 @@
             <div id="groupsList"></div>
         </div>
 
-        <!-- TAB 5: SETTINGS -->
+        <!-- TAB 5: BAD WORDS MANAGEMENT -->
+        <div id="tab-badwords" class="tab-content">
+            <h3>🚫 إدارة الكلمات الممنوعة (السب)</h3>
+            <div class="card" style="margin-top: 15px;">
+                <p style="color: var(--text-muted); margin-bottom: 10px;">أضف كلمة جديدة أو احذف كلمة موجودة من قائمة السب.</p>
+                <div class="flex-between" style="gap: 10px;">
+                    <input type="text" id="newBadWord" placeholder="اكتب كلمة جديدة..." style="flex:1; margin:0;">
+                    <button class="btn-primary" onclick="addBadWord()"><i class="fa-solid fa-plus"></i> إضافة</button>
+                </div>
+                <div id="badWordsList" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- TAB 6: SETTINGS -->
         <div id="tab-settings" class="tab-content">
             <h3>⚙️ إعدادات رابط السيرفر ورمز التوكين</h3>
             <div class="card" style="margin-top: 15px;">
@@ -443,6 +420,7 @@
             if (id === 'dashboard') loadDashboard();
             if (id === 'muted') loadMuted();
             if (id === 'groups') loadGroups();
+            if (id === 'badwords') loadBadWords();
         }
 
         async function loadDashboard() {
@@ -453,7 +431,6 @@
                 document.getElementById('totalBanned').innerText = data.totalBanned || 0;
                 document.getElementById('totalWarnings').innerText = data.totalWarnings || 0;
             } else {
-                // إذا فشل، نعرض أرقام وهمية للعرض
                 document.getElementById('totalGroups').innerText = '0';
                 document.getElementById('totalMuted').innerText = '0';
                 document.getElementById('totalBanned').innerText = '0';
@@ -587,6 +564,62 @@
             }
         }
 
+        // ============================================================
+        //  إدارة الكلمات الممنوعة
+        // ============================================================
+        async function loadBadWords() {
+            const container = document.getElementById('badWordsList');
+            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري تحميل الكلمات...</p>';
+            const data = await api('/api/bad_words');
+            if (data && data.words && data.words.length > 0) {
+                // عرض الكلمات بشكل مبسط (استخراج النص من التعبير النمطي)
+                container.innerHTML = data.words.map(w => {
+                    // استخراج الكلمة من التعبير النمطي \b(كلمة)\b
+                    let clean = w;
+                    try {
+                        const match = w.match(/\\b\\((.*?)\\)\\b/);
+                        if (match) clean = match[1];
+                    } catch(e) {}
+                    return `
+                        <div class="item-row">
+                            <span><strong>${clean}</strong></span>
+                            <button class="btn-primary btn-danger" onclick="removeBadWord('${clean}')"><i class="fa-solid fa-trash"></i> حذف</button>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = '<p style="color: var(--text-muted);">📭 لا توجد كلمات ممنوعة حالياً</p>';
+            }
+        }
+
+        async function addBadWord() {
+            const input = document.getElementById('newBadWord');
+            const word = input.value.trim();
+            if (!word) return alert('يرجى كتابة كلمة');
+            const data = await api('/api/add_bad_word', { word: word });
+            if (data && data.success) {
+                alert('✅ تم إضافة الكلمة بنجاح');
+                input.value = '';
+                loadBadWords();
+            } else {
+                alert('❌ فشل إضافة الكلمة: ' + (data.error || 'خطأ غير معروف'));
+            }
+        }
+
+        async function removeBadWord(word) {
+            if (!confirm('هل أنت متأكد من حذف الكلمة "' + word + '"؟')) return;
+            const data = await api('/api/remove_bad_word', { word: word });
+            if (data && data.success) {
+                alert('✅ تم حذف الكلمة بنجاح');
+                loadBadWords();
+            } else {
+                alert('❌ فشل حذف الكلمة: ' + (data.error || 'خطأ غير معروف'));
+            }
+        }
+
+        // ============================================================
+        //  الإعدادات
+        // ============================================================
         function saveConfig() {
             BOT_URL = document.getElementById('cfgBotUrl').value;
             TOKEN = document.getElementById('cfgToken').value;
