@@ -89,7 +89,7 @@ BOT_PHOTO = None
 API_TOKEN = "pipomaster2026"
 mute_status = {}
 bot_locked = False
-private_locked = False  # إغلاق الخاص
+private_locked = False
 message_count = defaultdict(int)
 chat_locked = False
 pending_users = {}
@@ -181,7 +181,6 @@ BAD_WORDS = [
     r'\b(3ass|3as|3asska|3aska|3assk)\b',
     r'\b(nik|nikom|nikk|neek|nekk|nkk|n6|n6k)\b',
     r'\b(9wd|9wad|9awd|gawd|goud|god|9od)\b',
-    # كلمات إضافية
     r'\b(كسمك|كسكم|طيزك|طيزكم|زبك|زبكم|نيكك|نيككم|شرموطة|شراميط|قحبة|قحبات|منيوك|منيوكة|مصطي|مصاطي|قلب|قلبوز|قلبوزة)\b',
     r'\b(يا[\s]*ابن[\s]*القحبة|يا[\s]*بنت[\s]*القحبة|يا[\s]*ولد[\s]*القحبة)\b',
     r'\b(انعل[\s]*ابوك|انعل[\s]*امك|انعل[\s]*دينك|انعل[\s]*ربك)\b',
@@ -353,9 +352,8 @@ async def reply_to_bot(event):
     await event.reply("يا خو ما دصرنيش حبب")
 
 # ============================================================
-#  منع الإباحية
+#  معالج السب (حذف الرسائل + كتم 5 دقائق)
 # ============================================================
-
 @client.on(events.NewMessage())
 async def swear_handler(event):
     if not event.is_group or event.chat_id not in active_groups:
@@ -370,6 +368,9 @@ async def swear_handler(event):
         mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
         await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
 
+# ============================================================
+#  منع الإباحية
+# ============================================================
 @client.on(events.NewMessage())
 async def anti_porn(event):
     try:
@@ -415,21 +416,6 @@ async def bot_hunter(event):
 # ============================================================
 #  مانع المكرر
 # ============================================================
-
-@client.on(events.NewMessage())
-async def swear_handler(event):
-    if not event.is_group or event.chat_id not in active_groups:
-        return
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID or is_admin(sender):
-        return
-    text = event.raw_text
-    if text and contains_swear(text):
-        await event.delete()
-        await mute_user(event.chat_id, sender.id, 300)
-        mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
-        await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
-
 @client.on(events.NewMessage())
 async def anti_duplicate(event):
     try:
@@ -481,21 +467,6 @@ async def captcha_verification(event):
             del pending_users[uid]
     except Exception as e:
         logger.error(f"خطأ في الكابتشا: {e}")
-
-
-@client.on(events.NewMessage())
-async def swear_handler(event):
-    if not event.is_group or event.chat_id not in active_groups:
-        return
-    sender = await event.get_sender()
-    if sender.id == DEVELOPER_ID or is_admin(sender):
-        return
-    text = event.raw_text
-    if text and contains_swear(text):
-        await event.delete()
-        await mute_user(event.chat_id, sender.id, 300)
-        mute_status[sender.id] = {'until': time.time() + 300, 'name': sender.first_name or 'مجهول'}
-        await event.reply(f"🚫 {sender.first_name or 'مجهول'} تم كتمه 5 دقائق بسبب السب.")
 
 @client.on(events.NewMessage())
 async def check_captcha(event):
@@ -907,18 +878,12 @@ async def set_rules_cmd(event):
 # ============================================================
 #  API كاملة للوحة التحكم
 # ============================================================
-# ============================================================
-#  Health & Control Panel
-# ============================================================
 async def health(request):
     return web.Response(text="OK")
 
 async def control_panel(request):
     return web.FileResponse('control.html')
 
-# ============================================================
-#  API
-# ============================================================
 async def handle_api(request):
     token = request.headers.get('X-Bot-Token', '')
     if token != API_TOKEN:
