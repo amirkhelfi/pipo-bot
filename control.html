@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ PIPO BOT – لوحة التحكم الاحترافية v4.0</title>
-
-    <!-- Google Fonts: Cairo & JetBrains Mono -->
+    <title>⚡ PIPO BOT – لوحة التحكم v4.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
         :root {
             --bg-dark: #070a0e;
@@ -28,9 +23,7 @@
             --radius-lg: 18px;
             --radius-md: 12px;
         }
-
         * { margin:0; padding:0; box-sizing:border-box; font-family: 'Cairo', system-ui, sans-serif; }
-
         body {
             background: var(--bg-dark);
             color: var(--text-main);
@@ -39,11 +32,9 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            background-image: 
-                radial-gradient(circle at 10% 10%, rgba(255, 140, 0, 0.05) 0%, transparent 40%),
+            background-image: radial-gradient(circle at 10% 10%, rgba(255, 140, 0, 0.05) 0%, transparent 40%),
                 radial-gradient(circle at 90% 90%, rgba(0, 212, 255, 0.05) 0%, transparent 40%);
         }
-
         .container {
             max-width: 1200px;
             width: 100%;
@@ -55,7 +46,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .header-brand {
             display: flex;
             justify-content: space-between;
@@ -66,13 +56,11 @@
             padding-bottom: 20px;
             border-bottom: 1px solid var(--card-border);
         }
-
         .brand-title {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-
         .brand-logo {
             width: 48px;
             height: 48px;
@@ -85,7 +73,6 @@
             color: #000;
             box-shadow: 0 0 20px var(--primary-orange-glow);
         }
-
         h1 {
             color: #fff;
             font-size: 1.8em;
@@ -94,14 +81,12 @@
             align-items: center;
             gap: 10px;
         }
-
         h1 span {
             color: var(--primary-orange);
             background: linear-gradient(90deg, #ff8c00, #ffc107);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .status-pill {
             display: inline-flex;
             align-items: center;
@@ -117,7 +102,6 @@
         .status-pill.disconnected { border-color: rgba(255, 56, 96, 0.4); color: #ff3860; }
         .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.3; transform: scale(0.8); } }
-
         .tab-bar {
             display: flex;
             flex-wrap: wrap;
@@ -128,7 +112,6 @@
             border-radius: 16px;
             border: 1px solid var(--card-border);
         }
-
         .tab-btn {
             background: transparent;
             color: var(--text-muted);
@@ -160,14 +143,12 @@
             color: #ff3860;
             border-color: rgba(255, 56, 96, 0.5);
         }
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 25px;
         }
-
         .stat-card {
             background: #101721;
             border: 1px solid var(--card-border);
@@ -204,7 +185,6 @@
             font-size: 0.88em;
             font-weight: 600;
         }
-
         .card {
             background: #101721;
             border: 1px solid var(--card-border);
@@ -212,9 +192,7 @@
             padding: 24px;
             margin-bottom: 20px;
         }
-
         .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-
         button.btn-primary {
             background: linear-gradient(135deg, var(--primary-orange), #e67e02);
             color: #000;
@@ -232,7 +210,6 @@
         button.btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
         button.btn-success { background: #2ecc71; color: #000; }
         button.btn-danger { background: #ff3860; color: #fff; }
-
         input, textarea {
             width: 100%;
             background: #090e15;
@@ -246,7 +223,6 @@
             transition: border-color 0.3s ease;
         }
         input:focus, textarea:focus { border-color: var(--primary-orange); box-shadow: 0 0 10px var(--primary-orange-glow); }
-
         .item-row {
             background: #141d2a;
             border: 1px solid var(--card-border);
@@ -261,7 +237,6 @@
             transition: background 0.2s ease;
         }
         .item-row:hover { background: #182333; }
-
         .badge {
             display: inline-flex;
             align-items: center;
@@ -273,11 +248,9 @@
         }
         .badge.active { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
         .badge.inactive { background: rgba(255, 56, 96, 0.15); color: #ff3860; border: 1px solid rgba(255, 56, 96, 0.3); }
-
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
         @media (max-width: 768px) {
             .container { padding: 16px; }
             h1 { font-size: 1.4em; }
@@ -287,9 +260,7 @@
     </style>
 </head>
 <body>
-
     <div class="container">
-        <!-- Top Header -->
         <div class="header-brand">
             <div class="brand-title">
                 <div class="brand-logo"><i class="fa-solid fa-bolt"></i></div>
@@ -304,7 +275,6 @@
             </div>
         </div>
 
-        <!-- Tab Navigation -->
         <div class="tab-bar">
             <button class="tab-btn active" onclick="showTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> الرئيسية</button>
             <button class="tab-btn" onclick="showTab('muted')"><i class="fa-solid fa-volume-xmark"></i> المكتومين</button>
@@ -315,7 +285,6 @@
             <button class="tab-btn lock-btn" onclick="toggleBotLock()" id="lockBtn"><i class="fa-solid fa-lock"></i> قفل البوت</button>
         </div>
 
-        <!-- TAB 1: DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="stats-grid">
                 <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-users-viewfinder"></i></div><div class="label">إجمالي المجموعات</div><div class="number" id="totalGroups">0</div></div>
@@ -323,7 +292,6 @@
                 <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-user-slash"></i></div><div class="label">المحظورين (Banned)</div><div class="number" id="totalBanned" style="color: var(--danger-red);">0</div></div>
                 <div class="stat-card"><div class="icon-box"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="label">التحذيرات المرسلة</div><div class="number" id="totalWarnings" style="color: var(--neon-cyan);">0</div></div>
             </div>
-
             <div class="card flex-between">
                 <div>
                     <h3 style="margin-bottom: 4px;">🔒 حالة حماية البوت:</h3>
@@ -331,18 +299,26 @@
                 </div>
                 <span id="lockStatus" class="badge active" style="font-size: 1em; padding: 8px 18px;"><i class="fa-solid fa-lock-open"></i> البوت نشط ومفتوح</span>
             </div>
+            <!-- زر غلق/فتح الخاص -->
+            <div class="card flex-between" style="margin-top: 10px;">
+                <div>
+                    <h3 style="margin-bottom: 4px;">🔒 حالة الخاص:</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85em;">عند الغلق، يرد البوت على الرسائل الخاصة بـ "تم قفل خاص البوت بواسطة المطور"</p>
+                </div>
+                <button class="btn-primary" onclick="togglePrivateLock()" id="privateLockBtn" style="background: #e67e22;">
+                    <i class="fa-solid fa-lock"></i> غلق الخاص
+                </button>
+            </div>
         </div>
 
-        <!-- TAB 2: MUTED USERS -->
         <div id="tab-muted" class="tab-content">
-            <div class="flex-between mb-10" style="margin-bottom: 15px;">
+            <div class="flex-between" style="margin-bottom: 15px;">
                 <h3>🔇 قائمة الأعضاء المكتومين</h3>
                 <button class="btn-primary" onclick="loadMuted()"><i class="fa-solid fa-rotate"></i> تحديث القائمة</button>
             </div>
             <div id="mutedList"></div>
         </div>
 
-        <!-- TAB 3: BROADCAST -->
         <div id="tab-broadcast" class="tab-content">
             <h3>📢 إذاعة رسالة لجميع المجموعات</h3>
             <div class="card" style="margin-top: 15px;">
@@ -354,7 +330,6 @@
             </div>
         </div>
 
-        <!-- TAB 4: GROUPS -->
         <div id="tab-groups" class="tab-content">
             <div class="flex-between" style="margin-bottom: 15px;">
                 <h3>👥 إدارة المجموعات والقنوات</h3>
@@ -363,10 +338,9 @@
             <div id="groupsList"></div>
         </div>
 
-        <!-- TAB 5: BAD WORDS MANAGEMENT -->
         <div id="tab-badwords" class="tab-content">
             <h3>🚫 إدارة الكلمات الممنوعة (السب)</h3>
-            <div class="card" style="margin-top: 15px;">
+            <div class="card">
                 <p style="color: var(--text-muted); margin-bottom: 10px;">أضف كلمة جديدة أو احذف كلمة موجودة من قائمة السب.</p>
                 <div class="flex-between" style="gap: 10px;">
                     <input type="text" id="newBadWord" placeholder="اكتب كلمة جديدة..." style="flex:1; margin:0;">
@@ -376,16 +350,13 @@
             </div>
         </div>
 
-        <!-- TAB 6: SETTINGS -->
         <div id="tab-settings" class="tab-content">
             <h3>⚙️ إعدادات رابط السيرفر ورمز التوكين</h3>
-            <div class="card" style="margin-top: 15px;">
+            <div class="card">
                 <label style="font-weight: 700; font-size: 0.9em; color: var(--primary-orange);">رابط سيرفر البوت (BOT_URL):</label>
                 <input type="text" id="cfgBotUrl" value="https://pipo-bot.onrender.com">
-
                 <label style="font-weight: 700; font-size: 0.9em; color: var(--primary-orange); margin-top: 10px; display: block;">رمز المرور (Admin Token):</label>
                 <input type="password" id="cfgToken" value="pipomaster2026">
-
                 <button class="btn-primary" style="margin-top: 10px;" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات وفحص الاتصال</button>
             </div>
         </div>
@@ -417,7 +388,7 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + id).classList.add('active');
             event.target.classList.add('active');
-            if (id === 'dashboard') loadDashboard();
+            if (id === 'dashboard') { loadDashboard(); updatePrivateLockStatus(); }
             if (id === 'muted') loadMuted();
             if (id === 'groups') loadGroups();
             if (id === 'badwords') loadBadWords();
@@ -436,7 +407,6 @@
                 document.getElementById('totalBanned').innerText = '0';
                 document.getElementById('totalWarnings').innerText = '0';
             }
-            // تحديث حالة القفل
             const lockData = await api('/api/lock_status');
             if (lockData && !lockData.error) {
                 const lockStatus = document.getElementById('lockStatus');
@@ -453,6 +423,7 @@
                     lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> قفل البوت';
                 }
             }
+            updatePrivateLockStatus();
         }
 
         async function toggleBotLock() {
@@ -460,7 +431,6 @@
             const isLocked = btn.classList.contains('locked');
             const action = isLocked ? 'unlock' : 'lock';
             const data = await api('/api/toggle_lock', { action: action });
-
             if (data && !data.error) {
                 const lockStatus = document.getElementById('lockStatus');
                 if (data.locked) {
@@ -481,12 +451,45 @@
             }
         }
 
+        async function togglePrivateLock() {
+            const btn = document.getElementById('privateLockBtn');
+            const isLocked = btn.textContent.includes('غلق') ? false : true;
+            const action = isLocked ? 'unlock' : 'lock';
+            const data = await api('/api/toggle_private', { action: action });
+            if (data && data.success) {
+                if (data.locked) {
+                    btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> فتح الخاص';
+                    btn.style.background = '#2ecc71';
+                    alert('🔒 تم غلق خاص البوت');
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-lock"></i> غلق الخاص';
+                    btn.style.background = '#e67e22';
+                    alert('🔓 تم فتح خاص البوت');
+                }
+            } else {
+                alert('❌ فشل تغيير حالة الخاص');
+            }
+        }
+
+        async function updatePrivateLockStatus() {
+            const data = await api('/api/private_status');
+            if (data && !data.error) {
+                const btn = document.getElementById('privateLockBtn');
+                if (data.locked) {
+                    btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> فتح الخاص';
+                    btn.style.background = '#2ecc71';
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-lock"></i> غلق الخاص';
+                    btn.style.background = '#e67e22';
+                }
+            }
+        }
+
         async function loadMuted() {
             const container = document.getElementById('mutedList');
-            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري تحميل الأعضاء المكتومين...</p>';
+            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري التحميل...</p>';
             const data = await api('/api/muted');
-            
-            if (data && data.muted && data.muted.length > 0) {
+            if (data && data.muted && data.muted.length) {
                 container.innerHTML = data.muted.map(m => `
                     <div class="item-row">
                         <div>
@@ -514,10 +517,9 @@
 
         async function loadGroups() {
             const container = document.getElementById('groupsList');
-            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري تحميل المجموعات...</p>';
+            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري التحميل...</p>';
             const data = await api('/api/groups');
-            
-            if (data && data.groups && data.groups.length > 0) {
+            if (data && data.groups && data.groups.length) {
                 container.innerHTML = data.groups.map(g => `
                     <div class="item-row">
                         <div>
@@ -526,9 +528,7 @@
                         </div>
                         <div>
                             <span class="badge active">مفعلة</span>
-                            <button class="btn-primary btn-danger" style="margin-right: 8px;" onclick="toggleGroup('${g.id}')">
-                                تعطيل
-                            </button>
+                            <button class="btn-primary btn-danger" onclick="toggleGroup('${g.id}')">تعطيل</button>
                         </div>
                     </div>
                 `).join('');
@@ -564,17 +564,12 @@
             }
         }
 
-        // ============================================================
-        //  إدارة الكلمات الممنوعة
-        // ============================================================
         async function loadBadWords() {
             const container = document.getElementById('badWordsList');
-            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري تحميل الكلمات...</p>';
+            container.innerHTML = '<p style="color: var(--text-muted);">⏳ جاري التحميل...</p>';
             const data = await api('/api/bad_words');
-            if (data && data.words && data.words.length > 0) {
-                // عرض الكلمات بشكل مبسط (استخراج النص من التعبير النمطي)
+            if (data && data.words && data.words.length) {
                 container.innerHTML = data.words.map(w => {
-                    // استخراج الكلمة من التعبير النمطي \b(كلمة)\b
                     let clean = w;
                     try {
                         const match = w.match(/\\b\\((.*?)\\)\\b/);
@@ -617,9 +612,6 @@
             }
         }
 
-        // ============================================================
-        //  الإعدادات
-        // ============================================================
         function saveConfig() {
             BOT_URL = document.getElementById('cfgBotUrl').value;
             TOKEN = document.getElementById('cfgToken').value;
@@ -627,14 +619,14 @@
             loadDashboard();
         }
 
-        // تحديث تلقائي كل 30 ثانية
         setInterval(() => {
-            if (document.getElementById('tab-dashboard').classList.contains('active')) loadDashboard();
+            if (document.getElementById('tab-dashboard').classList.contains('active')) { loadDashboard(); updatePrivateLockStatus(); }
             if (document.getElementById('tab-muted').classList.contains('active')) loadMuted();
             if (document.getElementById('tab-groups').classList.contains('active')) loadGroups();
         }, 30000);
 
         loadDashboard();
+        updatePrivateLockStatus();
     </script>
 </body>
 </html>
