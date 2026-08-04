@@ -346,7 +346,9 @@ async def goodbye_message(event):
 async def private_handler(event):
     if private_locked and event.sender_id != DEVELOPER_ID:
         await event.reply("🔒 تم قفل خاص البوت بواسطة المطور.")
-
+        # منع البوت من معالجة أي أمر آخر
+        return
+    # إذا كان الخاص مفتوحاً، دع البوت يكمل المعالجة العادية
 # ============================================================
 #  أوامر غلق وفتح الخاص (للمطور فقط)
 # ============================================================
@@ -695,6 +697,9 @@ async def generate_group_controls(chat_id):
 # ============================================================
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
+    if event.is_private and private_locked and event.sender_id != DEVELOPER_ID:
+        await event.reply("🔒 تم قفل خاص البوت بواسطة المطور.")
+        return
     try:
         sender = await event.get_sender()
         user_id = str(sender.id)
